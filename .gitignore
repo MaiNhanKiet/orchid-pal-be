@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+/libs/*/node_modules
+/apps/*/node_modules
+
+# Build artifacts
+dist
+/apps/*/dist
+/libs/*/dist
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.nyc_output
+/coverage
+.storybook/out
+
+# Optional: Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Editors/OS
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+
+# NestJS/TypeScript
+/coverage
+*.ts.cache
+*.js.map
+# Exclude test coverage files
+lcov.info
+
+# Monorepo tools specific ignores (adjust based on your tooling, e.g., Nx, Turborepo)
+.nx-cache
+.nx/
+/storybook-static-build

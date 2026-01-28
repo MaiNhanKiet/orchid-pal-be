@@ -1,0 +1,66 @@
+import { Module } from '@nestjs/common';
+import {
+  AllExceptionsFilter,
+  AuthGuard,
+  CommonModule,
+  CustomValidationPipe,
+  LoggingInterceptor,
+  MICROSERVICES_CLIENTS,
+  PermissionRbacGuard,
+  TimeoutInterceptor,
+  TransformInterceptor,
+} from '@app/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { USER_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import { UserController } from './modules/users/user.controller';
+import { UserService } from './modules/users/user.service';
+import { AuthController } from './modules/auth/auth.controller';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+
+@Module({
+  imports: [
+    CommonModule,
+    ClientsModule.register([
+      {
+        name: MICROSERVICES_CLIENTS.USER_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(USER_SERVICE_PORT),
+        },
+      },
+    ]),
+  ],
+  controllers: [UserController, AuthController],
+  providers: [
+    UserService,
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_PIPE,
+      useClass: CustomValidationPipe,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionRbacGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TimeoutInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+  ],
+})
+export class AppModule {}

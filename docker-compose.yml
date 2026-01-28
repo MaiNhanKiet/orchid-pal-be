@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: orchid-pal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: postgres
+    ports:
+      - '5435:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - orchid-network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: orchid-pal-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - '5672:5672' # AMQP protocol
+      - '15672:15672' # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    networks:
+      - orchid-network
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+    name: orchid-pal-postgres-data
+  rabbitmq_data:
+    driver: local
+    name: orchid-pal-rabbitmq-data
+  rabbitmq_log:
+    driver: local
+    name: orchid-pal-rabbitmq-log
+
+# Networks
+networks:
+  orchid-network:
+    driver: bridge
+    name: orchid-pal-network
