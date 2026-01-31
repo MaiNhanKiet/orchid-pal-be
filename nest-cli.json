@@ -55,13 +55,13 @@
         "tsConfigPath": "libs/redis/tsconfig.lib.json"
       }
     },
-    "user-service": {
+    "iam-service": {
       "type": "application",
-      "root": "apps/user-service",
+      "root": "apps/iam-service",
       "entryFile": "main",
-      "sourceRoot": "apps/user-service/src",
+      "sourceRoot": "apps/iam-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/user-service/tsconfig.app.json"
+        "tsConfigPath": "apps/iam-service/tsconfig.app.json"
       }
     },
     "util": {

@@ -11,7 +11,7 @@ import {
   TransformInterceptor,
 } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { USER_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import { IAM_SERVICE_PORT } from '@app/common/constants/env-key.constant';
 import { UserController } from './modules/users/user.controller';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
@@ -25,10 +25,10 @@ import { UsersService } from './modules/users/user.service';
     PassportModule,
     ClientsModule.register([
       {
-        name: MICROSERVICES_CLIENTS.USER_SERVICE,
+        name: MICROSERVICES_CLIENTS.IAM_SERVICE,
         transport: Transport.TCP,
         options: {
-          port: Number(USER_SERVICE_PORT),
+          port: Number(IAM_SERVICE_PORT),
         },
       },
     ]),

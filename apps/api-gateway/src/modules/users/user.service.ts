@@ -7,13 +7,13 @@ import { MICROSERVICES_CLIENTS, GoogleLoginDto } from '@app/common';
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject(MICROSERVICES_CLIENTS.USER_SERVICE)
-    private readonly userClient: ClientProxy,
+    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
+    private readonly iamClient: ClientProxy,
   ) {}
 
   async validateGoogleUser(socialUser: GoogleLoginDto) {
     // return await firstValueFrom(
-    //   this.userClient.send('google_login', socialUser),
+    //   this.iamClient.send('google_login', socialUser),
     // );
     // giả lập trả về để test trước khi User Service chưa chạy
     return {

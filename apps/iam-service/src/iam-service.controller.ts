@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { UsersService } from './user-service.service';
+import { UsersService } from './iam-service.service';
 import { GoogleLoginDto } from '@app/common';
 @Controller()
 export class UsersController {
