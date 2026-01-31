@@ -10,10 +10,10 @@ import { RbacModule } from './rbac/rbac.module';
 @Global()
 @Module({
   imports: [
-    RbacModule,
+    // RbacModule,
     ConfigModule.forRoot(appConfig),
     JwtModule.registerAsync(jwtConfig),
   ],
-  exports: [JwtModule, ConfigModule, RbacModule],
+  exports: [JwtModule, ConfigModule /* RbacModule */],
 })
 export class CommonModule {}

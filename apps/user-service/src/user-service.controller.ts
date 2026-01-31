@@ -1,14 +1,16 @@
-import { Body, Controller, Get } from '@nestjs/common';
-import { UserServiceService } from './user-service.service';
-import { MessagePattern } from '@nestjs/microservices';
-import { LoginDTO } from '@app/common';
-
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { UsersService } from './user-service.service';
+import { GoogleLoginDto } from '@app/common';
 @Controller()
-export class UserServiceController {
-  constructor(private readonly userServiceService: UserServiceService) {}
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
 
-  @MessagePattern('login')
-  login(loginBody: LoginDTO) {
-    return this.userServiceService.login(loginBody);
+  @MessagePattern('google_login')
+  async handleGoogleLogin(
+    @Payload()
+    data: GoogleLoginDto,
+  ) {
+    // return this.usersService.handleGoogleLogin(data);
   }
 }

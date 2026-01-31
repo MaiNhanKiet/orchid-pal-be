@@ -1,15 +1,31 @@
-import { LoginDTO, MICROSERVICES_CLIENTS } from '@app/common';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+// Constant tên service bạn định nghĩa trong libs/common/constants
+import { MICROSERVICES_CLIENTS, GoogleLoginDto } from '@app/common';
 
 @Injectable()
-export class UserService {
+export class UsersService {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.USER_SERVICE)
-    private readonly userServiceClient: ClientProxy,
+    private readonly userClient: ClientProxy,
   ) {}
 
-  getUser(loginBody: LoginDTO) {
-    return this.userServiceClient.send('login', loginBody);
+  async validateGoogleUser(socialUser: GoogleLoginDto) {
+    // return await firstValueFrom(
+    //   this.userClient.send('google_login', socialUser),
+    // );
+    // giả lập trả về để test trước khi User Service chưa chạy
+    return {
+      user: {
+        id: 'mock-user-id',
+        email: socialUser.email,
+        name: `${socialUser.firstName} ${socialUser.lastName}`,
+        provider: socialUser.provider,
+        avatar: socialUser.picture,
+      },
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+    };
   }
 }

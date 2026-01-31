@@ -20,6 +20,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: any = 'Internal server error';
 
+    // Tránh lỗi khi headers đã được gửi khi hủy Google OAuth
+    if (response.headersSent) {
+      this.logger.warn(
+        'Headers already sent, skipping exception filter response.',
+      );
+      return;
+    }
+
     // 1. Xử lý lỗi HTTP thông thường
     if (exception instanceof HttpException) {
       status = exception.getStatus();

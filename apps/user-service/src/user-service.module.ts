@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { UserServiceController } from './user-service.controller';
-import { UserServiceService } from './user-service.service';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import {
@@ -9,21 +7,22 @@ import {
   LoggingInterceptor,
   TimeoutInterceptor,
 } from '@app/common';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: process.env.JWT_SECRET,
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET')!,
         signOptions: {
           expiresIn: '60m',
         },
       }),
+      inject: [ConfigService],
     }),
   ],
-  controllers: [UserServiceController],
+  controllers: [],
   providers: [
-    UserServiceService,
     {
       provide: APP_FILTER,
       useClass: FitRpcExceptionFilter,
