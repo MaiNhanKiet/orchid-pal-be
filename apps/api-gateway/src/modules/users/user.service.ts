@@ -12,20 +12,8 @@ export class UsersService {
   ) {}
 
   async validateGoogleUser(socialUser: GoogleLoginDto) {
-    // return await firstValueFrom(
-    //   this.iamClient.send('google_login', socialUser),
-    // );
-    // giả lập trả về để test trước khi User Service chưa chạy
-    return {
-      user: {
-        id: 'mock-user-id',
-        email: socialUser.email,
-        name: `${socialUser.firstName} ${socialUser.lastName}`,
-        provider: socialUser.provider,
-        avatar: socialUser.picture,
-      },
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-    };
+    return await firstValueFrom(
+      this.iamClient.send('google_login', socialUser),
+    );
   }
 }

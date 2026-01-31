@@ -36,38 +36,4 @@ export class AuthController {
       `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
     );
   }
-
-  @Get('test')
-  async test() {
-    const userRoles = await this.prisma.user_roles.findMany({
-      where: {
-        user_id: 'a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5', // SỬA: Dùng dynamic userId, không hardcode
-      },
-      select: {
-        roles: {
-          select: {
-            role_permissions: {
-              select: {
-                permissions: {
-                  select: {
-                    slug: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const permissions = userRoles
-      .flatMap((ur) => ur.roles.role_permissions)
-      .map((rp) => rp.permissions)
-      .map((p) => p.slug)
-      .filter((p) => p !== null);
-
-    console.log(permissions);
-
-    return permissions;
-  }
 }

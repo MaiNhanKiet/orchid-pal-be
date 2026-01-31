@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import {
+  CommonModule,
   CustomValidationPipe,
   FitRpcExceptionFilter,
   LoggingInterceptor,
   TimeoutInterceptor,
 } from '@app/common';
-import { ConfigService } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [],
+  imports: [CommonModule, AuthModule],
   controllers: [],
   providers: [
     {
