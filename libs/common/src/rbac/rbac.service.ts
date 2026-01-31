@@ -6,25 +6,32 @@ export class RbacService {
   constructor(private prisma: PrismaService) {}
 
   async getPermissionsByUserId(userId: string) {
-    const permissions = await this.prisma.permissions.findMany({
+    const userRoles = await this.prisma.user_roles.findMany({
       where: {
-        active: true,
-        role_permissions: {
-          some: {
-            roles: {
-              users: {
-                some: { id: userId },
+        user_id: userId,
+      },
+      select: {
+        roles: {
+          select: {
+            role_permissions: {
+              select: {
+                permissions: {
+                  select: {
+                    slug: true,
+                  },
+                },
               },
             },
           },
         },
       },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-      },
     });
+
+    const permissions = userRoles
+      .flatMap((ur) => ur.roles.role_permissions)
+      .map((rp) => rp.permissions)
+      .filter((p) => p !== null);
+
     return permissions;
   }
 }

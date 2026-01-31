@@ -1,5 +1,7 @@
 export enum Role {
-  User = 'user',
-  Admin = 'admin',
-  Manager = 'manager'
+  SuperAdmin = 'SUPER_ADMIN',
+  StoreManager = 'STORE_MANAGER',
+  OrchidExpert = 'ORCHID_EXPERT',
+  IoTTechnician = 'IOT_TECH',
+  Customer = 'CUSTOMER',
 }
