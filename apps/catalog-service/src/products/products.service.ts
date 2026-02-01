@@ -15,8 +15,8 @@ export class ProductsService {
       take: limit,
     });
 
-    const users = await this.prisma.users.findMany();
-    console.log('Users:', users);
+    // const users = await this.prisma.users.findMany();
+    // console.log('Users:', users);
     
     return {
       products,

@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
 import { Permission } from '@app/common/enums';
@@ -24,9 +25,12 @@ export class ProductsController {
   ) {}
 
   @Get('')
-  async getAllProducts(@Body() payload?: { page?: number; limit?: number }) {
+  async getAllProducts(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return await firstValueFrom(
-      this.catalogClient.send('get_all_products', payload),
+      this.catalogClient.send('get_all_products', { page, limit }),
     );
   }
 

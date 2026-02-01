@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
 import { Public } from '@app/common';
@@ -30,8 +31,8 @@ export class CartsController {
   @Get('/:userId')
   getCartItemsByUserId(
     @Param('userId') userId: string,
-    @Param('page') page?: number,
-    @Param('limit') limit?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
   ) {
     return firstValueFrom(
       this.catalogClient.send('get_cart_items_by_user_id', {
@@ -59,12 +60,12 @@ export class CartsController {
   @Put('/:cartItemId')
   updateCartItemQuantity(
     @Param('cartItemId') cartItemId: string,
-    @Body() payload: { quantity: number },
+    @Body('quantity') quantity: number,
   ) {
     return firstValueFrom(
       this.catalogClient.send('update_cart_item_quantity', {
         cartItemId,
-        ...payload,
+        quantity,
       }),
     );
   }

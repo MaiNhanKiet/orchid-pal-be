@@ -8,8 +8,8 @@ export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
   @MessagePattern('get_all_products')
-  getAllProducts(payload: { page?: number; limit?: number }) {
-    return this.productService.getAllProducts(payload);
+  getAllProducts( { page, limit }: { page?: number; limit?: number }) {
+    return this.productService.getAllProducts({ page, limit });
   }
 
   @MessagePattern('get_product_by_id')
@@ -23,8 +23,8 @@ export class ProductsController {
   }
 
   @MessagePattern('update_product')
-  updateProduct(payload: {id: string, data: Object}) {
-    return this.productService.updateProduct(payload.id, payload.data);
+  updateProduct({id, data}: {id: string, data: Object}) {
+    return this.productService.updateProduct(id, data);
   }
 
   @MessagePattern('delete_product')

@@ -14,8 +14,8 @@ export class CartsController {
     }
 
     @MessagePattern('get_cart_items_by_user_id')
-    getCartItemsByUserId(payload: {userId: string, page: number, limit: number}) {
-      return this.cartsService.getCartItemsByUserId(payload.userId, { page: payload.page, limit: payload.limit });
+    getCartItemsByUserId({userId, page, limit}: {userId: string, page: number, limit: number}) {
+      return this.cartsService.getCartItemsByUserId(userId, { page, limit });
     }
 
     @MessagePattern('add_item_to_cart')
@@ -29,7 +29,7 @@ export class CartsController {
     }
 
     @MessagePattern('update_cart_item_quantity')
-    updateCartItemQuantity(payload: {cartItemId: string, quantity: number}) {
-      return this.cartsService.updateCartItemQuantity(payload.cartItemId, payload.quantity);
+    updateCartItemQuantity({cartItemId, quantity}: {cartItemId: string, quantity: number}) {
+      return this.cartsService.updateCartItemQuantity(cartItemId, quantity);
     }
 }
