@@ -1,5 +1,15 @@
-import { Controller, Get, Inject, Param, Patch, Query } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  AssignRoleDto,
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
@@ -28,5 +38,11 @@ export class UsersController {
   @Permissions(Permission.UserBlock)
   banUser(@Param() uuidDto: UuidDto) {
     return this.iamClient.send({ cmd: 'ban_user' }, { id: uuidDto.id });
+  }
+
+  @Post('assign-role')
+  @Permissions(Permission.UserUpdate)
+  assignRole(@Body() assignRoleDto: AssignRoleDto) {
+    return this.iamClient.send({ cmd: 'assign_role' }, assignRoleDto);
   }
 }

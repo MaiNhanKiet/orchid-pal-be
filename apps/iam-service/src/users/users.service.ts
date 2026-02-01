@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 
 @Injectable()
@@ -49,5 +54,37 @@ export class UsersService {
       data: { is_active: false },
       select: { id: true, email: true, is_active: true },
     });
+  }
+
+  // Import AssignRoleDto, NotFoundException, ConflictException...
+
+  async assignRole({ userId, roleId }: { userId: string; roleId: number }) {
+    const [user, role] = await Promise.all([
+      this.prisma.users.findUnique({ where: { id: userId } }),
+      this.prisma.roles.findUnique({ where: { id: roleId } }),
+    ]);
+
+    if (!user) throw new NotFoundException('User not found');
+    if (!role) throw new NotFoundException('Role not found');
+
+    const existingLink = await this.prisma.user_roles.findUnique({
+      where: {
+        user_id_role_id: { user_id: userId, role_id: roleId },
+      },
+    });
+
+    if (existingLink) throw new ConflictException('User already has this role');
+
+    await this.prisma.user_roles.create({
+      data: {
+        user_id: userId,
+        role_id: roleId,
+      },
+    });
+
+    return {
+      statusCode: HttpStatus.NO_CONTENT,
+      message: 'Assigned role successfully',
+    };
   }
 }

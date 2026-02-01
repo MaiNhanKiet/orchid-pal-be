@@ -1,4 +1,9 @@
-import { GoogleLoginDto, PaginationDto, UuidDto } from '@app/common';
+import {
+  AssignRoleDto,
+  GoogleLoginDto,
+  PaginationDto,
+  UuidDto,
+} from '@app/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UsersService } from './users.service';
@@ -19,5 +24,10 @@ export class UsersController {
   async banUser(@Payload() uuidDto: UuidDto) {
     const user = await this.usersService.banUser({ ...uuidDto });
     return user;
+  }
+
+  @MessagePattern({ cmd: 'assign_role' })
+  assignRole(@Payload() assignRoleDto: AssignRoleDto) {
+    return this.usersService.assignRole({ ...assignRoleDto });
   }
 }
