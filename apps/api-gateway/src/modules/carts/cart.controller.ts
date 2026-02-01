@@ -12,6 +12,7 @@ import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 
 @Controller('carts')
 @Public()
@@ -43,9 +44,9 @@ export class CartsController {
 
   @Post()
   addItemToCart(
-    @Body() payload: { userId: string; productId: string; quantity: number },
+    @Body() CreateCartItemDto: CreateCartItemDto,
   ) {
-    return firstValueFrom(this.catalogClient.send('add_item_to_cart', payload));
+    return firstValueFrom(this.catalogClient.send('add_item_to_cart', CreateCartItemDto));
   }
 
   @Delete('/:cartItemId')

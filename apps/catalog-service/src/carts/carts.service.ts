@@ -1,4 +1,5 @@
 import { DEFAULT_LIMIT, DEFAULT_PAGE } from '@app/common/constants/pagination.constant';
+import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -29,8 +30,8 @@ export class CartsService {
     return cartItems;
   }
 
-  async addItemToCart(userId: string, productId: string, quantity: number) {
-    console.log("Adding item to cart:", userId, productId, quantity);
+  async addItemToCart(data: CreateCartItemDto) {
+    const { userId, productId, quantity } = data;
 
     const user = await this.prisma.users.findFirst({
       where: { id: userId },

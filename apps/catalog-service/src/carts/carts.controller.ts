@@ -2,6 +2,7 @@ import { Controller } from '@nestjs/common';
 
 import { MessagePattern } from '@nestjs/microservices';
 import { CartsService } from './carts.service';
+import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 
 @Controller()
 export class CartsController {
@@ -18,9 +19,8 @@ export class CartsController {
     }
 
     @MessagePattern('add_item_to_cart')
-    addItemToCart(payload: {userId: string, productId: string, quantity: number}) {
-      console.log("Controller received payload:", payload);
-      return this.cartsService.addItemToCart(payload.userId, payload.productId, payload.quantity);
+    addItemToCart(data: CreateCartItemDto) {
+      return this.cartsService.addItemToCart(data);
     }
 
     @MessagePattern('remove_item_from_cart')
