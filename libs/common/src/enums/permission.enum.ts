@@ -21,6 +21,11 @@ export enum Permission {
   ProductPublish = 'product.publish',
   ProductDelete = 'product.delete',
 
+  CartView = 'cart.view',
+  CartCreate = 'cart.create',
+  CartUpdate = 'cart.update',
+  CartDelete = 'cart.delete',
+
   CategoryManage = 'category.manage',
 
   OrderViewAll = 'order.view_all',

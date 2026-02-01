@@ -1,34 +1,35 @@
 import { Controller } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
+import { PaginationDto, UuidDto } from '@app/common';
 
 @Controller()
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
-  @MessagePattern('get_all_products')
-  getAllProducts( { page, limit }: { page?: number; limit?: number }) {
-    return this.productService.getAllProducts({ page, limit });
+  @MessagePattern({ cmd: 'get_all_products' })
+  getAllProducts( @Payload() pagination: PaginationDto) {
+    return this.productService.getAllProducts(pagination);
   }
 
-  @MessagePattern('get_product_by_id')
-  getProductById(id: string) {
-    return this.productService.getProductById(id);
+  @MessagePattern({ cmd: 'get_product_by_id' })
+  getProductById(@Payload() id: UuidDto) {
+    return this.productService.getProductById(id.id);
   }
 
-  @MessagePattern('create_product')
-  createProduct(data: CreateProductDto) {
+  @MessagePattern({ cmd: 'create_product' })
+  createProduct(@Payload() data: CreateProductDto) {
     return this.productService.createProduct(data);
   }
 
-  @MessagePattern('update_product')
-  updateProduct({id, data}: {id: string, data: Object}) {
-    return this.productService.updateProduct(id, data);
+  @MessagePattern({ cmd: 'update_product' })
+  updateProduct(@Payload() {id, data}: {id: UuidDto, data: Object}) {
+    return this.productService.updateProduct(id.id, data);
   }
 
-  @MessagePattern('delete_product')
-  deleteProduct(id: string) {
-    return this.productService.deleteProduct(id);
+  @MessagePattern({ cmd: 'delete_product' })
+  deleteProduct(@Payload() id: UuidDto) {
+    return this.productService.deleteProduct(id.id);
   }
 }

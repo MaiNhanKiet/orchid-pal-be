@@ -9,7 +9,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
+import { IdDto, MICROSERVICES_CLIENTS, PaginationDto, Permissions, UuidDto } from '@app/common';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
@@ -25,19 +25,20 @@ export class ProductsController {
   ) {}
 
   @Get('')
+  @Permissions(Permission.ProductView)
   async getAllProducts(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query() PaginationDto: PaginationDto,
   ) {
     return await firstValueFrom(
-      this.catalogClient.send('get_all_products', { page, limit }),
+      this.catalogClient.send({ cmd: 'get_all_products' }, PaginationDto),
     );
   }
 
   @Get('/:id')
-  async getProductById(@Param('id') id: string) {
+  @Permissions(Permission.ProductView)
+  async getProductById(@Param('id') id: UuidDto) {
     return await firstValueFrom(
-      this.catalogClient.send('get_product_by_id', id),
+      this.catalogClient.send({ cmd: 'get_product_by_id' }, id),
     );
   }
 
@@ -45,21 +46,21 @@ export class ProductsController {
   @Permissions(Permission.ProductCreate)
   async createProduct(@Body() data: CreateProductDto) {
     return await firstValueFrom(
-      this.catalogClient.send('create_product', data),
+      this.catalogClient.send({ cmd: 'create_product' }, data),
     );
   }
 
   @Put('/:id')
   @Permissions(Permission.ProductUpdate)
-  async updateProduct(@Param('id') id: string, @Body() data: Object) {
+  async updateProduct(@Param('id') id: UuidDto, @Body() data: Object) {
     return await firstValueFrom(
-      this.catalogClient.send('update_product', { id, data }),
+      this.catalogClient.send({ cmd: 'update_product' }, { id, data }),
     );
   }
 
   @Delete('/:id')
   @Permissions(Permission.ProductDelete)
-  async deleteProduct(@Param('id') id: string) {
-    return await firstValueFrom(this.catalogClient.send('delete_product', id));
+  async deleteProduct(@Param() id: UuidDto) {
+    return await firstValueFrom(this.catalogClient.send({ cmd: 'delete_product' }, id));
   }
 }

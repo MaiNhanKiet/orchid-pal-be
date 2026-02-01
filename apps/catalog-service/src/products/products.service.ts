@@ -1,4 +1,8 @@
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from '@app/common/constants/pagination.constant';
+import { UuidDto } from '@app/common';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -17,13 +21,15 @@ export class ProductsService {
 
     // const users = await this.prisma.users.findMany();
     // console.log('Users:', users);
-    
+
     return {
       products,
       page,
       limit,
       total: await this.prisma.products.count(),
-      totalPages: limit ? Math.ceil((await this.prisma.products.count()) / limit) : 1,
+      totalPages: limit
+        ? Math.ceil((await this.prisma.products.count()) / limit)
+        : 1,
     };
   }
 
@@ -46,29 +52,17 @@ export class ProductsService {
   }
 
   async updateProduct(id: string, data: Object) {
-    try {
-      const product = await this.prisma.products.update({
-        where: { id },
-        data,
-      });
-      return product;
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Product not found');
-      }
-    }
+    const product = await this.prisma.products.update({
+      where: { id },
+      data,
+    });
+    return product;
   }
 
   async deleteProduct(id: string) {
-    try {
-      const product = await this.prisma.products.delete({
-        where: { id },
-      });
-      return product;
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Product not found');
-      }
-    }
+    const product = await this.prisma.products.delete({
+      where: { id },
+    });
+    return product;
   }
 }

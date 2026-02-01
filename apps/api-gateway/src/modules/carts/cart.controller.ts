@@ -9,11 +9,17 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
+import {
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
+  Permissions,
+  UuidDto,
+} from '@app/common';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { Permission } from '@app/common/enums';
 
 @Controller('carts')
 @Public()
@@ -24,49 +30,57 @@ export class CartsController {
   ) {}
 
   @Get()
+  @Permissions(Permission.CartView)
   getAllCartItems() {
-    return firstValueFrom(this.catalogClient.send('get_all_cart_items', {}));
+    return firstValueFrom(
+      this.catalogClient.send({ cmd: 'get_all_cart_items' }, {}),
+    );
   }
 
   @Get('/:userId')
+  @Permissions(Permission.CartView)
   getCartItemsByUserId(
-    @Param('userId') userId: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Param() userId: UuidDto,
+    @Query() PaginationDto: PaginationDto,
   ) {
     return firstValueFrom(
-      this.catalogClient.send('get_cart_items_by_user_id', {
-        userId,
-        page,
-        limit,
-      }),
+      this.catalogClient.send(
+        { cmd: 'get_cart_items_by_user_id' },
+        { userId, PaginationDto },
+      ),
     );
   }
 
   @Post()
-  addItemToCart(
-    @Body() CreateCartItemDto: CreateCartItemDto,
-  ) {
-    return firstValueFrom(this.catalogClient.send('add_item_to_cart', CreateCartItemDto));
+  @Permissions(Permission.CartCreate)
+  addItemToCart(@Body() CreateCartItemDto: CreateCartItemDto) {
+    return firstValueFrom(
+      this.catalogClient.send({ cmd: 'add_item_to_cart' }, CreateCartItemDto),
+    );
   }
 
   @Delete('/:cartItemId')
-  removeItemFromCart(@Param('cartItemId') cartItemId: string) {
+  @Permissions(Permission.CartDelete)
+  removeItemFromCart(@Param() cartItemId: UuidDto) {
     return firstValueFrom(
-      this.catalogClient.send('remove_item_from_cart', cartItemId),
+      this.catalogClient.send({ cmd: 'remove_item_from_cart' }, cartItemId),
     );
   }
 
   @Put('/:cartItemId')
+  @Permissions(Permission.CartUpdate)
   updateCartItemQuantity(
-    @Param('cartItemId') cartItemId: string,
+    @Param() cartItemId: UuidDto,
     @Body('quantity') quantity: number,
   ) {
     return firstValueFrom(
-      this.catalogClient.send('update_cart_item_quantity', {
-        cartItemId,
-        quantity,
-      }),
+      this.catalogClient.send(
+        { cmd: 'update_cart_item_quantity' },
+        {
+          cartItemId,
+          quantity,
+        },
+      ),
     );
   }
 }

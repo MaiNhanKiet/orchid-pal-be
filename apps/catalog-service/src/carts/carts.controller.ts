@@ -1,40 +1,41 @@
 import { Controller } from '@nestjs/common';
 
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CartsService } from './carts.service';
 import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { PaginationDto, UuidDto } from '@app/common';
 
 @Controller()
 export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
-    @MessagePattern('get_all_cart_items')
+    @MessagePattern({ cmd: 'get_all_cart_items' })
     getAllCartItems() {
       return this.cartsService.getAllCartItems();
     }
 
-    @MessagePattern('get_cart_items_by_user_id')
-    getCartItemsByUserId({userId, page, limit}: {userId: string, page: number, limit: number}) {
-      return this.cartsService.getCartItemsByUserId(userId, { page, limit });
+    @MessagePattern({ cmd: 'get_cart_items_by_user_id' })
+    getCartItemsByUserId(@Payload() {userId, pagination}: {userId: UuidDto, pagination: PaginationDto}) {
+      return this.cartsService.getCartItemsByUserId(userId.id, pagination);
     }
 
-    @MessagePattern('add_item_to_cart')
-    addItemToCart(data: CreateCartItemDto) {
+    @MessagePattern({ cmd: 'add_item_to_cart' })
+    addItemToCart(@Payload() data: CreateCartItemDto) {
       return this.cartsService.addItemToCart(data);
     }
 
-    @MessagePattern('remove_item_from_cart')
-    removeItemFromCart(cartItemId: string) {
-      return this.cartsService.removeItemFromCart(cartItemId);
+    @MessagePattern({ cmd: 'remove_item_from_cart' })
+    removeItemFromCart(@Payload() id: UuidDto) {
+      return this.cartsService.removeItemFromCart(id.id);
     }
 
-    @MessagePattern('update_cart_item_quantity')
-    updateCartItemQuantity({cartItemId, quantity}: {cartItemId: string, quantity: number}) {
-      return this.cartsService.updateCartItemQuantity(cartItemId, quantity);
+    @MessagePattern({ cmd: 'update_cart_item_quantity' })
+    updateCartItemQuantity(@Payload() {cartItemId, quantity}: {cartItemId: UuidDto, quantity: number}) {
+      return this.cartsService.updateCartItemQuantity(cartItemId.id, quantity);
     }
 
-    @MessagePattern('clear_cart')
-    clearCart(cartIds: string[]) {
+    @MessagePattern({ cmd: 'clear_cart' })
+    clearCart(@Payload() cartIds: string[]) {
       return this.cartsService.clearCart(cartIds);
     }
 }

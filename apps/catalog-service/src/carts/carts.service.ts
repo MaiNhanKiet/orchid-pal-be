@@ -1,4 +1,7 @@
-import { DEFAULT_LIMIT, DEFAULT_PAGE } from '@app/common/constants/pagination.constant';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -13,7 +16,7 @@ export class CartsService {
 
   async getCartItemsByUserId(
     userId: string,
-    { page, limit }: { page: number; limit: number },
+    { page, limit }: { page?: number; limit?: number },
   ) {
     if (!page) page = DEFAULT_PAGE;
     if (!limit) limit = DEFAULT_LIMIT;
@@ -52,35 +55,23 @@ export class CartsService {
         quantity,
       },
     });
-    
+
     return cartItem;
   }
 
   async removeItemFromCart(cartItemId: string) {
-    try {
-      const cartItem = await this.prisma.cart_items.delete({
-        where: { id: cartItemId },
-      });
-      return cartItem;
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Cart item not found');
-      }
-    }
+    const cartItem = await this.prisma.cart_items.delete({
+      where: { id: cartItemId },
+    });
+    return cartItem;
   }
 
   async updateCartItemQuantity(cartItemId: string, quantity: number) {
-    try {
-      const cartItem = await this.prisma.cart_items.update({
-        where: { id: cartItemId },
-        data: { quantity },
-      });
-      return cartItem;
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException('Cart item not found');
-      }
-    }
+    const cartItem = await this.prisma.cart_items.update({
+      where: { id: cartItemId },
+      data: { quantity },
+    });
+    return cartItem;
   }
 
   async clearCart(cartIds: string[]) {
