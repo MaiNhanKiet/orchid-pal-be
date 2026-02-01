@@ -11,7 +11,7 @@ import {
   TransformInterceptor,
 } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { IAM_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import { CATALOG_SERVICE_PORT, IAM_SERVICE_PORT } from '@app/common/constants/env-key.constant';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
@@ -19,6 +19,8 @@ import { PassportModule } from '@nestjs/passport';
 import { UserController } from './modules/users/user.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { UsersService } from './modules/users/user.service';
+import { ProductsController } from './modules/products/product.controller';
+import { ProductService } from './modules/products/product.service';
 
 @Module({
   imports: [
@@ -32,9 +34,16 @@ import { UsersService } from './modules/users/user.service';
           port: Number(IAM_SERVICE_PORT),
         },
       },
+      {
+        name: MICROSERVICES_CLIENTS.CATALOG_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(CATALOG_SERVICE_PORT),
+        },
+      },
     ]),
   ],
-  controllers: [AuthController, UserController],
+  controllers: [AuthController, UserController, ProductsController],
   providers: [
     GoogleStrategy,
     {
@@ -67,6 +76,7 @@ import { UsersService } from './modules/users/user.service';
     },
     AuthService,
     UsersService,
+    ProductService,
   ],
 })
 export class AppModule {}
