@@ -7,10 +7,7 @@ import { PrismaService } from '@app/prisma/prisma.service';
 @Controller('auth')
 @Public()
 export class AuthController {
-  constructor(
-    private readonly configService: ConfigService,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)

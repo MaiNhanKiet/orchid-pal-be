@@ -16,9 +16,8 @@ import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
-import { UserController } from './modules/users/user.controller';
-import { AuthService } from './modules/auth/auth.service';
-import { UsersService } from './modules/users/user.service';
+import { UsersController } from './modules/users/users.controller';
+import { RbacController } from './modules/rbac/rbac.controller';
 
 @Module({
   imports: [
@@ -34,7 +33,7 @@ import { UsersService } from './modules/users/user.service';
       },
     ]),
   ],
-  controllers: [AuthController, UserController],
+  controllers: [AuthController, UsersController, RbacController],
   providers: [
     GoogleStrategy,
     {
@@ -65,8 +64,6 @@ import { UsersService } from './modules/users/user.service';
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
     },
-    AuthService,
-    UsersService,
   ],
 })
 export class AppModule {}

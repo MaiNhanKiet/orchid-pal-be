@@ -1,14 +1,17 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { Injectable } from '@nestjs/common';
-import { UsersService } from '../../users/user.service';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { MICROSERVICES_CLIENTS } from '@app/common/constants/microservice.constant';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
-    private readonly usersService: UsersService,
     private readonly configService: ConfigService,
+    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
+    private readonly iamClient: ClientProxy,
   ) {
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID')!,
@@ -33,7 +36,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       provider: 'google',
     };
 
-    const result = await this.usersService.validateGoogleUser(socialUser);
+    const result = await firstValueFrom(
+      this.iamClient.send('google_login', socialUser),
+    );
 
     done(null, result);
   }
