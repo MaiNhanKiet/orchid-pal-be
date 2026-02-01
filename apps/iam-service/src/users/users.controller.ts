@@ -1,4 +1,4 @@
-import { GoogleLoginDto, PaginationDto } from '@app/common';
+import { GoogleLoginDto, PaginationDto, UuidDto } from '@app/common';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UsersService } from './users.service';
@@ -13,5 +13,11 @@ export class UsersController {
       ...paginationDto,
     });
     return users;
+  }
+
+  @MessagePattern({ cmd: 'ban_user' })
+  async banUser(@Payload() uuidDto: UuidDto) {
+    const user = await this.usersService.banUser({ ...uuidDto });
+    return user;
   }
 }

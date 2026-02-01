@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 
 @Injectable()
@@ -36,5 +36,18 @@ export class UsersService {
         last_page: Math.ceil(total / limit),
       },
     };
+  }
+
+  async banUser({ id }: { id: string }) {
+    const user = await this.prisma.users.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.prisma.users.update({
+      where: { id },
+      data: { is_active: false },
+      select: { id: true, email: true, is_active: true },
+    });
   }
 }
