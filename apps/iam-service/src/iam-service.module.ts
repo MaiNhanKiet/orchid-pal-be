@@ -9,9 +9,10 @@ import {
 } from '@app/common';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RbacModule } from './rbac/rbac.module';
 
 @Module({
-  imports: [CommonModule, AuthModule, UsersModule],
+  imports: [CommonModule, AuthModule, UsersModule, RbacModule],
   controllers: [],
   providers: [
     {
