@@ -55,6 +55,15 @@
         "tsConfigPath": "apps/notification-service/tsconfig.app.json"
       }
     },
+    "order-fulfillment-service": {
+      "type": "application",
+      "root": "apps/order-fulfillment-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/order-fulfillment-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/order-fulfillment-service/tsconfig.app.json"
+      }
+    },
     "prisma": {
       "type": "library",
       "root": "libs/prisma",

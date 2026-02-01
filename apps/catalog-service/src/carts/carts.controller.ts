@@ -32,4 +32,9 @@ export class CartsController {
     updateCartItemQuantity({cartItemId, quantity}: {cartItemId: string, quantity: number}) {
       return this.cartsService.updateCartItemQuantity(cartItemId, quantity);
     }
+
+    @MessagePattern('clear_cart')
+    clearCart(cartIds: string[]) {
+      return this.cartsService.clearCart(cartIds);
+    }
 }
