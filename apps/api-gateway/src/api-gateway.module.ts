@@ -11,7 +11,10 @@ import {
   TransformInterceptor,
 } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CATALOG_SERVICE_PORT, IAM_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import {
+  CATALOG_SERVICE_PORT,
+  IAM_SERVICE_PORT,
+} from '@app/common/constants/env-key.constant';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
@@ -20,7 +23,7 @@ import { UserController } from './modules/users/user.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { UsersService } from './modules/users/user.service';
 import { ProductsController } from './modules/products/product.controller';
-import { ProductService } from './modules/products/product.service';
+import { CartsController } from './modules/carts/cart.controller';
 
 @Module({
   imports: [
@@ -43,7 +46,12 @@ import { ProductService } from './modules/products/product.service';
       },
     ]),
   ],
-  controllers: [AuthController, UserController, ProductsController],
+  controllers: [
+    AuthController,
+    UserController,
+    ProductsController,
+    CartsController,
+  ],
   providers: [
     GoogleStrategy,
     {
@@ -76,7 +84,6 @@ import { ProductService } from './modules/products/product.service';
     },
     AuthService,
     UsersService,
-    ProductService,
   ],
 })
 export class AppModule {}

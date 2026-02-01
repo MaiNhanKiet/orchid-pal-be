@@ -8,9 +8,10 @@ import {
   TimeoutInterceptor,
 } from '@app/common';
 import { ProductsModule } from './products/products.module';
+import { CartsModule } from './carts/carts.module';
 
 @Module({
-  imports: [CommonModule, ProductsModule],
+  imports: [CommonModule, ProductsModule, CartsModule],
   controllers: [],
   providers: [
     {

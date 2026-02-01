@@ -1,40 +1,61 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
-import { Permissions } from '@app/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { MICROSERVICES_CLIENTS, Permissions } from '@app/common';
 import { Permission } from '@app/common/enums';
-import { ProductService } from './product.service';
 import { Public } from '@app/common';
 import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Controller('products')
 @Public()
 export class ProductsController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
+    private readonly catalogClient: ClientProxy,
+  ) {}
 
-  @Get('get-all')
-  getAllProducts(@Body() payload?: { page?: number; limit?: number }) {
-    return this.productService.getAllProducts(payload);
+  @Get('')
+  async getAllProducts(@Body() payload?: { page?: number; limit?: number }) {
+    return await firstValueFrom(
+      this.catalogClient.send('get_all_products', payload),
+    );
   }
 
-  @Get('get-by-id/:id')
-  getProductById(@Param('id') id: string) {
-    return this.productService.getProductById(id);
+  @Get('/:id')
+  async getProductById(@Param('id') id: string) {
+    return await firstValueFrom(
+      this.catalogClient.send('get_product_by_id', id),
+    );
   }
 
-  @Post('create')
+  @Post('')
   @Permissions(Permission.ProductCreate)
-  createProduct(@Body() data: CreateProductDto) {
-    return this.productService.createProduct(data);
-  }
-  
-  @Put('update/:id')
-  @Permissions(Permission.ProductUpdate)
-  updateProduct(@Param('id') id: string, @Body() data: Object) {
-    return this.productService.updateProduct(id, data);
+  async createProduct(@Body() data: CreateProductDto) {
+    return await firstValueFrom(
+      this.catalogClient.send('create_product', data),
+    );
   }
 
-  @Delete('delete/:id')
+  @Put('/:id')
+  @Permissions(Permission.ProductUpdate)
+  async updateProduct(@Param('id') id: string, @Body() data: Object) {
+    return await firstValueFrom(
+      this.catalogClient.send('update_product', { id, data }),
+    );
+  }
+
+  @Delete('/:id')
   @Permissions(Permission.ProductDelete)
-  deleteProduct(@Param('id') id: string) {
-    return this.productService.deleteProduct(id);
+  async deleteProduct(@Param('id') id: string) {
+    return await firstValueFrom(this.catalogClient.send('delete_product', id));
   }
 }

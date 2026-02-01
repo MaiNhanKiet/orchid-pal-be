@@ -14,6 +14,10 @@ export class ProductsService {
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    const users = await this.prisma.users.findMany();
+    console.log('Users:', users);
+    
     return {
       products,
       page,
