@@ -12,7 +12,7 @@ import {
 import { IdDto, MICROSERVICES_CLIENTS, PaginationDto, Permissions, UuidDto } from '@app/common';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
-import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
+import { CreateProductDto, UpdateProductDto } from '@app/common/dtos/catalog/product.dto';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
@@ -52,7 +52,7 @@ export class ProductsController {
 
   @Put('/:id')
   @Permissions(Permission.ProductUpdate)
-  async updateProduct(@Param('id') id: UuidDto, @Body() data: Object) {
+  async updateProduct(@Param('id') id: UuidDto, @Body() data: UpdateProductDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'update_product' }, { id, data }),
     );

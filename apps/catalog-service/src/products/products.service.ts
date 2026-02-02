@@ -3,7 +3,10 @@ import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
 } from '@app/common/constants/pagination.constant';
-import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+} from '@app/common/dtos/catalog/product.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -51,7 +54,7 @@ export class ProductsService {
     return product;
   }
 
-  async updateProduct(id: string, data: Object) {
+  async updateProduct(id: string, data: UpdateProductDto) {
     const product = await this.prisma.products.update({
       where: { id },
       data,

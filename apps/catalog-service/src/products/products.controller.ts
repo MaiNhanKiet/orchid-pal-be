@@ -1,7 +1,10 @@
 import { Controller } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { CreateProductDto } from '@app/common/dtos/catalog/product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+} from '@app/common/dtos/catalog/product.dto';
 import { PaginationDto, UuidDto } from '@app/common';
 
 @Controller()
@@ -9,7 +12,7 @@ export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
   @MessagePattern({ cmd: 'get_all_products' })
-  getAllProducts( @Payload() pagination: PaginationDto) {
+  getAllProducts(@Payload() pagination: PaginationDto) {
     return this.productService.getAllProducts(pagination);
   }
 
@@ -24,7 +27,9 @@ export class ProductsController {
   }
 
   @MessagePattern({ cmd: 'update_product' })
-  updateProduct(@Payload() {id, data}: {id: UuidDto, data: Object}) {
+  updateProduct(
+    @Payload() { id, data }: { id: UuidDto; data: UpdateProductDto },
+  ) {
     return this.productService.updateProduct(id.id, data);
   }
 
