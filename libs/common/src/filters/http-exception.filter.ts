@@ -41,7 +41,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         (responseBody as any).message === 'GOOGLE_AUTH_CANCELLED'
       ) {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-        console.log(frontendUrl);
         return response.redirect(`${frontendUrl}/login?status=cancelled`);
       }
 

@@ -8,8 +8,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @MessagePattern({ cmd: 'google_login' })
-  async handleGoogleLogin(@Payload() data: GoogleLoginDto) {
-    console.log(data);
-    return this.authService.handleGoogleLogin(data);
+  async handleGoogleLogin(@Payload() googleLoginDto: GoogleLoginDto) {
+    return this.authService.handleGoogleLogin({ ...googleLoginDto });
   }
 }

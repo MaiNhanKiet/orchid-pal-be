@@ -20,4 +20,12 @@ export class GoogleLoginDto {
   @IsString()
   @IsNotEmpty()
   provider: string;
+
+  @IsString()
+  @IsOptional()
+  deviceAgent: string;
+
+  @IsString()
+  @IsOptional()
+  ipAddress: string;
 }

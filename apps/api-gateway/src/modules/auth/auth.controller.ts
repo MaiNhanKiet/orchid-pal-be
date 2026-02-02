@@ -28,6 +28,7 @@ export class AuthController {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
+        path: '/auth/refresh',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
     }
