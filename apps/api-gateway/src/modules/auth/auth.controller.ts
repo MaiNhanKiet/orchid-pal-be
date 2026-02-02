@@ -1,16 +1,37 @@
-import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
-import { Public } from '@app/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Req,
+  Res,
+  Post,
+  UnauthorizedException,
+  Inject,
+} from '@nestjs/common';
+import { MICROSERVICES_CLIENTS, Public } from '@app/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOauthGuard } from './guards/google.guard';
-import { PrismaService } from '@app/prisma/prisma.service';
 import { ApiTags } from '@nestjs/swagger';
-import { ApiGoogleAuthDocs, ApiGoogleAuthCallbackDocs } from './auth.swagger';
+import {
+  ApiGoogleAuthDocs,
+  ApiGoogleAuthCallbackDocs,
+  ApiRefreshTokenDocs,
+  ApiLogoutDocs,
+} from './auth.swagger';
+import type { Request, Response } from 'express';
+import { firstValueFrom } from 'rxjs';
+import { ClientProxy } from '@nestjs/microservices';
+import { access } from 'fs';
 
 @ApiTags('Auth')
 @Controller('auth')
 @Public()
 export class AuthController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
+    private readonly iamClient: ClientProxy,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
@@ -23,19 +44,77 @@ export class AuthController {
   async googleAuthRedirect(@Req() req, @Res() res) {
     const { accessToken, refreshToken } = req.user;
 
-    // 1. Set Refresh Token vào cookie
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    if (refreshToken) {
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/auth/refresh',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
 
-    console.log(req.user);
-
-    // 2. Redirect về Frontend Next.js kèm Access Token
     return res.redirect(
       `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
     );
+  }
+
+  @Post('refresh')
+  @ApiRefreshTokenDocs()
+  async refreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const oldRefreshToken = req.cookies['refresh_token'];
+
+    if (!oldRefreshToken) {
+      throw new UnauthorizedException('Refresh token not found in cookies');
+    }
+
+    const result = await firstValueFrom(
+      this.iamClient.send(
+        { cmd: 'refresh_token' },
+        {
+          oldRefreshToken,
+          deviceAgent: req.headers['x-forwarded-for'],
+          ipAddress: req.ip,
+        },
+      ),
+    );
+
+    res.cookie('refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/auth/refresh',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return {
+      accessToken: result.accessToken,
+    };
+  }
+
+  @Post('logout')
+  @ApiLogoutDocs()
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies['refresh_token'];
+
+    if (refreshToken) {
+      await firstValueFrom(
+        this.iamClient.send({ cmd: 'logout' }, { refreshToken }),
+      );
+    }
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/auth/refresh',
+    });
+
+    return {
+      message: 'Logged out successfully',
+    };
   }
 }

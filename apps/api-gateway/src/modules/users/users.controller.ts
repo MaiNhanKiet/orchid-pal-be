@@ -39,7 +39,6 @@ export class UsersController {
   @Permissions(Permission.UserView)
   @ApiGetUsersDocs()
   getUsers(@Query() paginationDto: PaginationDto) {
-    console.log(paginationDto);
     return this.iamClient.send({ cmd: 'get_users' }, paginationDto);
   }
 

@@ -68,16 +68,11 @@ export class UsersService {
 
     if (existingLink) throw new ConflictException('User already has this role');
 
-    await this.prisma.user_roles.create({
+    return this.prisma.user_roles.create({
       data: {
         user_id: userId,
         role_id: roleId,
       },
     });
-
-    return {
-      statusCode: HttpStatus.NO_CONTENT,
-      message: 'Assigned role successfully',
-    };
   }
 }

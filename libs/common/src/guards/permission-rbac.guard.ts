@@ -45,7 +45,7 @@ export class PermissionRbacGuard implements CanActivate {
 
     // Lấy permissions của user từ DB
     const userPermissions = await this.rbacService.getPermissionsByUserId(
-      user.id,
+      user.sub,
     );
     if (!userPermissions || userPermissions.length === 0) {
       throw new UnauthorizedException('Không có quyền truy cập');
