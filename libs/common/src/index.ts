@@ -8,3 +8,4 @@ export * from './interceptors';
 export * from './pipes';
 export * from './rabbit-mq/rmq.module';
 export * from './rabbit-mq/rmq.service';
+export * from './swagger/common.swagger';

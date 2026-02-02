@@ -19,7 +19,18 @@ import {
 import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiGetRolesDocs,
+  ApiCreateRoleDocs,
+  ApiUpdateRoleDocs,
+  ApiDeleteRoleDocs,
+  ApiGetPermissionsDocs,
+  ApiAssignPermissionsDocs,
+} from './rbac.swagger';
 
+@ApiTags('RBAC')
+@ApiBearerAuth('access-token')
 @Controller('rbac')
 @Public()
 export class RbacController {
@@ -30,18 +41,21 @@ export class RbacController {
 
   @Get('roles')
   @Permissions(Permission.RoleView)
+  @ApiGetRolesDocs()
   getRoles() {
     return this.iamClient.send({ cmd: 'get_roles' }, {});
   }
 
   @Post('roles')
   @Permissions(Permission.RoleCreate)
+  @ApiCreateRoleDocs()
   createRole(@Body() createRoleDto: CreateRoleDto) {
     return this.iamClient.send({ cmd: 'create_role' }, createRoleDto);
   }
 
   @Patch('roles/:id')
   @Permissions(Permission.RoleUpdate)
+  @ApiUpdateRoleDocs()
   updateRole(@Param() idDto: IdDto, @Body() updateRoleDto: UpdateRoleDto) {
     return this.iamClient.send(
       { cmd: 'update_role' },
@@ -51,18 +65,21 @@ export class RbacController {
 
   @Delete('roles/:id')
   @Permissions(Permission.RoleDelete)
+  @ApiDeleteRoleDocs()
   deleteRole(@Param() idDto: IdDto) {
     return this.iamClient.send({ cmd: 'delete_role' }, { ...idDto });
   }
 
   @Get('permissions')
   @Permissions(Permission.RoleView)
+  @ApiGetPermissionsDocs()
   getPermissions() {
     return this.iamClient.send({ cmd: 'get_permissions' }, {});
   }
 
   @Post('permissions')
   @Permissions(Permission.RoleUpdate)
+  @ApiAssignPermissionsDocs()
   assignPermissionsToRole(@Body() assignPermissionsDto: AssignPermissionsDto) {
     return this.iamClient.send(
       { cmd: 'assign_permissions_to_role' },

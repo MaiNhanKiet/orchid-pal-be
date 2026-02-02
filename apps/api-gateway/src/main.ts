@@ -25,8 +25,8 @@ async function bootstrap() {
       'access-token',
     )
     .addTag('Auth', 'APIs for Authentication')
-    .addTag('Users', 'User Management APIs')
-    .addTag('RBAC', 'Role & Permission Management')
+    .addTag('Users', 'APIs for User Management')
+    .addTag('RBAC', 'APIs for Role & Permission Management')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
