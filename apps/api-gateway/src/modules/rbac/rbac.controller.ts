@@ -34,11 +34,13 @@ export class RbacController {
   }
 
   @Post('roles')
+  @Permissions(Permission.RoleCreate)
   createRole(@Body() createRoleDto: CreateRoleDto) {
     return this.iamClient.send({ cmd: 'create_role' }, createRoleDto);
   }
 
   @Patch('roles/:id')
+  @Permissions(Permission.RoleUpdate)
   updateRole(@Param() idDto: IdDto, @Body() updateRoleDto: UpdateRoleDto) {
     return this.iamClient.send(
       { cmd: 'update_role' },
@@ -47,7 +49,14 @@ export class RbacController {
   }
 
   @Delete('roles/:id')
+  @Permissions(Permission.RoleDelete)
   deleteRole(@Param() idDto: IdDto) {
     return this.iamClient.send({ cmd: 'delete_role' }, { ...idDto });
+  }
+
+  @Get('permissions')
+  @Permissions(Permission.RoleView)
+  getPermissions() {
+    return this.iamClient.send({ cmd: 'get_permissions' }, {});
   }
 }

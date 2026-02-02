@@ -28,4 +28,9 @@ export class RbacController {
   deleteRole(@Payload() idDto: IdDto) {
     return this.rbacService.deleteRole({ ...idDto });
   }
+
+  @MessagePattern({ cmd: 'get_permissions' })
+  getPermissions() {
+    return this.rbacService.findAllPermissions();
+  }
 }

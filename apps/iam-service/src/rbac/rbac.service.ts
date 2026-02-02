@@ -81,4 +81,15 @@ export class RbacService {
       where: { id },
     });
   }
+
+  async findAllPermissions() {
+    return this.prisma.permissions.findMany({
+      orderBy: { slug: 'asc' },
+      select: {
+        id: true,
+        slug: true,
+        description: true,
+      },
+    });
+  }
 }
