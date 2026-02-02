@@ -21,7 +21,7 @@
     "prisma:pull": "prisma db pull --schema=./libs/prisma/prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=./libs/prisma/prisma/schema.prisma",
     "start:all": "concurrently \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev api-gateway\"",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG\" -c \"cyan.bold,green.bold,yellow.bold,blue.bold,purple.bold\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\""
+    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,ORDER-FULFILLMENT\" -c \"cyan.bold,green.bold,yellow.bold,blue.bold,magenta.bold,red.bold\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev order-fulfillment-service\""
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

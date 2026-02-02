@@ -29,6 +29,9 @@ async function bootstrap() {
     .addTag('RBAC', 'APIs for Role & Permission Management')
     .addTag('Carts', 'APIs for Shopping Cart Management')
     .addTag('Products', 'APIs for Product Management')
+    .addTag('Orders', 'APIs for Order Management')
+    .addTag('Transactions', 'APIs for Payment Transaction Management')
+    .addTag('Shipments', 'APIs for Shipment & Delivery Management')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);

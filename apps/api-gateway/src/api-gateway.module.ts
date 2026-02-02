@@ -14,6 +14,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import {
   CATALOG_SERVICE_PORT,
   IAM_SERVICE_PORT,
+  ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
@@ -23,6 +24,9 @@ import { UsersController } from './modules/users/users.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { CartsController } from './modules/carts/cart.controller';
+import { OrdersController } from './modules/orders/order.controller';
+import { ShipmentsController } from './modules/shipments/shipment.controller';
+import { TransactionsController } from './modules/transactions/transaction.controller';
 
 @Module({
   imports: [
@@ -43,6 +47,13 @@ import { CartsController } from './modules/carts/cart.controller';
           port: Number(CATALOG_SERVICE_PORT),
         },
       },
+      {
+        name: MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
+        },
+      },
     ]),
   ],
   controllers: [
@@ -51,6 +62,9 @@ import { CartsController } from './modules/carts/cart.controller';
     RbacController,
     ProductsController,
     CartsController,
+    OrdersController,
+    ShipmentsController,
+    TransactionsController
   ],
   providers: [
     GoogleStrategy,

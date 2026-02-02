@@ -29,15 +29,18 @@ export enum Permission {
   CategoryManage = 'category.manage',
 
   OrderViewAll = 'order.view_all',
+  OrderView = 'order.view',
   OrderUpdateStatus = 'order.update_status',
   OrderCancel = 'order.cancel',
   OrderRefund = 'order.refund',
 
   TransactionView = 'transaction.view',
+
   RevenueView = 'revenue.view',
 
   ShipmentCreate = 'shipment.create',
   ShipmentUpdate = 'shipment.update',
+  ShipmentView = 'shipment.view',
 
   WikiViewHidden = 'wiki.view_hidden',
   WikiCreate = 'wiki.create',
