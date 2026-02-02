@@ -2,21 +2,20 @@ import { Controller } from '@nestjs/common';
 import { RbacService } from './rbac.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateRoleDto, IdDto, UpdateRoleCommandDto } from '@app/common';
+import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
 
 @Controller()
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}
 
   @MessagePattern({ cmd: 'get_roles' })
-  async getRoles() {
-    const roles = await this.rbacService.findAllRoles();
-    return roles;
+  getRoles() {
+    return this.rbacService.findAllRoles();
   }
 
   @MessagePattern({ cmd: 'create_role' })
-  async createRole(@Payload() createRoleDto: CreateRoleDto) {
-    const role = await this.rbacService.createRole({ ...createRoleDto });
-    return role;
+  createRole(@Payload() createRoleDto: CreateRoleDto) {
+    return this.rbacService.createRole({ ...createRoleDto });
   }
 
   @MessagePattern({ cmd: 'update_role' })
@@ -32,5 +31,14 @@ export class RbacController {
   @MessagePattern({ cmd: 'get_permissions' })
   getPermissions() {
     return this.rbacService.findAllPermissions();
+  }
+
+  @MessagePattern({ cmd: 'assign_permissions_to_role' })
+  assignPermissionsToRole(
+    @Payload() assignPermissionsDto: AssignPermissionsDto,
+  ) {
+    return this.rbacService.updatePermissionsToRole({
+      ...assignPermissionsDto,
+    });
   }
 }

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 
@@ -90,6 +91,47 @@ export class RbacService {
         slug: true,
         description: true,
       },
+    });
+  }
+
+  async updatePermissionsToRole({
+    roleId,
+    permissionIds,
+  }: {
+    roleId: number;
+    permissionIds: number[];
+  }) {
+    if (roleId === 1)
+      throw new BadRequestException('Cannot change permissions of Super Admin');
+
+    const role = await this.prisma.roles.findUnique({ where: { id: roleId } });
+    if (!role) throw new NotFoundException('Role not found');
+
+    return this.prisma.$transaction(async (tx) => {
+      // xóa quyền cũ
+      await tx.role_permissions.deleteMany({
+        where: { role_id: roleId },
+      });
+
+      // thêm quyền mới
+      if (permissionIds.length > 0) {
+        const validPermissions = await tx.permissions.findMany({
+          where: { id: { in: permissionIds } },
+          select: { id: true },
+        });
+
+        const dataToInsert = validPermissions.map((p) => ({
+          role_id: roleId,
+          permission_id: p.id,
+        }));
+
+        await tx.role_permissions.createMany({
+          data: dataToInsert,
+          skipDuplicates: true,
+        });
+      }
+
+      return { message: 'Permissions updated successfully' };
     });
   }
 }

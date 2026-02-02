@@ -18,6 +18,7 @@ import {
 } from '@app/common';
 import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
+import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
 
 @Controller('rbac')
 @Public()
@@ -58,5 +59,14 @@ export class RbacController {
   @Permissions(Permission.RoleView)
   getPermissions() {
     return this.iamClient.send({ cmd: 'get_permissions' }, {});
+  }
+
+  @Post('permissions')
+  @Permissions(Permission.RoleUpdate)
+  assignPermissionsToRole(@Body() assignPermissionsDto: AssignPermissionsDto) {
+    return this.iamClient.send(
+      { cmd: 'assign_permissions_to_role' },
+      assignPermissionsDto,
+    );
   }
 }
