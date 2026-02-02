@@ -1,14 +1,34 @@
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdateRoleDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Transform(({ value }) => value.trim())
   name: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Transform(({ value }) => value.trim())
+  description: string;
+}
+
+export class UpdateRoleCommandDto {
+  @IsNotEmpty()
+  @IsInt()
+  id: number;
+
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
   description: string;
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -43,5 +44,10 @@ export class RbacController {
       { cmd: 'update_role' },
       { ...updateRoleDto, id: idDto.id },
     );
+  }
+
+  @Delete('roles/:id')
+  deleteRole(@Param() idDto: IdDto) {
+    return this.iamClient.send({ cmd: 'delete_role' }, { ...idDto });
   }
 }
