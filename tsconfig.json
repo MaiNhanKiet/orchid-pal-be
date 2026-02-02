@@ -22,14 +22,30 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@app/common": ["libs/common/src"],
-      "@app/common/*": ["libs/common/src/*"],
-      "@app/prisma": ["libs/prisma/src"],
-      "@app/prisma/*": ["libs/prisma/src/*"],
-      "@app/redis": ["libs/redis/src"],
-      "@app/redis/*": ["libs/redis/src/*"],
-      "@app/util": ["libs/util/src"],
-      "@app/util/*": ["libs/util/src/*"]
+      "@app/common": [
+        "libs/common/src"
+      ],
+      "@app/common/*": [
+        "libs/common/src/*"
+      ],
+      "@app/prisma": [
+        "libs/prisma/src"
+      ],
+      "@app/prisma/*": [
+        "libs/prisma/src/*"
+      ],
+      "@app/redis": [
+        "libs/redis/src"
+      ],
+      "@app/redis/*": [
+        "libs/redis/src/*"
+      ],
+      "@app/util": [
+        "libs/util/src"
+      ],
+      "@app/util/*": [
+        "libs/util/src/*"
+      ]
     }
   }
 }
