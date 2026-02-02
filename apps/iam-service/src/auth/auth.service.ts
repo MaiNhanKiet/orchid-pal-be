@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@app/prisma'; // Lib prisma của bạn
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '@app/prisma';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { GoogleLoginDto } from '@app/common';
-import ms from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -146,5 +145,115 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async refreshToken({
+    oldRefreshToken,
+    deviceAgent,
+    ipAddress,
+  }: {
+    oldRefreshToken: string;
+    deviceAgent: string;
+    ipAddress: string;
+  }) {
+    // kiểm tra JWT hợp lệ
+    try {
+      await this.jwtService.verifyAsync(oldRefreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      });
+    } catch (error) {
+      throw new UnauthorizedException(
+        'Refresh token is invalid or has expired',
+      );
+    }
+
+    // kiểm tra rf token có trong DB không
+    const storedToken = await this.prisma.refresh_tokens.findUnique({
+      where: { token: oldRefreshToken },
+      include: { users: true },
+    });
+
+    if (!storedToken || storedToken.is_revoked) {
+      throw new UnauthorizedException('Refresh token does not exist');
+    }
+
+    // kiểm tra rf token đã hết hạn chưa
+    if (storedToken.expires_at < new Date()) {
+      await this.prisma.refresh_tokens.delete({
+        where: { id: storedToken.id },
+      });
+      throw new UnauthorizedException('Refresh token has expired');
+    }
+
+    // kiểm tra user còn tồn tại không
+    const userId = storedToken.user_id;
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      include: {
+        user_roles: {
+          include: { roles: true },
+        },
+      },
+    });
+
+    if (!user) throw new UnauthorizedException('User does not exist');
+
+    const defaultRoleName =
+      this.configService.get<string>('DEFAULT_USER_ROLE')!;
+    const roleNames = user.user_roles.map((ur) => ur.roles.name);
+    const finalRoles = roleNames.length > 0 ? roleNames : [defaultRoleName];
+
+    // Tạo mới Access Token và Refresh Token
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      roles: finalRoles,
+    };
+
+    const [newAccessToken, newRefreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
+        expiresIn: this.configService.get('JWT_ACCESS_TOKEN_EXPIRATION'),
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get('JWT_REFRESH_TOKEN_SECRET'),
+        expiresIn: this.configService.get('JWT_REFRESH_TOKEN_EXPIRATION'),
+      }),
+    ]);
+
+    // lưu rf token mới vào DB và xóa rf token cũ
+    const expiresAt = new Date(
+      Date.now() +
+        Number(this.configService.get<number>('JWT_REFRESH_TOKEN_EXPIRATION')),
+    );
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refresh_tokens.delete({
+        where: { id: storedToken.id },
+      });
+
+      await tx.refresh_tokens.create({
+        data: {
+          user_id: user.id,
+          token: newRefreshToken,
+          expires_at: expiresAt,
+          device_agent: deviceAgent,
+          ip_address: ipAddress,
+        },
+      });
+    });
+
+    console.log(newAccessToken, newRefreshToken);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  async logout({ refreshToken }: { refreshToken: string }) {
+    await this.prisma.refresh_tokens.deleteMany({
+      where: { token: refreshToken },
+    });
+    return true;
   }
 }
