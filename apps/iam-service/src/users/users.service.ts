@@ -44,19 +44,12 @@ export class UsersService {
   }
 
   async banUser({ id }: { id: string }) {
-    const user = await this.prisma.users.findUnique({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
     return this.prisma.users.update({
       where: { id },
       data: { is_active: false },
       select: { id: true, email: true, is_active: true },
     });
   }
-
-  // Import AssignRoleDto, NotFoundException, ConflictException...
 
   async assignRole({ userId, roleId }: { userId: string; roleId: number }) {
     const [user, role] = await Promise.all([

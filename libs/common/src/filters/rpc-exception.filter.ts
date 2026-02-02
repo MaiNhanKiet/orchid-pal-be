@@ -27,7 +27,7 @@ export class FitRpcExceptionFilter implements RpcExceptionFilter {
         case 'P2001':
           errorResponse = {
             statusCode: HttpStatus.NOT_FOUND,
-            message: 'Resource not found (Prisma P2025)',
+            message: 'Resource not found',
           };
           break;
 
@@ -41,7 +41,7 @@ export class FitRpcExceptionFilter implements RpcExceptionFilter {
         case 'P2003':
           errorResponse = {
             statusCode: HttpStatus.BAD_REQUEST,
-            message: 'Foreign key constraint violation (Prisma P2003)',
+            message: 'Foreign key constraint violation',
           };
           break;
 
