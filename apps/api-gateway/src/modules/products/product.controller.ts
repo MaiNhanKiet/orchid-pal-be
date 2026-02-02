@@ -15,7 +15,17 @@ import { Public } from '@app/common';
 import { CreateProductDto, UpdateProductDto } from '@app/common/dtos/catalog/product.dto';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiGetAllProductsDocs,
+  ApiGetProductByIdDocs,
+  ApiCreateProductDocs,
+  ApiUpdateProductDocs,
+  ApiDeleteProductDocs,
+} from './product.swagger';
 
+@ApiTags('Products')
+@ApiBearerAuth('access-token')
 @Controller('products')
 @Public()
 export class ProductsController {
@@ -26,6 +36,7 @@ export class ProductsController {
 
   @Get('')
   @Permissions(Permission.ProductView)
+  @ApiGetAllProductsDocs()
   async getAllProducts(
     @Query() PaginationDto: PaginationDto,
   ) {
@@ -36,7 +47,8 @@ export class ProductsController {
 
   @Get('/:id')
   @Permissions(Permission.ProductView)
-  async getProductById(@Param('id') id: UuidDto) {
+  @ApiGetProductByIdDocs()
+  async getProductById(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'get_product_by_id' }, id),
     );
@@ -44,6 +56,7 @@ export class ProductsController {
 
   @Post('')
   @Permissions(Permission.ProductCreate)
+  @ApiCreateProductDocs()
   async createProduct(@Body() data: CreateProductDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'create_product' }, data),
@@ -52,7 +65,8 @@ export class ProductsController {
 
   @Put('/:id')
   @Permissions(Permission.ProductUpdate)
-  async updateProduct(@Param('id') id: UuidDto, @Body() data: UpdateProductDto) {
+  @ApiUpdateProductDocs()
+  async updateProduct(@Param() id: UuidDto, @Body() data: UpdateProductDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'update_product' }, { id, data }),
     );
@@ -60,6 +74,7 @@ export class ProductsController {
 
   @Delete('/:id')
   @Permissions(Permission.ProductDelete)
+  @ApiDeleteProductDocs()
   async deleteProduct(@Param() id: UuidDto) {
     return await firstValueFrom(this.catalogClient.send({ cmd: 'delete_product' }, id));
   }

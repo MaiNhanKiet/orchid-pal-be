@@ -20,7 +20,17 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { Permission } from '@app/common/enums';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiGetAllCartItemsDocs,
+  ApiGetCartItemsByUserDocs,
+  ApiAddItemToCartDocs,
+  ApiRemoveItemFromCartDocs,
+  ApiUpdateCartItemQuantityDocs,
+} from './cart.swagger';
 
+@ApiTags('Carts')
+@ApiBearerAuth('access-token')
 @Controller('carts')
 @Public()
 export class CartsController {
@@ -31,14 +41,16 @@ export class CartsController {
 
   @Get()
   @Permissions(Permission.CartView)
+  @ApiGetAllCartItemsDocs()
   getAllCartItems() {
     return firstValueFrom(
       this.catalogClient.send({ cmd: 'get_all_cart_items' }, {}),
     );
   }
 
-  @Get('/:userId')
+  @Get('/user/:userId')
   @Permissions(Permission.CartView)
+  @ApiGetCartItemsByUserDocs()
   getCartItemsByUserId(
     @Param() userId: UuidDto,
     @Query() PaginationDto: PaginationDto,
@@ -53,6 +65,7 @@ export class CartsController {
 
   @Post()
   @Permissions(Permission.CartCreate)
+  @ApiAddItemToCartDocs()
   addItemToCart(@Body() CreateCartItemDto: CreateCartItemDto) {
     return firstValueFrom(
       this.catalogClient.send({ cmd: 'add_item_to_cart' }, CreateCartItemDto),
@@ -61,6 +74,7 @@ export class CartsController {
 
   @Delete('/:cartItemId')
   @Permissions(Permission.CartDelete)
+  @ApiRemoveItemFromCartDocs()
   removeItemFromCart(@Param() cartItemId: UuidDto) {
     return firstValueFrom(
       this.catalogClient.send({ cmd: 'remove_item_from_cart' }, cartItemId),
@@ -69,6 +83,7 @@ export class CartsController {
 
   @Put('/:cartItemId')
   @Permissions(Permission.CartUpdate)
+  @ApiUpdateCartItemQuantityDocs()
   updateCartItemQuantity(
     @Param() cartItemId: UuidDto,
     @Body('quantity') quantity: number,
