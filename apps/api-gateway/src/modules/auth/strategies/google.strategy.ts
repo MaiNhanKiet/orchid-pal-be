@@ -25,7 +25,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     accessToken: string,
     refreshToken: string,
     profile: any,
-    done: VerifyCallback,
   ): Promise<any> {
     const { name, emails, photos } = profile;
     const socialUser = {
@@ -37,9 +36,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     };
 
     const result = await firstValueFrom(
-      this.iamClient.send('google_login', socialUser),
+      this.iamClient.send({ cmd: 'google_login' }, socialUser),
     );
-
-    done(null, result);
+    return result;
   }
 }

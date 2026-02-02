@@ -7,8 +7,9 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @MessagePattern('google_login')
+  @MessagePattern({ cmd: 'google_login' })
   async handleGoogleLogin(@Payload() data: GoogleLoginDto) {
+    console.log(data);
     return this.authService.handleGoogleLogin(data);
   }
 }

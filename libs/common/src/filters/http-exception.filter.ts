@@ -6,11 +6,13 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+  constructor(private readonly configService: ConfigService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -32,6 +34,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const responseBody = exception.getResponse();
+
+      // lỗi hủy Google OAuth
+      if (
+        status === HttpStatus.UNAUTHORIZED &&
+        (responseBody as any).message === 'GOOGLE_AUTH_CANCELLED'
+      ) {
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+        console.log(frontendUrl);
+        return response.redirect(`${frontendUrl}/login?status=cancelled`);
+      }
+
       message =
         typeof responseBody === 'object' && 'message' in responseBody
           ? (responseBody as any).message
