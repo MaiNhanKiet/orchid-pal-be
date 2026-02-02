@@ -11,13 +11,18 @@ import {
   TransformInterceptor,
 } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { IAM_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import {
+  CATALOG_SERVICE_PORT,
+  IAM_SERVICE_PORT,
+} from '@app/common/constants/env-key.constant';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
 import { UsersController } from './modules/users/users.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
+import { ProductsController } from './modules/products/product.controller';
+import { CartsController } from './modules/carts/cart.controller';
 
 @Module({
   imports: [
@@ -31,9 +36,22 @@ import { RbacController } from './modules/rbac/rbac.controller';
           port: Number(IAM_SERVICE_PORT),
         },
       },
+      {
+        name: MICROSERVICES_CLIENTS.CATALOG_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(CATALOG_SERVICE_PORT),
+        },
+      },
     ]),
   ],
-  controllers: [AuthController, UsersController, RbacController],
+  controllers: [
+    AuthController,
+    UsersController,
+    RbacController,
+    ProductsController,
+    CartsController,
+  ],
   providers: [
     GoogleStrategy,
     {

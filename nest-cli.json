@@ -29,6 +29,15 @@
         ]
       }
     },
+    "catalog-service": {
+      "type": "application",
+      "root": "apps/catalog-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/catalog-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/catalog-service/tsconfig.app.json"
+      }
+    },
     "common": {
       "type": "library",
       "root": "libs/common",
@@ -48,6 +57,15 @@
         ]
       }
     },
+    "iam-service": {
+      "type": "application",
+      "root": "apps/iam-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/iam-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/iam-service/tsconfig.app.json"
+      }
+    },
     "notification-service": {
       "type": "application",
       "root": "apps/notification-service",
@@ -55,6 +73,15 @@
       "sourceRoot": "apps/notification-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/notification-service/tsconfig.app.json"
+      }
+    },
+    "order-fulfillment-service": {
+      "type": "application",
+      "root": "apps/order-fulfillment-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/order-fulfillment-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/order-fulfillment-service/tsconfig.app.json"
       }
     },
     "prisma": {
@@ -73,15 +100,6 @@
       "sourceRoot": "libs/redis/src",
       "compilerOptions": {
         "tsConfigPath": "libs/redis/tsconfig.lib.json"
-      }
-    },
-    "iam-service": {
-      "type": "application",
-      "root": "apps/iam-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/iam-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/iam-service/tsconfig.app.json"
       }
     },
     "util": {
