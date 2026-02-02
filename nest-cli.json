@@ -16,7 +16,17 @@
       "entryFile": "main",
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json",
+        "plugins": [
+          {
+            "name": "@nestjs/swagger",
+            "options": {
+              "classValidatorShim": true,
+              "introspectComments": true,
+              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
+            }
+          }
+        ]
       }
     },
     "catalog-service": {
@@ -34,7 +44,17 @@
       "entryFile": "index",
       "sourceRoot": "libs/common/src",
       "compilerOptions": {
-        "tsConfigPath": "libs/common/tsconfig.lib.json"
+        "tsConfigPath": "libs/common/tsconfig.lib.json",
+        "plugins": [
+          {
+            "name": "@nestjs/swagger",
+            "options": {
+              "classValidatorShim": true,
+              "introspectComments": true,
+              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
+            }
+          }
+        ]
       }
     },
     "iam-service": {

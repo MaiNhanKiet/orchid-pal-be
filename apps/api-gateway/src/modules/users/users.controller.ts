@@ -18,7 +18,15 @@ import {
 import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { UuidDto } from '@app/common/dtos/uuid.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiGetUsersDocs,
+  ApiBanUserDocs,
+  ApiAssignRoleDocs,
+} from './user.swagger';
 
+@ApiTags('Users')
+@ApiBearerAuth('access-token')
 @Controller('users')
 @Public()
 export class UsersController {
@@ -29,6 +37,7 @@ export class UsersController {
 
   @Get()
   @Permissions(Permission.UserView)
+  @ApiGetUsersDocs()
   getUsers(@Query() paginationDto: PaginationDto) {
     console.log(paginationDto);
     return this.iamClient.send({ cmd: 'get_users' }, paginationDto);
@@ -36,12 +45,14 @@ export class UsersController {
 
   @Patch(':id/ban')
   @Permissions(Permission.UserBlock)
+  @ApiBanUserDocs()
   banUser(@Param() uuidDto: UuidDto) {
     return this.iamClient.send({ cmd: 'ban_user' }, { id: uuidDto.id });
   }
 
   @Post('assign-role')
   @Permissions(Permission.UserUpdate)
+  @ApiAssignRoleDocs()
   assignRole(@Body() assignRoleDto: AssignRoleDto) {
     return this.iamClient.send({ cmd: 'assign_role' }, assignRoleDto);
   }

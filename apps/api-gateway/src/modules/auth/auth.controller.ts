@@ -3,7 +3,10 @@ import { Public } from '@app/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOauthGuard } from './guards/google.guard';
 import { PrismaService } from '@app/prisma/prisma.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiGoogleAuthDocs, ApiGoogleAuthCallbackDocs } from './auth.swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 @Public()
 export class AuthController {
@@ -11,10 +14,12 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
+  @ApiGoogleAuthDocs()
   async googleAuth(@Req() req) {}
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
+  @ApiGoogleAuthCallbackDocs()
   async googleAuthRedirect(@Req() req, @Res() res) {
     const { accessToken, refreshToken } = req.user;
 
