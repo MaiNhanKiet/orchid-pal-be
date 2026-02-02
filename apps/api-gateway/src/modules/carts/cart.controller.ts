@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   MICROSERVICES_CLIENTS,
@@ -32,7 +33,7 @@ import {
 @ApiTags('Carts')
 @ApiBearerAuth('access-token')
 @Controller('carts')
-@Public()
+// @Public()
 export class CartsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
@@ -55,6 +56,22 @@ export class CartsController {
     @Param() userId: UuidDto,
     @Query() PaginationDto: PaginationDto,
   ) {
+    return firstValueFrom(
+      this.catalogClient.send(
+        { cmd: 'get_cart_items_by_user_id' },
+        { userId, PaginationDto },
+      ),
+    );
+  }
+
+  @Get('/user/')
+  @Permissions(Permission.CartView)
+  @ApiGetCartItemsByUserDocs()
+  getCartItemsOfUser(
+    @Req() req,
+    @Query() PaginationDto: PaginationDto,
+  ) {
+    const userId = req.user;
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'get_cart_items_by_user_id' },
