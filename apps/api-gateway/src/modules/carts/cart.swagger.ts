@@ -27,6 +27,42 @@ export function ApiGetAllCartItemsDocs() {
 
 export function ApiGetCartItemsByUserDocs() {
   return applyDecorators(
+    ApiOperation({ summary: 'Lấy cart items của user với phân trang (Admin)' }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Lấy cart items theo user thành công',
+      schema: {
+        example: {
+          data: [
+            {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              userId: '223e4567-e89b-12d3-a456-426614174001',
+              productId: '323e4567-e89b-12d3-a456-426614174002',
+              quantity: 2,
+              isSelected: true,
+              createdAt: '2024-01-01T00:00:00.000Z',
+            },
+          ],
+          meta: {
+            total: 5,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'UUID không hợp lệ',
+      schema: { example: { message: 'Invalid UUID format' } },
+    }),
+  );
+}
+
+export function ApiGetCartItemsOfUserDocs() {
+  return applyDecorators(
     ApiOperation({ summary: 'Lấy cart items của user với phân trang' }),
     ApiAuthFailures(),
     ApiResponse({

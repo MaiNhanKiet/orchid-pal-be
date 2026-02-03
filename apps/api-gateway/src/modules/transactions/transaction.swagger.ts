@@ -69,9 +69,50 @@ export function ApiGetTransactionByIdDocs() {
   );
 }
 
-export function ApiGetTransactionsByUserIdDocs() {
+export function ApiGetTransactionsOfUserDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Lấy danh sách giao dịch của người dùng' }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Lấy danh sách giao dịch của user thành công',
+      schema: {
+        example: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            order_id: 'order-001',
+            user_id: 'user-001',
+            amount: '2750000.00',
+            method: 'payos',
+            status: 'completed',
+            gateway_trans_id: 'payos-txn-001',
+            gateway_log: null,
+            paid_at: '2024-01-01T01:00:00.000Z',
+          },
+          {
+            id: '223e4567-e89b-12d3-a456-426614174001',
+            order_id: 'order-002',
+            user_id: 'user-001',
+            amount: '5500000.00',
+            method: 'cod',
+            status: 'completed',
+            gateway_trans_id: null,
+            gateway_log: null,
+            paid_at: null,
+          },
+        ],
+      },
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Không tìm thấy user hoặc user không có giao dịch',
+      schema: { example: { message: 'User not found' } },
+    }),
+  );
+}
+export function ApiGetTransactionsByUserIdDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Lấy danh sách giao dịch của người dùng (Admin)' }),
     ApiAuthFailures(),
     ApiResponse({
       status: 200,

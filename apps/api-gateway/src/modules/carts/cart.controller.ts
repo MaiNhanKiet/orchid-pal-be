@@ -28,12 +28,13 @@ import {
   ApiAddItemToCartDocs,
   ApiRemoveItemFromCartDocs,
   ApiUpdateCartItemQuantityDocs,
+  ApiGetCartItemsOfUserDocs,
 } from './cart.swagger';
 
 @ApiTags('Carts')
 @ApiBearerAuth('access-token')
 @Controller('carts')
-// @Public()
+@Public()
 export class CartsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
@@ -64,9 +65,9 @@ export class CartsController {
     );
   }
 
-  @Get('/user/')
+  @Get('/user')
   @Permissions(Permission.CartView)
-  @ApiGetCartItemsByUserDocs()
+  @ApiGetCartItemsOfUserDocs()
   getCartItemsOfUser(
     @Req() req,
     @Query() PaginationDto: PaginationDto,

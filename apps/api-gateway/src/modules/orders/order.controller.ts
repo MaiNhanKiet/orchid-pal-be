@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
 import { IdDto, MICROSERVICES_CLIENTS, PaginationDto, Permissions, UuidDto } from '@app/common';
 import { Permission } from '@app/common/enums';
@@ -52,6 +53,16 @@ export class OrdersController {
   async getOrdersByUserId(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'get_orders_by_user_id' }, id),
+    );
+  }
+
+  @Get('/user')
+  @ApiGetOrdersByUserIdDocs()
+  @Permissions(Permission.OrderView)
+  async getOrdersOfUser(@Req() req) {
+    const userId = req.user;
+    return await firstValueFrom(
+      this.catalogClient.send({ cmd: 'get_orders_by_user_id' }, userId),
     );
   }
 
