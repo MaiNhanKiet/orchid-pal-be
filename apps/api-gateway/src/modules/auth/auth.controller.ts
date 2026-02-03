@@ -7,6 +7,7 @@ import {
   Post,
   UnauthorizedException,
   Inject,
+  Body,
 } from '@nestjs/common';
 import { MICROSERVICES_CLIENTS, Public } from '@app/common';
 import { ConfigService } from '@nestjs/config';
@@ -21,7 +22,7 @@ import {
 import type { Request, Response } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
-import { access } from 'fs';
+import { RedisService } from '@app/redis';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -31,6 +32,7 @@ export class AuthController {
     @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
     private readonly iamClient: ClientProxy,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   @Get('google')
@@ -116,5 +118,17 @@ export class AuthController {
     return {
       message: 'Logged out successfully',
     };
+  }
+
+  @Post('test')
+  async test(@Body('otp') otp: string) {
+    const key = `otp:${otp}`;
+    console.log(otp);
+    return this.redisService.set(key, otp, 300);
+  }
+
+  @Get('test')
+  async get() {
+    return this.redisService.get<string>('otp');
   }
 }

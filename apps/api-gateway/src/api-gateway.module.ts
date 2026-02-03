@@ -23,11 +23,13 @@ import { UsersController } from './modules/users/users.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { CartsController } from './modules/carts/cart.controller';
+import { RedisModule } from '@app/redis';
 
 @Module({
   imports: [
     CommonModule,
     PassportModule,
+    RedisModule,
     ClientsModule.register([
       {
         name: MICROSERVICES_CLIENTS.IAM_SERVICE,
