@@ -2,7 +2,7 @@ import { Controller } from '@nestjs/common';
 
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CartsService } from './carts.service';
-import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { CreateCartItemDto, UpdateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { PaginationDto, UuidDto } from '@app/common';
 
 @Controller()
@@ -29,9 +29,9 @@ export class CartsController {
       return this.cartsService.removeItemFromCart(id.id);
     }
 
-    @MessagePattern({ cmd: 'update_cart_item_quantity' })
-    updateCartItemQuantity(@Payload() {cartItemId, quantity}: {cartItemId: UuidDto, quantity: number}) {
-      return this.cartsService.updateCartItemQuantity(cartItemId.id, quantity);
+    @MessagePattern({ cmd: 'update_cart_item' })
+    updateCartItem(@Payload() {cartItemId, payload}: {cartItemId: UuidDto, payload: UpdateCartItemDto}) {
+      return this.cartsService.updateCartItem(cartItemId.id, payload.quantity, payload.isSelected);
     }
 
     @MessagePattern({ cmd: 'clear_cart' })

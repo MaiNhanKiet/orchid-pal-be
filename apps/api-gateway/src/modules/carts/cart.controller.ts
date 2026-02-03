@@ -19,7 +19,7 @@ import {
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { CreateCartItemDto, UpdateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { Permission } from '@app/common/enums';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -27,7 +27,7 @@ import {
   ApiGetCartItemsByUserDocs,
   ApiAddItemToCartDocs,
   ApiRemoveItemFromCartDocs,
-  ApiUpdateCartItemQuantityDocs,
+  ApiUpdateCartItemDocs,
   ApiGetCartItemsOfUserDocs,
 } from './cart.swagger';
 
@@ -101,17 +101,17 @@ export class CartsController {
 
   @Put('/:cartItemId')
   @Permissions(Permission.CartUpdate)
-  @ApiUpdateCartItemQuantityDocs()
-  updateCartItemQuantity(
+  @ApiUpdateCartItemDocs()
+  updateCartItem(
     @Param() cartItemId: UuidDto,
-    @Body('quantity') quantity: number,
+    @Body() payload: UpdateCartItemDto
   ) {
     return firstValueFrom(
       this.catalogClient.send(
-        { cmd: 'update_cart_item_quantity' },
+        { cmd: 'update_cart_item' },
         {
           cartItemId,
-          quantity,
+          payload
         },
       ),
     );

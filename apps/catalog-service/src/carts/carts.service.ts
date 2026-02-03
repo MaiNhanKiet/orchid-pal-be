@@ -66,10 +66,10 @@ export class CartsService {
     return cartItem;
   }
 
-  async updateCartItemQuantity(cartItemId: string, quantity: number) {
+  async updateCartItem(cartItemId: string, quantity?: number, isSelected?: boolean) {
     const cartItem = await this.prisma.cart_items.update({
       where: { id: cartItemId },
-      data: { quantity },
+      data: { quantity, is_selected: isSelected },
     });
     return cartItem;
   }

@@ -145,13 +145,13 @@ export function ApiRemoveItemFromCartDocs() {
   );
 }
 
-export function ApiUpdateCartItemQuantityDocs() {
+export function ApiUpdateCartItemDocs() {
   return applyDecorators(
-    ApiOperation({ summary: 'Cập nhật số lượng item trong giỏ' }),
+    ApiOperation({ summary: 'Cập nhật số lượng item và trạng thái chọn trong giỏ' }),
     ApiAuthFailures(),
     ApiResponse({
       status: 200,
-      description: 'Cập nhật số lượng thành công',
+      description: 'Cập nhật số lượng và trạng thái chọn thành công',
       schema: {
         example: {
           id: '123e4567-e89b-12d3-a456-426614174000',
