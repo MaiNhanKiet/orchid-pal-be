@@ -11,8 +11,10 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RbacModule } from './rbac/rbac.module';
 
+import { IamWorkerModule } from './worker/iam-worker.module';
+
 @Module({
-  imports: [CommonModule, AuthModule, UsersModule, RbacModule],
+  imports: [CommonModule, AuthModule, UsersModule, RbacModule, IamWorkerModule],
   controllers: [],
   providers: [
     {

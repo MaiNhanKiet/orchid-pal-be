@@ -3,8 +3,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { jwtConfig } from './config/jwt.config';
 import { appConfig } from './config/app.config';
-import { PrismaModule } from '@app/prisma';
-import { RbacService } from './rbac/rbac.service';
 import { RbacModule } from './rbac/rbac.module';
 
 @Global()
