@@ -7,6 +7,7 @@ import {
   LoggingInterceptor,
   MICROSERVICES_CLIENTS,
   PermissionRbacGuard,
+  QueueName,
   TimeoutInterceptor,
   TransformInterceptor,
 } from '@app/common';
@@ -24,6 +25,11 @@ import { RbacController } from './modules/rbac/rbac.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { CartsController } from './modules/carts/cart.controller';
 import { RedisModule } from '@app/redis';
+import { BullConfigModule } from '@app/common/queue/bull-mq';
+import { ExpressAdapter } from '@bull-board/express';
+import { BullBoardModule } from '@bull-board/nestjs/dist/bull-board.module';
+import { BullModule } from '@nestjs/bullmq';
+import { BullMQAdapter } from '@bull-board/api/dist/queueAdapters/bullMQ.js';
 
 @Module({
   imports: [
@@ -46,6 +52,16 @@ import { RedisModule } from '@app/redis';
         },
       },
     ]),
+    BullConfigModule,
+    BullModule.registerQueue({ name: QueueName.IamCronQueue }),
+    BullBoardModule.forRoot({
+      route: '/admin/queues',
+      adapter: ExpressAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: QueueName.IamCronQueue,
+      adapter: BullMQAdapter,
+    }),
   ],
   controllers: [
     AuthController,
