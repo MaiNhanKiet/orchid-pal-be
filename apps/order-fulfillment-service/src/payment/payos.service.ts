@@ -60,4 +60,13 @@ export class PayOSService {
       return false;
     }
   }
+
+  async cancelPayment(orderCode: number, cancelReason?: string): Promise<boolean> {
+    try {
+      await this.payos.paymentRequests.cancel(orderCode, cancelReason);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
