@@ -4,10 +4,16 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { PaginationDto } from '@app/common/dtos/pagination.dto';
 import { UuidDto } from '@app/common';
+import { PayOSService } from '../payment/payos.service';
+import { PrismaService } from '@app/prisma';
 
 @Controller()
 export class OrdersController {
-  constructor(private readonly orderService: OrdersService) {}
+  constructor(
+    private readonly orderService: OrdersService,
+    private payOSService: PayOSService,
+    private prisma: PrismaService
+  ) {}
 
   @MessagePattern({ cmd: 'get_all_orders' })
   getAllOrders() {
