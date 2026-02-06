@@ -10,7 +10,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PayOSService } from '../payment/payos.service';
+import { PayOSService } from '../payos/payos.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 

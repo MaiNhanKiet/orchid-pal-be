@@ -33,6 +33,7 @@ export enum Permission {
   OrderUpdateStatus = 'order.update_status',
   OrderCancel = 'order.cancel',
   OrderRefund = 'order.refund',
+  OrderCreate = 'order.create',
 
   TransactionView = 'transaction.view',
 

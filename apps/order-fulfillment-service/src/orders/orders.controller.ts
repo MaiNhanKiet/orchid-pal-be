@@ -4,15 +4,16 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { PaginationDto } from '@app/common/dtos/pagination.dto';
 import { UuidDto } from '@app/common';
-import { PayOSService } from '../payment/payos.service';
+import { PayOSService } from '../payos/payos.service';
 import { PrismaService } from '@app/prisma';
+import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 
 @Controller()
 export class OrdersController {
   constructor(
     private readonly orderService: OrdersService,
     private payOSService: PayOSService,
-    private prisma: PrismaService
+    private prisma: PrismaService,
   ) {}
 
   @MessagePattern({ cmd: 'get_all_orders' })
@@ -31,5 +32,12 @@ export class OrdersController {
   @MessagePattern({ cmd: 'get_order_by_id' })
   getOrderById(@Payload() id: UuidDto) {
     return this.orderService.getOrderById(id.id);
+  }
+
+  @MessagePattern({ cmd: 'check_out' })
+  checkOut(
+    @Payload() { id, checkOutDto }: { id: UuidDto; checkOutDto: CheckoutDto },
+  ) {
+    return this.orderService.checkout(id.id, checkOutDto);
   }
 }

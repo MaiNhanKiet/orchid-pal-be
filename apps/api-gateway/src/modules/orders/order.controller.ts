@@ -10,13 +10,24 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { IdDto, MICROSERVICES_CLIENTS, PaginationDto, Permissions, UuidDto } from '@app/common';
+import {
+  IdDto,
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
+  Permissions,
+  UuidDto,
+} from '@app/common';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ApiGetAllOrdersDocs, ApiGetOrderByIdDocs, ApiGetOrdersByUserIdDocs } from './order.swagger';
+import {
+  ApiGetAllOrdersDocs,
+  ApiGetOrderByIdDocs,
+  ApiGetOrdersByUserIdDocs,
+} from './order.swagger';
+import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -31,8 +42,7 @@ export class OrdersController {
   @Get('')
   @Permissions(Permission.OrderViewAll)
   @ApiGetAllOrdersDocs()
-  async getAllOrders(
-  ) {
+  async getAllOrders() {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'get_all_orders' }, {}),
     );
@@ -66,4 +76,14 @@ export class OrdersController {
     );
   }
 
+  @Post('/check-out')
+  @Permissions(Permission.OrderCreate)
+  async checkOut(@Req() req, @Body() checkoutDto: CheckoutDto) {
+    const userId = req.user;
+    return await firstValueFrom(
+      this.catalogClient.send({ cmd: 'check_out' }, {userId, checkoutDto}),
+    );
+  }
+
+  
 }

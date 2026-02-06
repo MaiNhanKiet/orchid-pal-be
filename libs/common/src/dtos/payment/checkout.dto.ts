@@ -1,8 +1,9 @@
+import { PaymentMethod } from '@app/common/enums/payment.enum';
 import { IsEnum, IsOptional, IsUUID, IsString } from 'class-validator';
 
 export class CheckoutDto {
-  @IsEnum(['PAYOS', 'COD'])
-  paymentMethod: 'PAYOS' | 'COD';
+  @IsEnum(PaymentMethod)
+  paymentMethod;
 
   @IsUUID()
   @IsOptional()
