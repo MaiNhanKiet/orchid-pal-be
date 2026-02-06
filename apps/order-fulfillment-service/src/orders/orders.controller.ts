@@ -38,6 +38,9 @@ export class OrdersController {
   checkOut(
     @Payload() { id, checkOutDto }: { id: UuidDto; checkOutDto: CheckoutDto },
   ) {
+    console.log('Recieved user: ', id);
+    console.log('Recieved checkOutDto: ', checkOutDto);
+    
     return this.orderService.checkout(id.id, checkOutDto);
   }
 }

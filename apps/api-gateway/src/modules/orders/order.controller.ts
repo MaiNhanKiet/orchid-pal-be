@@ -32,7 +32,7 @@ import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-@Public()
+// @Public()
 export class OrdersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
@@ -77,11 +77,16 @@ export class OrdersController {
   }
 
   @Post('/check-out')
-  @Permissions(Permission.OrderCreate)
-  async checkOut(@Req() req, @Body() checkoutDto: CheckoutDto) {
-    const userId = req.user;
+  // @Permissions(Permission.OrderCreate)
+  async checkOut(@Req() req, @Body() checkOutDto: CheckoutDto) {
+    const id = {
+      id: req.user.sub,
+      ...req.user
+    };
+    console.log("User: ", id);
+    
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'check_out' }, {userId, checkoutDto}),
+      this.catalogClient.send({ cmd: 'check_out' }, {id, checkOutDto}),
     );
   }
 

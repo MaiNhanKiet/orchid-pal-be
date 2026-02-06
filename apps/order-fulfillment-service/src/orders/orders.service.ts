@@ -7,6 +7,8 @@ import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { PrismaService } from '@app/prisma';
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,6 +20,7 @@ import { Prisma } from '@prisma/client';
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => PayOSService)) // ← thêm dòng này
     private payosService: PayOSService,
     private eventEmitter: EventEmitter2,
   ) {}

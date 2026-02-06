@@ -3,7 +3,7 @@ import {
   PAYOS_CHECKSUM_KEY,
   PAYOS_CLIENT_ID,
 } from '@app/common';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentLinkItem, PayOS, Webhook } from '@payos/node';
 import { OrdersService } from '../orders/orders.service';
@@ -23,7 +23,10 @@ interface PayOSPaymentLinkRequest {
 export class PayOSService {
   private readonly payos: PayOS;
 
-  constructor(private orderService: OrdersService) {
+  constructor(
+    @Inject(forwardRef(() => OrdersService))
+    private orderService: OrdersService,
+  ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
     const checksumKey = PAYOS_CHECKSUM_KEY;

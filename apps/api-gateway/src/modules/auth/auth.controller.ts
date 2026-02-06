@@ -56,6 +56,9 @@ export class AuthController {
       });
     }
 
+    console.log(`token=${accessToken}`);
+    
+
     return res.redirect(
       `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
     );

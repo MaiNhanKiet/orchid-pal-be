@@ -13,6 +13,6 @@ export class PayosController {
 
   @MessagePattern({ cmd: 'handle_webhook' })
   handleWehook(@Payload() { body }: { body: Webhook }) {
-    this.payOSService.handleWebhook(body);
+    return this.payOSService.handleWebhook(body);
   }
 }

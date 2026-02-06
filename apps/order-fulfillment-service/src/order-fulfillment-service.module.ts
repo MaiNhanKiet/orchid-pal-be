@@ -10,10 +10,12 @@ import {
 import { OrdersModule } from './orders/orders.module';
 import { ShipmentsModule } from './shipments/shipments.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { PayOSModule } from './payos/payos.module';
 
 
 @Module({
-  imports: [CommonModule, OrdersModule, ShipmentsModule, TransactionsModule],
+  imports: [CommonModule, OrdersModule, ShipmentsModule, TransactionsModule, EventEmitterModule.forRoot(), PayOSModule],
   controllers: [],
   providers: [
     {
