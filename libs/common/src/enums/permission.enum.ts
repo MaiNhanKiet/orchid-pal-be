@@ -43,6 +43,11 @@ export enum Permission {
   ShipmentUpdate = 'shipment.update',
   ShipmentView = 'shipment.view',
 
+  AddressCreate = 'address.create',
+  AddressView = 'address.view',
+  AddressUpdate = 'address.update',
+  AddressDelete = 'address.delete',
+
   WikiViewHidden = 'wiki.view_hidden',
   WikiCreate = 'wiki.create',
   WikiUpdate = 'wiki.update',

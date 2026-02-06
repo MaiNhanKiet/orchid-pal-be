@@ -127,7 +127,7 @@ export class OrdersService {
         product_name_snapshot: string;
         quantity: number;
         unit_price: Prisma.Decimal;
-        total_price: Prisma.Decimal;
+        // total_price: Prisma.Decimal;
       }> = [];
 
       for (const item of cartItems) {
@@ -154,7 +154,7 @@ export class OrdersService {
           product_name_snapshot: product.name,
           quantity: item.quantity!,
           unit_price: unitPrice,
-          total_price: totalPrice,
+          // total_price: totalPrice,
         });
 
         await tx.products.update({
@@ -236,7 +236,7 @@ export class OrdersService {
       const payosPayload = {
         orderCode: Number(orderCode.replace(/\D/g, '')),
         amount: Number(totalAmount),
-        description: `Thanh toán đơn hàng ${orderCode}`,
+        description: `Đơn hàng ${orderCode}`,
         buyerName: shippingInfo.recipient_name ?? undefined,
         buyerPhone: shippingInfo.phone ?? undefined,
         returnUrl: `${process.env.FRONTEND_URL}/checkout/success?orderId=${order.id}`,
@@ -345,6 +345,7 @@ export class OrdersService {
   }
 
   private generateOrderCode(): string {
-    return `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const shortCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-7 chữ số
+    return `ORD${shortCode}`;
   }
 }

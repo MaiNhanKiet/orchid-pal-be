@@ -35,6 +35,7 @@ import { OrdersController } from './modules/orders/order.controller';
 import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
 import { WebhookController } from './modules/webhook/webhook.controller';
+import { AddressesController } from './modules/shipments/address.controller';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { WebhookController } from './modules/webhook/webhook.controller';
     ShipmentsController,
     TransactionsController,
     WebhookController,
+    AddressesController
   ],
   providers: [
     GoogleStrategy,
