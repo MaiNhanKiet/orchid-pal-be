@@ -198,6 +198,20 @@ export class OrdersService {
           },
         });
 
+        // TẠO SHIPMENT NGAY CHO COD (Tạm thời)
+        await tx.shipments.create({
+          data: {
+            order_id: order.id,
+            carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
+            tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
+            shipping_fee: new Prisma.Decimal(30000), // ví dụ, có thể tính động sau
+            status: 'PROCESSING', // trạng thái ban đầu: đang chuẩn bị
+            estimated_delivery_at: new Date(
+              Date.now() + 3 * 24 * 60 * 60 * 1000,
+            ), // +3 ngày ví dụ
+          },
+        });
+
         await tx.cart_items.deleteMany({
           where: { user_id: userId, is_selected: true },
         });
@@ -297,6 +311,18 @@ export class OrdersService {
         data: {
           status: 'PAID',
           paid_at: new Date(),
+        },
+      });
+
+      // TẠO SHIPMENT SAU KHI THANH TOÁN THÀNH CÔNG (Tạm thời)
+      await tx.shipments.create({
+        data: {
+          order_id: order.id,
+          carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
+          tracking_code: null, // sẽ update sau
+          shipping_fee: new Prisma.Decimal(30000), // tính động dựa trên địa chỉ, trọng lượng...
+          status: 'PENDING', // trạng thái chờ xác nhận vận chuyển
+          estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
         },
       });
 
