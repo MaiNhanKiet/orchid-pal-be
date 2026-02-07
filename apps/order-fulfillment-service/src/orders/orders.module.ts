@@ -1,13 +1,9 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 
-import { PayOSModule } from '../payos/payos.module';
-
 @Module({
-  imports: [
-    forwardRef(() => PayOSModule), // ← quan trọng
-  ],
+  imports: [],
   controllers: [OrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

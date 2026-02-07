@@ -34,7 +34,7 @@ import { BullMQAdapter } from '@bull-board/api/dist/queueAdapters/bullMQ.js';
 import { OrdersController } from './modules/orders/order.controller';
 import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
-import { WebhookController } from './modules/webhook/webhook.controller';
+import { PaymentController } from './modules/payment/payment.controller';
 import { AddressesController } from './modules/shipments/address.controller';
 
 @Module({
@@ -85,8 +85,8 @@ import { AddressesController } from './modules/shipments/address.controller';
     OrdersController,
     ShipmentsController,
     TransactionsController,
-    WebhookController,
-    AddressesController
+    PaymentController,
+    AddressesController,
   ],
   providers: [
     GoogleStrategy,

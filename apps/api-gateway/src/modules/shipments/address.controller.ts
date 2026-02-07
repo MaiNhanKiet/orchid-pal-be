@@ -38,7 +38,7 @@ export class AddressesController {
 
   // POST /addresses - Tạo địa chỉ mới
   @Post()
-//   @Permissions(Permission.AddressCreate)
+  //   @Permissions(Permission.AddressCreate)
   async createAddress(@Req() req: any, @Body() dto: any) {
     const userId = req.user.sub; // Lấy user ID từ sub trong JWT
 
@@ -52,7 +52,7 @@ export class AddressesController {
 
   // GET /addresses - Lấy tất cả địa chỉ của user hiện tại
   @Get()
-//   @Permissions(Permission.AddressView)
+  //   @Permissions(Permission.AddressView)
   async getAllAddresses(@Req() req: any, @Query() pagination?: PaginationDto) {
     const userId = req.user.sub;
 
