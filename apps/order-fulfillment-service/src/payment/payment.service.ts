@@ -11,7 +11,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentLinkItem, PayOS, Webhook } from '@payos/node';
+import { PaymentLink, PaymentLinkItem, PayOS, Webhook } from '@payos/node';
 import { OrdersService } from '../orders/orders.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@app/prisma';
@@ -62,11 +62,7 @@ export class PaymentService {
 
     const response = await this.payos.paymentRequests.create(paymentLinkData);
 
-    return {
-      checkoutUrl: response.checkoutUrl,
-      orderCode: response.orderCode,
-      qrCode: response.qrCode,
-    };
+    return response;
   }
 
   async verifyWebhook(body: Webhook): Promise<boolean> {
@@ -77,6 +73,16 @@ export class PaymentService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  async getPaymentInformation(paymentLinkId: string) {
+    try {
+      const response = await this.payos.paymentRequests.get(paymentLinkId);
+      return response;
+    } catch (error) {
+      console.error('Lỗi khi gọi PayOS cancel:', error);
+      return null;
     }
   }
 
@@ -92,7 +98,7 @@ export class PaymentService {
 
       // Kiểm tra response thành công (theo docs PayOS, response sẽ có status nếu thành công)
       if (response && response.status === 'CANCELLED') {
-        this.handlePayOSCancelOrFailed(orderCode.toString(), response.status)
+        this.handlePayOSCancelOrFailed(orderCode.toString(), response.status);
         return true;
       }
 

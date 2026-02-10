@@ -40,4 +40,14 @@ export class PaymentController {
 
     return this.paymentService.cancelPayment(orderCode, cancelReason);
   }
+
+  @MessagePattern({ cmd: 'get_payment_information' })
+  getPaymentInformation(
+    @Payload()
+    { paymentLinkId }: { paymentLinkId: string },
+  ) {
+    console.log('Recieved paymentLinkId: ', paymentLinkId);
+
+    return this.paymentService.getPaymentInformation(paymentLinkId);
+  }
 }

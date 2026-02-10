@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Inject, Param, Post, Req } from '@nestjs/common';
 import { MICROSERVICES_CLIENTS } from '@app/common';
 
 import { Public } from '@app/common';
@@ -50,6 +50,20 @@ export class PaymentController {
       this.catalogClient.send(
         { cmd: 'cancel_payment' },
         { orderCode, cancelReason },
+      ),
+    );
+  }
+
+  @Post('/get-payment-information')
+  // @Permissions(Permission.OrderCreate)
+  async getPaymentInformation(
+    @Param()
+    { paymentLinkId }: { paymentLinkId: string },
+  ) {
+    return await firstValueFrom(
+      this.catalogClient.send(
+        { cmd: 'get_payment_information' },
+        { paymentLinkId },
       ),
     );
   }
