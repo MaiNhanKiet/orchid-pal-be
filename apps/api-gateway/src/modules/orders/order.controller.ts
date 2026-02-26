@@ -36,7 +36,7 @@ import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 export class OrdersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly catalogClient: ClientProxy,
+    private readonly orderFulfillmentClient: ClientProxy,
   ) {}
 
   @Get('')
@@ -44,7 +44,7 @@ export class OrdersController {
   @ApiGetAllOrdersDocs()
   async getAllOrders() {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_orders' }, {}),
+      this.orderFulfillmentClient.send({ cmd: 'get_all_orders' }, {}),
     );
   }
 
@@ -53,26 +53,35 @@ export class OrdersController {
   @ApiGetOrderByIdDocs()
   async getOrderById(@Param() id: UuidDto) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_order_by_id' }, id),
+      this.orderFulfillmentClient.send({ cmd: 'get_order_by_id' }, id),
     );
   }
 
   @Get('/user/:id')
   @ApiGetOrdersByUserIdDocs()
   @Permissions(Permission.OrderView)
-  async getOrdersByUserId(@Param() id: UuidDto) {
+  async getOrdersByUserId(
+    @Param() userId: UuidDto,
+    @Query() pagination: PaginationDto,
+  ) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_orders_by_user_id' }, id),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_orders_by_user_id' },
+        { userId, pagination },
+      ),
     );
   }
 
   @Get('/user')
   @ApiGetOrdersByUserIdDocs()
   @Permissions(Permission.OrderView)
-  async getOrdersOfUser(@Req() req) {
+  async getOrdersOfUser(@Req() req, @Query() pagination: PaginationDto) {
     const userId = req.user;
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_orders_by_user_id' }, userId),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_orders_by_user_id' },
+        { userId, pagination },
+      ),
     );
   }
 }

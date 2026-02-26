@@ -38,10 +38,10 @@ export class ProductsController {
   @Permissions(Permission.ProductView)
   @ApiGetAllProductsDocs()
   async getAllProducts(
-    @Query() PaginationDto: PaginationDto,
+    @Query() pagination: PaginationDto,
   ) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_products' }, PaginationDto),
+      this.catalogClient.send({ cmd: 'get_all_products' }, pagination),
     );
   }
 

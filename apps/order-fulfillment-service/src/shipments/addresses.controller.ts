@@ -41,8 +41,8 @@ export class AddressesController {
    * Payload: { userId: string, id: string }
    */
   @MessagePattern({ cmd: 'get_address_by_id' })
-  async getAddressById(@Payload() payload: { userId: string; id: string }) {
-    return this.addressService.findOne(payload.userId, payload.id);
+  async getAddressById(@Payload() payload: { userId: string; id: UuidDto }) {
+    return this.addressService.findOne(payload.userId, payload.id.id);
   }
 
   /**
@@ -52,9 +52,9 @@ export class AddressesController {
    */
   @MessagePattern({ cmd: 'update_address' })
   async updateAddress(
-    @Payload() payload: { userId: string; id: string; dto: UpdateAddressDto },
+    @Payload() payload: { userId: string; id: UuidDto; dto: UpdateAddressDto },
   ) {
-    return this.addressService.update(payload.userId, payload.id, payload.dto);
+    return this.addressService.update(payload.userId, payload.id.id, payload.dto);
   }
 
   /**
@@ -63,8 +63,8 @@ export class AddressesController {
    * Payload: { userId: string, id: string }
    */
   @MessagePattern({ cmd: 'delete_address' })
-  async deleteAddress(@Payload() payload: { userId: string; id: string }) {
-    return this.addressService.delete(payload.userId, payload.id);
+  async deleteAddress(@Payload() payload: { userId: string; id: UuidDto }) {
+    return this.addressService.delete(payload.userId, payload.id.id);
   }
 
   /**
@@ -73,7 +73,7 @@ export class AddressesController {
    * Payload: { userId: string, id: string }
    */
   @MessagePattern({ cmd: 'set_default_address' })
-  async setDefaultAddress(@Payload() payload: { userId: string; id: string }) {
-    return this.addressService.setDefault(payload.userId, payload.id);
+  async setDefaultAddress(@Payload() payload: { userId: string; id: UuidDto }) {
+    return this.addressService.setDefault(payload.userId, payload.id.id);
   }
 }

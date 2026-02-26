@@ -55,12 +55,12 @@ export class CartsController {
   @ApiGetCartItemsByUserDocs()
   getCartItemsByUserId(
     @Param() userId: UuidDto,
-    @Query() PaginationDto: PaginationDto,
+    @Query() pagination: PaginationDto,
   ) {
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'get_cart_items_by_user_id' },
-        { userId, PaginationDto },
+        { userId, pagination },
       ),
     );
   }
@@ -70,13 +70,13 @@ export class CartsController {
   @ApiGetCartItemsOfUserDocs()
   getCartItemsOfUser(
     @Req() req,
-    @Query() PaginationDto: PaginationDto,
+    @Query() pagination: PaginationDto,
   ) {
     const userId = req.user;
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'get_cart_items_by_user_id' },
-        { userId, PaginationDto },
+        { userId, pagination },
       ),
     );
   }
@@ -84,18 +84,18 @@ export class CartsController {
   @Post()
   @Permissions(Permission.CartCreate)
   @ApiAddItemToCartDocs()
-  addItemToCart(@Body() CreateCartItemDto: CreateCartItemDto) {
+  addItemToCart(@Body() data: CreateCartItemDto) {
     return firstValueFrom(
-      this.catalogClient.send({ cmd: 'add_item_to_cart' }, CreateCartItemDto),
+      this.catalogClient.send({ cmd: 'add_item_to_cart' }, data),
     );
   }
 
   @Delete('/:cartItemId')
   @Permissions(Permission.CartDelete)
   @ApiRemoveItemFromCartDocs()
-  removeItemFromCart(@Param() cartItemId: UuidDto) {
+  removeItemFromCart(@Param() id: UuidDto) {
     return firstValueFrom(
-      this.catalogClient.send({ cmd: 'remove_item_from_cart' }, cartItemId),
+      this.catalogClient.send({ cmd: 'remove_item_from_cart' }, id),
     );
   }
 

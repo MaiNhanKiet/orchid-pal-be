@@ -9,14 +9,23 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { IdDto, MICROSERVICES_CLIENTS, PaginationDto, Permissions, UuidDto } from '@app/common';
+import {
+  IdDto,
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
+  Permissions,
+  UuidDto,
+} from '@app/common';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ApiGetAllShipmentsDocs, ApiGetShipmentByIdDocs, ApiGetShipmentsByOrderIdDocs } from './shipment.swagger';
-
+import {
+  ApiGetAllShipmentsDocs,
+  ApiGetShipmentByIdDocs,
+  ApiGetShipmentsByOrderIdDocs,
+} from './shipment.swagger';
 
 @ApiTags('Shipments')
 @ApiBearerAuth('access-token')
@@ -25,16 +34,15 @@ import { ApiGetAllShipmentsDocs, ApiGetShipmentByIdDocs, ApiGetShipmentsByOrderI
 export class ShipmentsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly catalogClient: ClientProxy,
+    private readonly orderFulfillmentClient: ClientProxy,
   ) {}
 
   @Get('')
   @Permissions(Permission.ShipmentView)
   @ApiGetAllShipmentsDocs()
-  async getAllShipments(
-  ) {
+  async getAllShipments() {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_shipments' }, {}),
+      this.orderFulfillmentClient.send({ cmd: 'get_all_shipments' }, {}),
     );
   }
 
@@ -43,17 +51,22 @@ export class ShipmentsController {
   @Permissions(Permission.ShipmentView)
   async getShipmentById(@Param() id: UuidDto) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_shipment_by_id' }, id),
+      this.orderFulfillmentClient.send({ cmd: 'get_shipment_by_id' }, id),
     );
   }
 
   @Get('/order/:id')
   @ApiGetShipmentsByOrderIdDocs()
   @Permissions(Permission.ShipmentView)
-  async getShipmentsByOrdersId(@Param() id: UuidDto) {
+  async getShipmentsByOrdersId(
+    @Param() id: UuidDto,
+    @Query() pagination: PaginationDto,
+  ) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_shipment_by_order_id' }, id),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_shipment_by_order_id' },
+        { id, pagination },
+      ),
     );
   }
-
 }

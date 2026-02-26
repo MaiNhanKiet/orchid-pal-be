@@ -14,8 +14,8 @@ export class ShipmentsController {
   }
 
   @MessagePattern({ cmd: 'get_shipment_by_order_id' })
-  getShipmentByOrderId(@Payload() { orderId, pagination }: { orderId: UuidDto; pagination: PaginationDto }) {
-    return this.shipmentService.getShipmentsByOrderId(orderId.id, pagination);
+  getShipmentByOrderId(@Payload() { id, pagination }: { id: UuidDto; pagination: PaginationDto }) {
+    return this.shipmentService.getShipmentsByOrderId(id.id, pagination);
   }
 
   @MessagePattern({ cmd: 'get_shipment_by_id' })

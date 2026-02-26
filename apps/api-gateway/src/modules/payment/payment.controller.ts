@@ -15,14 +15,14 @@ import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 export class PaymentController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly catalogClient: ClientProxy,
+    private readonly orderFulfillmentClient: ClientProxy,
   ) {}
 
   @Post('/webhooks/payos')
   @Public()
   async handlePayOS(@Body() body: Webhook) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'handle_webhook' }, { body }),
+      this.orderFulfillmentClient.send({ cmd: 'handle_webhook' }, { body }),
     );
   }
 
@@ -36,7 +36,7 @@ export class PaymentController {
     console.log('User: ', id);
 
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'check_out' }, { id, checkOutDto }),
+      this.orderFulfillmentClient.send({ cmd: 'check_out' }, { id, checkOutDto }),
     );
   }
 
@@ -47,7 +47,7 @@ export class PaymentController {
     { orderCode, cancelReason }: { orderCode: string; cancelReason: string },
   ) {
     return await firstValueFrom(
-      this.catalogClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'cancel_payment' },
         { orderCode, cancelReason },
       ),
@@ -61,7 +61,7 @@ export class PaymentController {
     { paymentLinkId }: { paymentLinkId: string },
   ) {
     return await firstValueFrom(
-      this.catalogClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'get_payment_information' },
         { paymentLinkId },
       ),

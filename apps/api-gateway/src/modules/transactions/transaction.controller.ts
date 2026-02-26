@@ -37,7 +37,7 @@ import {
 export class TransactionsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly catalogClient: ClientProxy,
+    private readonly orderFulfillmentClient: ClientProxy,
   ) {}
 
   @Get('')
@@ -45,7 +45,7 @@ export class TransactionsController {
   @Permissions(Permission.TransactionView)
   async getAllTransactions() {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_transactions' }, {}),
+      this.orderFulfillmentClient.send({ cmd: 'get_all_transactions' }, {}),
     );
   }
 
@@ -54,26 +54,38 @@ export class TransactionsController {
   @Permissions(Permission.TransactionView)
   async getTransactionById(@Param() id: UuidDto) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_transaction_by_id' }, id),
+      this.orderFulfillmentClient.send({ cmd: 'get_transaction_by_id' }, id),
     );
   }
 
   @Get('/user/:id')
   @ApiGetTransactionsByUserIdDocs()
   @Permissions(Permission.TransactionView)
-  async getTransactionsByUserId(@Param() id: UuidDto) {
+  async getTransactionsByUserId(
+    @Param() id: UuidDto,
+    @Query() pagination: PaginationDto,
+  ) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_transactions_by_user_id' }, id),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_transactions_by_user_id' },
+        { id, pagination },
+      ),
     );
   }
 
   @Get('/user')
   @ApiGetTransactionsOfUserDocs()
   @Permissions(Permission.TransactionView)
-  async getTransactionsOfUser(@Req() req) {
+  async getTransactionsOfUser(@Req() req, @Query() pagination: PaginationDto) {
     const userId = req.user;
+    const id = {
+      id: userId,
+    } as UuidDto;
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_transactions_by_user_id' }, userId),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_transactions_by_user_id' },
+        { id, pagination },
+      ),
     );
   }
 
@@ -82,7 +94,7 @@ export class TransactionsController {
   @Permissions(Permission.TransactionView)
   async getTransactionsByOrderId(@Param() id: UuidDto) {
     return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_transactions_by_order_id' }, id),
+      this.orderFulfillmentClient.send({ cmd: 'get_transactions_by_order_id' }, id),
     );
   }
 }

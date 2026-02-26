@@ -23,6 +23,7 @@ import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UpdateAddressDto } from '@app/common/dtos/order-fulfillment/create-address.dto';
 
 // Giả sử bạn sẽ tạo các decorator Swagger riêng (tương tự shipments)
 // Nếu chưa có thì tạm để trống hoặc tự thêm
@@ -33,17 +34,17 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 export class AddressesController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly addressClient: ClientProxy,
+    private readonly orderFulfillmentClient: ClientProxy,
   ) {}
 
   // POST /addresses - Tạo địa chỉ mới
   @Post()
   //   @Permissions(Permission.AddressCreate)
-  async createAddress(@Req() req: any, @Body() dto: any) {
+  async createAddress(@Req() req, @Body() dto) {
     const userId = req.user.sub; // Lấy user ID từ sub trong JWT
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'create_address' },
         { userId, dto }, // Payload đúng format microservice mong đợi
       ),
@@ -53,13 +54,13 @@ export class AddressesController {
   // GET /addresses - Lấy tất cả địa chỉ của user hiện tại
   @Get()
   //   @Permissions(Permission.AddressView)
-  async getAllAddresses(@Req() req: any, @Query() pagination?: PaginationDto) {
+  async getAllAddresses(@Req() req) {
     const userId = req.user.sub;
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'get_all_addresses' },
-        { userId, pagination },
+        { userId },
       ),
     );
   }
@@ -67,13 +68,13 @@ export class AddressesController {
   // GET /addresses/:id - Lấy chi tiết địa chỉ
   @Get('/:id')
   @Permissions(Permission.AddressView)
-  async getAddressById(@Req() req: any, @Param() params: UuidDto) {
+  async getAddressById(@Req() req, @Param() id: UuidDto) {
     const userId = req.user.sub;
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'get_address_by_id' },
-        { userId, id: params.id },
+        { userId, id },
       ),
     );
   }
@@ -82,16 +83,16 @@ export class AddressesController {
   @Patch('/:id')
   @Permissions(Permission.AddressUpdate)
   async updateAddress(
-    @Req() req: any,
-    @Param() params: UuidDto,
-    @Body() dto: any,
+    @Req() req,
+    @Param() id: UuidDto,
+    @Body() dto: UpdateAddressDto,
   ) {
     const userId = req.user.sub;
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'update_address' },
-        { userId, id: params.id, dto },
+        { userId, id, dto },
       ),
     );
   }
@@ -99,13 +100,13 @@ export class AddressesController {
   // DELETE /addresses/:id - Xóa địa chỉ
   @Delete('/:id')
   @Permissions(Permission.AddressDelete)
-  async deleteAddress(@Req() req: any, @Param() params: UuidDto) {
+  async deleteAddress(@Req() req: any, @Param() id: UuidDto) {
     const userId = req.user.sub;
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'delete_address' },
-        { userId, id: params.id },
+        { userId, id },
       ),
     );
   }
@@ -113,25 +114,25 @@ export class AddressesController {
   // PATCH /addresses/:id/set-default - Đặt làm địa chỉ mặc định
   @Patch('/:id/set-default')
   @Permissions(Permission.AddressUpdate)
-  async setDefaultAddress(@Req() req: any, @Param() params: UuidDto) {
+  async setDefaultAddress(@Req() req: any, @Param() id: UuidDto) {
     const userId = req.user.sub;
 
     return await firstValueFrom(
-      this.addressClient.send(
+      this.orderFulfillmentClient.send(
         { cmd: 'set_default_address' },
-        { userId, id: params.id },
+        { userId, id },
       ),
     );
   }
 
   // GET /addresses/default - Lấy địa chỉ mặc định của user
-  @Get('default')
-  @Permissions(Permission.AddressView)
-  async getDefaultAddress(@Req() req: any) {
-    const userId = req.user.sub;
+  // @Get('default')
+  // @Permissions(Permission.AddressView)
+  // async getDefaultAddress(@Req() req: any) {
+  //   const userId = req.user.sub;
 
-    return await firstValueFrom(
-      this.addressClient.send({ cmd: 'get_default_address' }, { userId }),
-    );
-  }
+  //   return await firstValueFrom(
+  //     this.orderFulfillmentClient.send({ cmd: 'get_default_address' }, { userId }),
+  //   );
+  // }
 }

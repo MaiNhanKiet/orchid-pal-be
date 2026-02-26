@@ -19,12 +19,14 @@ export class TransactionsController {
   }
 
   @MessagePattern({ cmd: 'get_transactions_by_order_id' })
-  getTransactionsByOrderId(@Payload() orderId: UuidDto) {
-    return this.transactionsService.getTransactionsByOrderId(orderId.id);
+  getTransactionsByOrderId(@Payload() id: UuidDto) {
+    return this.transactionsService.getTransactionsByOrderId(id.id);
   }
 
   @MessagePattern({ cmd: 'get_transactions_by_user_id' })
-  getTransactionsByUserId(@Payload() { userId, pagination }: { userId: UuidDto; pagination: PaginationDto }) {
-    return this.transactionsService.getTransactionsByUserId(userId.id, pagination);
+  getTransactionsByUserId(
+    @Payload() { id, pagination }: { id: UuidDto; pagination: PaginationDto },
+  ) {
+    return this.transactionsService.getTransactionsByUserId(id.id, pagination);
   }
 }
