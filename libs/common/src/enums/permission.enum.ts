@@ -60,9 +60,11 @@ export enum Permission {
 
   DeviceViewAll = 'device.view_all',
   DeviceProvision = 'device.provision',
+  DeviceActivate = 'device.activate',
   DeviceBlock = 'device.block',
   DeviceReset = 'device.reset',
   DeviceViewLogs = 'device.view_logs',
+  DeviceAssignZone = 'device.assign_zone',
 
   FirmwareView = 'firmware.view',
   FirmwareCreate = 'firmware.create',
@@ -73,6 +75,9 @@ export enum Permission {
   MeOrderCreate = 'me.order.create',
   MeGardenManage = 'me.garden.manage',
   MeDeviceControl = 'me.device.control',
+
+  ZoneCreate = 'zone.create',
+  MyPlantCreate = 'my_plant.create',
 
   UnlockRoom = 'room.unlock',
   LockRoom = 'room.lock',

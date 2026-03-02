@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './api-gateway.module';
-import cookieParser from 'cookie-parser';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,6 +29,9 @@ async function bootstrap() {
     .addTag('Auth', 'APIs for Authentication')
     .addTag('Users', 'APIs for User Management')
     .addTag('RBAC', 'APIs for Role & Permission Management')
+    .addTag('Species', 'APIs for Species Wiki (Từ điển loài Lan)')
+    .addTag('Zones', 'APIs for Garden Zones (Vườn)')
+    .addTag('Devices', 'APIs for Device Registry (Quản lý thiết bị)')
     .addTag('Carts', 'APIs for Shopping Cart Management')
     .addTag('Products', 'APIs for Product Management')
     .addTag('Orders', 'APIs for Order Management')

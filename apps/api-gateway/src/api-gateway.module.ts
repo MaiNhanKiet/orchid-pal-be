@@ -15,6 +15,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import {
   CATALOG_SERVICE_PORT,
   IAM_SERVICE_PORT,
+  GARDEN_SERVICE_PORT,
+  DEVICE_REGISTRY_SERVICE_PORT,
   ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { AuthController } from './modules/auth/auth.controller';
@@ -25,6 +27,10 @@ import { UsersController } from './modules/users/users.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { CartsController } from './modules/carts/cart.controller';
+import { SpeciesController } from './modules/garden/species/species.controller';
+import { ZonesController } from './modules/garden/zones/zones.controller';
+import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
+import { DevicesController } from './modules/devices/devices.controller';
 import { RedisModule } from '@app/redis';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { ExpressAdapter } from '@bull-board/express';
@@ -58,6 +64,20 @@ import { AddressesController } from './modules/shipments/address.controller';
         },
       },
       {
+        name: MICROSERVICES_CLIENTS.GARDEN_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(GARDEN_SERVICE_PORT),
+        },
+      },
+      {
+        name: MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(DEVICE_REGISTRY_SERVICE_PORT),
+        },
+      },
+      {
         name: MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE,
         transport: Transport.TCP,
         options: {
@@ -82,6 +102,10 @@ import { AddressesController } from './modules/shipments/address.controller';
     RbacController,
     ProductsController,
     CartsController,
+    SpeciesController,
+    ZonesController,
+    MyPlantsController,
+    DevicesController,
     OrdersController,
     ShipmentsController,
     TransactionsController,

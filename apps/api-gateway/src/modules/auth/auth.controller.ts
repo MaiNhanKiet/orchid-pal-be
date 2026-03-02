@@ -33,12 +33,12 @@ export class AuthController {
     private readonly iamClient: ClientProxy,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) { }
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
@@ -121,17 +121,5 @@ export class AuthController {
     return {
       message: 'Logged out successfully',
     };
-  }
-
-  @Post('test')
-  async test(@Body('otp') otp: string) {
-    const key = `otp:${otp}`;
-    console.log(otp);
-    return this.redisService.set(key, otp, 300);
-  }
-
-  @Get('test')
-  async get() {
-    return this.redisService.get<string>('otp');
   }
 }
