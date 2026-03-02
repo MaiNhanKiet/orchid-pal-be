@@ -8,9 +8,10 @@ import {
   Post,
   Put,
   Query,
-  Req,
 } from '@nestjs/common';
 import {
+  CurrentUser,
+  JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
@@ -19,7 +20,10 @@ import {
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { CreateCartItemDto, UpdateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import {
+  CreateCartItemDto,
+  UpdateCartItemDto,
+} from '@app/common/dtos/catalog/cart.dto';
 import { Permission } from '@app/common/enums';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -69,10 +73,10 @@ export class CartsController {
   @Permissions(Permission.CartView)
   @ApiGetCartItemsOfUserDocs()
   getCartItemsOfUser(
-    @Req() req,
+    @CurrentUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
   ) {
-    const userId = req.user;
+    const userId: UuidDto = { id: user.sub };
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'get_cart_items_by_user_id' },
@@ -104,14 +108,14 @@ export class CartsController {
   @ApiUpdateCartItemDocs()
   updateCartItem(
     @Param() cartItemId: UuidDto,
-    @Body() payload: UpdateCartItemDto
+    @Body() payload: UpdateCartItemDto,
   ) {
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'update_cart_item' },
         {
           cartItemId,
-          payload
+          payload,
         },
       ),
     );

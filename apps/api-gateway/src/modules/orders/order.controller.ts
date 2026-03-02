@@ -8,10 +8,11 @@ import {
   Post,
   Put,
   Query,
-  Req,
 } from '@nestjs/common';
 import {
+  CurrentUser,
   IdDto,
+  JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
@@ -26,6 +27,7 @@ import {
   ApiGetAllOrdersDocs,
   ApiGetOrderByIdDocs,
   ApiGetOrdersByUserIdDocs,
+  ApiGetOrdersOfUserDocs,
 } from './order.swagger';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 
@@ -73,10 +75,13 @@ export class OrdersController {
   }
 
   @Get('/user')
-  @ApiGetOrdersByUserIdDocs()
+  @ApiGetOrdersOfUserDocs()
   @Permissions(Permission.OrderView)
-  async getOrdersOfUser(@Req() req, @Query() pagination: PaginationDto) {
-    const userId = req.user;
+  async getOrdersOfUser(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationDto,
+  ) {
+    const userId: UuidDto = { id: user.sub };
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
         { cmd: 'get_orders_by_user_id' },

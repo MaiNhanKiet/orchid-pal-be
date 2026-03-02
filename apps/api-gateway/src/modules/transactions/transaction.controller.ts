@@ -8,10 +8,11 @@ import {
   Post,
   Put,
   Query,
-  Req,
 } from '@nestjs/common';
 import {
+  CurrentUser,
   IdDto,
+  JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
@@ -76,10 +77,12 @@ export class TransactionsController {
   @Get('/user')
   @ApiGetTransactionsOfUserDocs()
   @Permissions(Permission.TransactionView)
-  async getTransactionsOfUser(@Req() req, @Query() pagination: PaginationDto) {
-    const userId = req.user;
+  async getTransactionsOfUser(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationDto,
+  ) {
     const id = {
-      id: userId,
+      id: user.sub,
     } as UuidDto;
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -94,7 +97,10 @@ export class TransactionsController {
   @Permissions(Permission.TransactionView)
   async getTransactionsByOrderId(@Param() id: UuidDto) {
     return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_transactions_by_order_id' }, id),
+      this.orderFulfillmentClient.send(
+        { cmd: 'get_transactions_by_order_id' },
+        id,
+      ),
     );
   }
 }

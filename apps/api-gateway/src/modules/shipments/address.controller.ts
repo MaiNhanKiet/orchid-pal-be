@@ -9,10 +9,11 @@ import {
   Patch,
   Post,
   Query,
-  Req,
 } from '@nestjs/common';
 import {
+  CurrentUser,
   IdDto,
+  JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
@@ -25,8 +26,14 @@ import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateAddressDto } from '@app/common/dtos/order-fulfillment/create-address.dto';
 
-// Giả sử bạn sẽ tạo các decorator Swagger riêng (tương tự shipments)
-// Nếu chưa có thì tạm để trống hoặc tự thêm
+import {
+  ApiCreateAddressDocs,
+  ApiGetAllAddressesDocs,
+  ApiGetAddressByIdDocs,
+  ApiUpdateAddressDocs,
+  ApiDeleteAddressDocs,
+  ApiSetDefaultAddressDocs,
+} from './address.swagger';
 
 @ApiTags('Addresses')
 @ApiBearerAuth('access-token')
@@ -39,9 +46,10 @@ export class AddressesController {
 
   // POST /addresses - Tạo địa chỉ mới
   @Post()
+  @ApiCreateAddressDocs()
   //   @Permissions(Permission.AddressCreate)
-  async createAddress(@Req() req, @Body() dto) {
-    const userId = req.user.sub; // Lấy user ID từ sub trong JWT
+  async createAddress(@CurrentUser() user: JwtPayload, @Body() dto) {
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -53,9 +61,10 @@ export class AddressesController {
 
   // GET /addresses - Lấy tất cả địa chỉ của user hiện tại
   @Get()
+  @ApiGetAllAddressesDocs()
   //   @Permissions(Permission.AddressView)
-  async getAllAddresses(@Req() req) {
-    const userId = req.user.sub;
+  async getAllAddresses(@CurrentUser() user: JwtPayload) {
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -67,9 +76,10 @@ export class AddressesController {
 
   // GET /addresses/:id - Lấy chi tiết địa chỉ
   @Get('/:id')
+  @ApiGetAddressByIdDocs()
   @Permissions(Permission.AddressView)
-  async getAddressById(@Req() req, @Param() id: UuidDto) {
-    const userId = req.user.sub;
+  async getAddressById(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -81,13 +91,14 @@ export class AddressesController {
 
   // PATCH /addresses/:id - Cập nhật địa chỉ
   @Patch('/:id')
+  @ApiUpdateAddressDocs()
   @Permissions(Permission.AddressUpdate)
   async updateAddress(
-    @Req() req,
+    @CurrentUser() user: JwtPayload,
     @Param() id: UuidDto,
     @Body() dto: UpdateAddressDto,
   ) {
-    const userId = req.user.sub;
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -99,9 +110,10 @@ export class AddressesController {
 
   // DELETE /addresses/:id - Xóa địa chỉ
   @Delete('/:id')
+  @ApiDeleteAddressDocs()
   @Permissions(Permission.AddressDelete)
-  async deleteAddress(@Req() req: any, @Param() id: UuidDto) {
-    const userId = req.user.sub;
+  async deleteAddress(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -113,9 +125,13 @@ export class AddressesController {
 
   // PATCH /addresses/:id/set-default - Đặt làm địa chỉ mặc định
   @Patch('/:id/set-default')
+  @ApiSetDefaultAddressDocs()
   @Permissions(Permission.AddressUpdate)
-  async setDefaultAddress(@Req() req: any, @Param() id: UuidDto) {
-    const userId = req.user.sub;
+  async setDefaultAddress(
+    @CurrentUser() user: JwtPayload,
+    @Param() id: UuidDto,
+  ) {
+    const userId: UuidDto = { id: user.sub };
 
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
