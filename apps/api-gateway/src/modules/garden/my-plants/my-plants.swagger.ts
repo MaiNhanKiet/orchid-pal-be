@@ -7,8 +7,14 @@ export function ApiCreateMyPlantDocs() {
         ApiOperation({
             summary: 'Bước 4 - Chọn giống Lan & Trồng Cây',
             description:
-                'Người dùng chọn species_id (từ danh mục species_wiki) và zone_id (từ Bước 3) để trồng một chậu lan mới. ' +
-                'Hệ thống sẽ kiểm tra quyền sở hữu zone (zone thuộc user hiện tại) và tồn tại của species, sau đó INSERT bản ghi vào my_plants và trả về plant_id.',
+                '**Bước thứ tư trong quy trình kích hoạt thiết bị.**\n\n' +
+                'Sau khi đã có vườn (zone_id từ Bước 3), người dùng chọn species_id (từ danh mục species_wiki - gọi GET /species) ' +
+                'để trồng một chậu lan mới vào vườn đó.\n\n' +
+                'Hệ thống sẽ:\n' +
+                '1. Kiểm tra quyền sở hữu zone (zone thuộc user hiện tại)\n' +
+                '2. Validate species tồn tại trong species_wiki\n' +
+                '3. INSERT bản ghi vào my_plants\n\n' +
+                '**Kết quả:** Có plant_id, sẵn sàng cho Bước 5 (gán thiết bị vào vườn).',
         }),
         ApiAuthFailures(),
         ApiResponse({

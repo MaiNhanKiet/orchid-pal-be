@@ -9,7 +9,9 @@ import {
     CreateZoneDto,
     CurrentUser,
     JwtPayload,
+    Permissions,
 } from '@app/common';
+import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -25,6 +27,7 @@ export class ZonesController {
     ) { }
 
     @Post()
+    @Permissions(Permission.ZoneCreate)
     @ApiCreateZoneDocs()
     createZone(
         @Body() createZoneDto: CreateZoneDto,

@@ -9,7 +9,9 @@ import {
     CreateMyPlantDto,
     CurrentUser,
     JwtPayload,
+    Permissions,
 } from '@app/common';
+import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -25,6 +27,7 @@ export class MyPlantsController {
     ) { }
 
     @Post()
+    @Permissions(Permission.MyPlantCreate)
     @ApiCreateMyPlantDocs()
     createMyPlant(
         @Body() createMyPlantDto: CreateMyPlantDto,

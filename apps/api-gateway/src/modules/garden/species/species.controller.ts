@@ -8,20 +8,21 @@ import {
 import {
     MICROSERVICES_CLIENTS,
     PaginationDto,
-    Public,
     UuidDto,
+    Permissions,
 } from '@app/common';
+import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
     ApiGetAllSpeciesDocs,
     ApiGetSpeciesByIdDocs,
 } from './species.swagger';
 
 @ApiTags('Species')
+@ApiBearerAuth('access-token')
 @Controller('species')
-@Public()
 export class SpeciesController {
     constructor(
         @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
@@ -29,6 +30,7 @@ export class SpeciesController {
     ) { }
 
     @Get()
+    @Permissions(Permission.MeGardenManage)
     @ApiGetAllSpeciesDocs()
     getAllSpecies(@Query() paginationDto: PaginationDto) {
         return firstValueFrom(
@@ -37,6 +39,7 @@ export class SpeciesController {
     }
 
     @Get(':id')
+    @Permissions(Permission.MeGardenManage)
     @ApiGetSpeciesByIdDocs()
     getSpeciesById(@Param() uuidDto: UuidDto) {
         return firstValueFrom(

@@ -12,7 +12,9 @@ import {
     CurrentUser,
     JwtPayload,
     AssignDeviceToZoneDto,
+    Permissions,
 } from '@app/common';
+import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -28,6 +30,7 @@ export class DevicesController {
     ) { }
 
     @Post('activate')
+    @Permissions(Permission.DeviceActivate)
     @ApiActivateDeviceDocs()
     activateDevice(
         @Body() activateDeviceDto: ActivateDeviceDto,
@@ -45,6 +48,7 @@ export class DevicesController {
     }
 
     @Get(':serial_number/status')
+    @Permissions(Permission.MeDeviceControl)
     @ApiGetDeviceStatusDocs()
     getDeviceStatus(@Param('serial_number') serialNumber: string) {
         return firstValueFrom(
@@ -56,6 +60,7 @@ export class DevicesController {
     }
 
     @Post(':serial_number/assign-zone')
+    @Permissions(Permission.DeviceAssignZone)
     @ApiAssignDeviceToZoneDocs()
     assignDeviceToZone(
         @Param('serial_number') serialNumber: string,

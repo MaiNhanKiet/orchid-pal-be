@@ -5,9 +5,12 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 export function ApiActivateDeviceDocs() {
     return applyDecorators(
         ApiOperation({
-            summary: 'Kích hoạt thiết bị (Nhận chủ)',
+            summary: 'Bước 1 - Kích hoạt thiết bị (Nhận chủ)',
             description:
-                'Người dùng quét QR code trên thiết bị để kích hoạt và nhận làm chủ thiết bị. Yêu cầu: serial_number và secret_key từ QR code. user_id sẽ được lấy tự động từ JWT token của người dùng đang đăng nhập.',
+                '**Bước đầu tiên trong quy trình kích hoạt thiết bị.**\n\n' +
+                'Người dùng quét QR code trên thiết bị để kích hoạt và nhận làm chủ thiết bị. ' +
+                'Yêu cầu: serial_number và secret_key từ QR code. user_id sẽ được lấy tự động từ JWT token của người dùng đang đăng nhập.\n\n' +
+                '**Kết quả:** Thiết bị được gán owner_id và status = OFFLINE.',
         }),
         ApiAuthFailures(),
         ApiResponse({
@@ -78,9 +81,12 @@ export function ApiActivateDeviceDocs() {
 export function ApiGetDeviceStatusDocs() {
     return applyDecorators(
         ApiOperation({
-            summary: 'Kiểm tra trạng thái thiết bị sau khi cấu hình WiFi (Polling)',
+            summary: 'Bước 2 - Kiểm tra trạng thái thiết bị (Polling)',
             description:
-                'App mobile gọi API này liên tục với serial_number để kiểm tra xem thiết bị đã ONLINE hay chưa. Dữ liệu được cập nhật realtime qua MQTT worker từ ESP32.',
+                '**Bước thứ hai trong quy trình kích hoạt thiết bị.**\n\n' +
+                'Sau khi cấu hình WiFi cho ESP32, app mobile gọi API này liên tục với serial_number để kiểm tra xem thiết bị đã ONLINE hay chưa. ' +
+                'Dữ liệu được cập nhật realtime qua MQTT worker từ ESP32 (topic: device/+/status).\n\n' +
+                '**Kết quả:** Khi status = ONLINE, app sẽ tự động chuyển sang Bước 3.',
         }),
         ApiAuthFailures(),
         ApiResponse({
@@ -111,10 +117,17 @@ export function ApiGetDeviceStatusDocs() {
 export function ApiAssignDeviceToZoneDocs() {
     return applyDecorators(
         ApiOperation({
-            summary: 'Bước 5 - Gán Thiết bị vào Vườn',
+            summary: 'Bước 5 - Gán Thiết bị vào Vườn (Hoàn tất)',
             description:
-                'Sau khi đã có vườn (zone) và thiết bị đã kích hoạt, API này cho phép gán thiết bị vào một zone cụ thể. ' +
-                'Hệ thống sẽ kiểm tra quyền sở hữu thiết bị (owner_id trùng với user hiện tại) rồi cập nhật devices.zone_id.',
+                '**Bước cuối cùng trong quy trình kích hoạt thiết bị - Hoàn tất.**\n\n' +
+                'Sau khi đã hoàn thành các bước trước:\n' +
+                '- Bước 1: Thiết bị đã được kích hoạt (có owner_id)\n' +
+                '- Bước 2: Thiết bị đã ONLINE\n' +
+                '- Bước 3: Đã tạo vườn (zone_id)\n' +
+                '- Bước 4: Đã trồng cây (my_plants)\n\n' +
+                'API này cho phép gán thiết bị vào một zone cụ thể. ' +
+                'Hệ thống sẽ kiểm tra quyền sở hữu thiết bị (owner_id trùng với user hiện tại) rồi cập nhật devices.zone_id.\n\n' +
+                '**Kết quả:** Thiết bị được gán vào vườn, quy trình kích hoạt hoàn tất.',
         }),
         ApiAuthFailures(),
         ApiResponse({

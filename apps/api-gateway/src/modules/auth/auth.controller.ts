@@ -119,16 +119,4 @@ export class AuthController {
       message: 'Logged out successfully',
     };
   }
-
-  @Post('test')
-  async test(@Body('otp') otp: string) {
-    const key = `otp:${otp}`;
-    console.log(otp);
-    return this.redisService.set(key, otp, 300);
-  }
-
-  @Get('test')
-  async get() {
-    return this.redisService.get<string>('otp');
-  }
 }

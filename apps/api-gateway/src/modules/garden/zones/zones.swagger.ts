@@ -7,7 +7,11 @@ export function ApiCreateZoneDocs() {
         ApiOperation({
             summary: 'Bước 3 - Tạo Hồ sơ Vườn (Khu vực trồng)',
             description:
-                'Người dùng (đã đăng nhập) tạo một planting_zone mới để gắn thiết bị vào đó. user_id được lấy từ JWT (CurrentUser), client chỉ gửi thông tin vườn. API này sẽ INSERT vào bảng planting_zones và trả về zone_id cho App lưu tạm.',
+                '**Bước thứ ba trong quy trình kích hoạt thiết bị.**\n\n' +
+                'Sau khi thiết bị đã ONLINE (Bước 2), người dùng tạo một planting_zone mới để gắn thiết bị vào đó. ' +
+                'user_id được lấy từ JWT (CurrentUser), client chỉ gửi thông tin vườn (tên, vị trí, exposure, v.v.).\n\n' +
+                'API này sẽ INSERT vào bảng planting_zones và trả về zone_id cho App lưu tạm để dùng cho các bước tiếp theo.\n\n' +
+                '**Kết quả:** Có zone_id để tiếp tục Bước 4.',
         }),
         ApiAuthFailures(),
         ApiResponse({
