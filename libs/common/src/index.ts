@@ -5,6 +5,7 @@ export * from './guards';
 export * from './decorators';
 export * from './filters';
 export * from './interceptors';
+export * from './interfaces';
 export * from './pipes';
 export * from './enums';
 export * from './queue/rabbit-mq/rmq.module';

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { IamWorkerService } from './iam-worker.service';
 import { TokenCleanupProcessor } from './processor/token-cleanup.processor';
-import { LogTestProcessor } from './processor/log.processor';
 import { IamWorkerScheduler } from './iam-worker.scheduler';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { QueueName } from '@app/common';
@@ -18,8 +17,7 @@ import { QueueName } from '@app/common';
     IamWorkerService,
     IamWorkerScheduler,
     TokenCleanupProcessor,
-    LogTestProcessor,
   ],
   exports: [IamWorkerService],
 })
-export class IamWorkerModule {}
+export class IamWorkerModule { }

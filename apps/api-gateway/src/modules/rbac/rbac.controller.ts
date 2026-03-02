@@ -18,6 +18,7 @@ import {
 } from '@app/common';
 import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -37,29 +38,33 @@ export class RbacController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
     private readonly iamClient: ClientProxy,
-  ) {}
+  ) { }
 
   @Get('roles')
   @Permissions(Permission.RoleView)
   @ApiGetRolesDocs()
   getRoles() {
-    return this.iamClient.send({ cmd: 'get_roles' }, {});
+    return firstValueFrom(this.iamClient.send({ cmd: 'get_roles' }, {}));
   }
 
   @Post('roles')
   @Permissions(Permission.RoleCreate)
   @ApiCreateRoleDocs()
   createRole(@Body() createRoleDto: CreateRoleDto) {
-    return this.iamClient.send({ cmd: 'create_role' }, createRoleDto);
+    return firstValueFrom(
+      this.iamClient.send({ cmd: 'create_role' }, createRoleDto),
+    );
   }
 
   @Patch('roles/:id')
   @Permissions(Permission.RoleUpdate)
   @ApiUpdateRoleDocs()
   updateRole(@Param() idDto: IdDto, @Body() updateRoleDto: UpdateRoleDto) {
-    return this.iamClient.send(
-      { cmd: 'update_role' },
-      { ...updateRoleDto, id: idDto.id },
+    return firstValueFrom(
+      this.iamClient.send(
+        { cmd: 'update_role' },
+        { ...updateRoleDto, id: idDto.id },
+      ),
     );
   }
 
@@ -67,23 +72,29 @@ export class RbacController {
   @Permissions(Permission.RoleDelete)
   @ApiDeleteRoleDocs()
   deleteRole(@Param() idDto: IdDto) {
-    return this.iamClient.send({ cmd: 'delete_role' }, { ...idDto });
+    return firstValueFrom(
+      this.iamClient.send({ cmd: 'delete_role' }, { ...idDto }),
+    );
   }
 
   @Get('permissions')
   @Permissions(Permission.RoleView)
   @ApiGetPermissionsDocs()
   getPermissions() {
-    return this.iamClient.send({ cmd: 'get_permissions' }, {});
+    return firstValueFrom(
+      this.iamClient.send({ cmd: 'get_permissions' }, {}),
+    );
   }
 
   @Post('permissions')
   @Permissions(Permission.RoleUpdate)
   @ApiAssignPermissionsDocs()
   assignPermissionsToRole(@Body() assignPermissionsDto: AssignPermissionsDto) {
-    return this.iamClient.send(
-      { cmd: 'assign_permissions_to_role' },
-      assignPermissionsDto,
+    return firstValueFrom(
+      this.iamClient.send(
+        { cmd: 'assign_permissions_to_role' },
+        assignPermissionsDto,
+      ),
     );
   }
 }

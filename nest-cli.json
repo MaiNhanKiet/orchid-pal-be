@@ -23,7 +23,10 @@
             "options": {
               "classValidatorShim": true,
               "introspectComments": true,
-              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
+              "dtoFileNameSuffix": [
+                ".dto.ts",
+                ".entity.ts"
+              ]
             }
           }
         ]
@@ -51,10 +54,31 @@
             "options": {
               "classValidatorShim": true,
               "introspectComments": true,
-              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
+              "dtoFileNameSuffix": [
+                ".dto.ts",
+                ".entity.ts"
+              ]
             }
           }
         ]
+      }
+    },
+    "device-registry-service": {
+      "type": "application",
+      "root": "apps/device-registry-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/device-registry-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/device-registry-service/tsconfig.app.json"
+      }
+    },
+    "garden-service": {
+      "type": "application",
+      "root": "apps/garden-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/garden-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/garden-service/tsconfig.app.json"
       }
     },
     "iam-service": {

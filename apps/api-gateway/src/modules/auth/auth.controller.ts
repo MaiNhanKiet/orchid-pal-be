@@ -33,12 +33,12 @@ export class AuthController {
     private readonly iamClient: ClientProxy,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) { }
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
