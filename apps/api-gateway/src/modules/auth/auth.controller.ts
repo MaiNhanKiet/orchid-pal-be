@@ -38,7 +38,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
-  async googleAuth(@Req() req) { }
+  async googleAuth() { }
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
@@ -46,15 +46,20 @@ export class AuthController {
   async googleAuthRedirect(@Req() req, @Res() res) {
     const { accessToken, refreshToken } = req.user;
 
+    console.log('accessToken', accessToken);
+
     if (refreshToken) {
       res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
-        path: '/auth/refresh',
+        // path: '/auth/refresh',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
     }
+
+    console.log('refreshToken', refreshToken);
 
     return res.redirect(
       `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
@@ -86,9 +91,10 @@ export class AuthController {
 
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: true,
       sameSite: 'lax',
-      path: '/auth/refresh',
+      secure: true,
+      // path: '/auth/refresh',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 

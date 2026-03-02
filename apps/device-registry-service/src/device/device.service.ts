@@ -8,7 +8,14 @@ import { PrismaService } from '@app/prisma';
 import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
+  CreateDeviceDto,
+  UpdateDeviceDto,
+  QueryDevicesDto,
 } from '@app/common/dtos/device/device.dto';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 
 @Injectable()
 export class DeviceService {
@@ -142,5 +149,164 @@ export class DeviceService {
       message: 'Gán thiết bị vào vườn thành công',
       device: updated,
     };
+  }
+
+  // CRUD cho device phục vụ màn hình quản trị
+  async listDevices(query: QueryDevicesDto) {
+    let { page, limit } = query;
+    if (!page) page = DEFAULT_PAGE;
+    if (!limit) limit = DEFAULT_LIMIT;
+
+    const where: any = {};
+
+    if (query.search) {
+      where.serial_number = {
+        contains: query.search,
+        mode: 'insensitive',
+      };
+    }
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.owner_id) {
+      where.owner_id = query.owner_id;
+    }
+
+    if (query.zone_id) {
+      where.zone_id = query.zone_id;
+    }
+
+    if (query.product_id) {
+      where.product_id = query.product_id;
+    }
+
+    const sortBy = query.sortBy || 'created_at';
+    const sortOrder = query.sortOrder || 'desc';
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.devices.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      this.prisma.devices.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: limit ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
+
+  async getDeviceById(id: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    return device;
+  }
+
+  async createDevice(data: CreateDeviceDto) {
+    const exists = await this.prisma.devices.findUnique({
+      where: { serial_number: data.serial_number },
+      select: { id: true },
+    });
+
+    if (exists) {
+      throw new BadRequestException('Serial number đã tồn tại');
+    }
+
+    const device = await this.prisma.devices.create({
+      data: {
+        serial_number: data.serial_number,
+        secret_key: data.secret_key,
+        product_id: data.product_id,
+      },
+    });
+
+    return device;
+  }
+
+  async updateDevice(data: UpdateDeviceDto) {
+    const { id, ...fields } = data;
+
+    const existing = await this.prisma.devices.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    if (fields.serial_number) {
+      const conflict = await this.prisma.devices.findUnique({
+        where: { serial_number: fields.serial_number },
+        select: { id: true },
+      });
+
+      if (conflict && conflict.id !== id) {
+        throw new BadRequestException('Serial number đã được sử dụng');
+      }
+    }
+
+    const device = await this.prisma.devices.update({
+      where: { id },
+      data: fields,
+    });
+
+    return device;
+  }
+
+  async deleteDevice(id: string) {
+    const existing = await this.prisma.devices.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    const device = await this.prisma.devices.delete({
+      where: { id },
+    });
+
+    return device;
+  }
+
+  async forceUnbindDevice(id: string) {
+    const existing = await this.prisma.devices.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    const device = await this.prisma.devices.update({
+      where: { id },
+      data: {
+        owner_id: null,
+        zone_id: null,
+        linked_master_id: null,
+        status: 'INACTIVE',
+      },
+    });
+
+    return device;
   }
 }

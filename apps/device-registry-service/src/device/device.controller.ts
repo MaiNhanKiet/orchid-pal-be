@@ -11,6 +11,9 @@ import {
   ActivateDeviceCommandDto,
   GetDeviceStatusCommandDto,
   AssignDeviceToZoneCommandDto,
+  CreateDeviceDto,
+  UpdateDeviceDto,
+  QueryDevicesDto,
 } from '@app/common/dtos/device/device.dto';
 
 @Controller()
@@ -30,6 +33,36 @@ export class DeviceController {
   @MessagePattern({ cmd: 'assign_device_to_zone' })
   assignDeviceToZone(@Payload() data: AssignDeviceToZoneCommandDto) {
     return this.deviceService.assignDeviceToZone(data);
+  }
+
+  @MessagePattern({ cmd: 'list_devices' })
+  listDevices(@Payload() query: QueryDevicesDto) {
+    return this.deviceService.listDevices(query);
+  }
+
+  @MessagePattern({ cmd: 'get_device_by_id' })
+  getDeviceById(@Payload() id: string) {
+    return this.deviceService.getDeviceById(id);
+  }
+
+  @MessagePattern({ cmd: 'create_device' })
+  createDevice(@Payload() data: CreateDeviceDto) {
+    return this.deviceService.createDevice(data);
+  }
+
+  @MessagePattern({ cmd: 'update_device' })
+  updateDevice(@Payload() data: UpdateDeviceDto) {
+    return this.deviceService.updateDevice(data);
+  }
+
+  @MessagePattern({ cmd: 'delete_device' })
+  deleteDevice(@Payload() id: string) {
+    return this.deviceService.deleteDevice(id);
+  }
+
+  @MessagePattern({ cmd: 'force_unbind_device' })
+  forceUnbindDevice(@Payload() id: string) {
+    return this.deviceService.forceUnbindDevice(id);
   }
 
   @EventPattern('device/+/status')
