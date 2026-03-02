@@ -112,6 +112,14 @@ export function ApiGetPaymentInformationDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Lấy thông tin thanh toán theo paymentLinkId' }),
     ApiAuthFailures(),
+    ApiBody({
+      description: 'Payment link ID cần tra cứu',
+      schema: {
+        example: {
+          paymentLinkId: 'paylink-001',
+        },
+      },
+    }),
     ApiResponse({
       status: 200,
       description: 'Lấy thông tin thanh toán thành công',

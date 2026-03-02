@@ -25,7 +25,10 @@ import {
   ApiGetAllShipmentsDocs,
   ApiGetShipmentByIdDocs,
   ApiGetShipmentsByOrderIdDocs,
+  ApiUpdateShipmentDocs,
+  ApiDeleteShipmentDocs,
 } from './shipment.swagger';
+import { UpdateShipmentDto } from '@app/common/dtos/order-fulfillment/update-shipment.dto';
 
 @ApiTags('Shipments')
 @ApiBearerAuth('access-token')
@@ -67,6 +70,24 @@ export class ShipmentsController {
         { cmd: 'get_shipment_by_order_id' },
         { id, pagination },
       ),
+    );
+  }
+
+  @Put('/:id')
+  @ApiUpdateShipmentDocs()
+  @Permissions(Permission.ShipmentUpdate)
+  async updateShipment(@Param() id: UuidDto, @Body() dto: UpdateShipmentDto) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'update_shipment' }, { id, dto }),
+    );
+  }
+
+  @Delete('/:id')
+  @ApiDeleteShipmentDocs()
+  @Permissions(Permission.ShipmentDelete)
+  async deleteShipment(@Param() id: UuidDto) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'delete_shipment' }, id),
     );
   }
 }

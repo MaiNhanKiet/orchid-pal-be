@@ -31,16 +31,21 @@ export enum Permission {
   OrderViewAll = 'order.view_all',
   OrderView = 'order.view',
   OrderUpdateStatus = 'order.update_status',
+  OrderUpdate = 'order.update',
+  OrderDelete = 'order.delete',
   OrderCancel = 'order.cancel',
   OrderRefund = 'order.refund',
   OrderCreate = 'order.create',
 
   TransactionView = 'transaction.view',
+  TransactionUpdate = 'transaction.update',
+  TransactionDelete = 'transaction.delete',
 
   RevenueView = 'revenue.view',
 
   ShipmentCreate = 'shipment.create',
   ShipmentUpdate = 'shipment.update',
+  ShipmentDelete = 'shipment.delete',
   ShipmentView = 'shipment.view',
 
   AddressCreate = 'address.create',

@@ -54,13 +54,15 @@ export class CartsController {
     );
   }
 
-  @Get('/user/:userId')
+  @Get('/user/:id')
   @Permissions(Permission.CartView)
   @ApiGetCartItemsByUserDocs()
   getCartItemsByUserId(
     @Param() userId: UuidDto,
     @Query() pagination: PaginationDto,
   ) {
+    console.log('UserId: ', userId);
+    console.log('Pagination: ', pagination);
     return firstValueFrom(
       this.catalogClient.send(
         { cmd: 'get_cart_items_by_user_id' },
@@ -94,7 +96,7 @@ export class CartsController {
     );
   }
 
-  @Delete('/:cartItemId')
+  @Delete('/:id')
   @Permissions(Permission.CartDelete)
   @ApiRemoveItemFromCartDocs()
   removeItemFromCart(@Param() id: UuidDto) {
@@ -103,7 +105,7 @@ export class CartsController {
     );
   }
 
-  @Put('/:cartItemId')
+  @Put('/:id')
   @Permissions(Permission.CartUpdate)
   @ApiUpdateCartItemDocs()
   updateCartItem(

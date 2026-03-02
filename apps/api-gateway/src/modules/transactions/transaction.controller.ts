@@ -29,7 +29,10 @@ import {
   ApiGetTransactionsByUserIdDocs,
   ApiGetTransactionsByOrderIdDocs,
   ApiGetTransactionsOfUserDocs,
+  ApiUpdateTransactionDocs,
+  ApiDeleteTransactionDocs,
 } from './transaction.swagger';
+import { UpdateTransactionDto } from '@app/common/dtos/order-fulfillment/update-transaction.dto';
 
 @ApiTags('Transactions')
 @ApiBearerAuth('access-token')
@@ -101,6 +104,30 @@ export class TransactionsController {
         { cmd: 'get_transactions_by_order_id' },
         id,
       ),
+    );
+  }
+
+  @Put('/:id')
+  @ApiUpdateTransactionDocs()
+  @Permissions(Permission.TransactionUpdate)
+  async updateTransaction(
+    @Param() id: UuidDto,
+    @Body() dto: UpdateTransactionDto,
+  ) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send(
+        { cmd: 'update_transaction' },
+        { id, dto },
+      ),
+    );
+  }
+
+  @Delete('/:id')
+  @ApiDeleteTransactionDocs()
+  @Permissions(Permission.TransactionDelete)
+  async deleteTransaction(@Param() id: UuidDto) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'delete_transaction' }, id),
     );
   }
 }

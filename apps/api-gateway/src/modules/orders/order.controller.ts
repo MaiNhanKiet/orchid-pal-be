@@ -28,8 +28,11 @@ import {
   ApiGetOrderByIdDocs,
   ApiGetOrdersByUserIdDocs,
   ApiGetOrdersOfUserDocs,
+  ApiUpdateOrderDocs,
+  ApiDeleteOrderDocs,
 } from './order.swagger';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
+import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
@@ -87,6 +90,24 @@ export class OrdersController {
         { cmd: 'get_orders_by_user_id' },
         { userId, pagination },
       ),
+    );
+  }
+
+  @Put('/:id')
+  @ApiUpdateOrderDocs()
+  @Permissions(Permission.OrderUpdate)
+  async updateOrder(@Param() id: UuidDto, @Body() dto: UpdateOrderDto) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'update_order' }, { id, dto }),
+    );
+  }
+
+  @Delete('/:id')
+  @ApiDeleteOrderDocs()
+  @Permissions(Permission.OrderDelete)
+  async deleteOrder(@Param() id: UuidDto) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'delete_order' }, id),
     );
   }
 }

@@ -1,11 +1,19 @@
 import { ApiAuthFailures } from '@app/common';
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 export function ApiGetAllProductsDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Lấy danh sách sản phẩm với phân trang' }),
     ApiAuthFailures(),
+    ApiQuery({ name: 'page', required: false, type: 'number', example: 1 }),
+    ApiQuery({ name: 'limit', required: false, type: 'number', example: 10 }),
     ApiResponse({
       status: 200,
       description: 'Lấy danh sách sản phẩm thành công',
@@ -24,12 +32,7 @@ export function ApiGetAllProductsDocs() {
               createdAt: '2024-01-01T00:00:00.000Z',
             },
           ],
-          meta: {
-            total: 20,
-            page: 1,
-            limit: 10,
-            totalPages: 2,
-          },
+          meta: { total: 20, page: 1, limit: 10, totalPages: 2 },
         },
       },
     }),
@@ -40,6 +43,12 @@ export function ApiGetProductByIdDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Lấy chi tiết sản phẩm' }),
     ApiAuthFailures(),
+    ApiParam({
+      name: 'id',
+      description: 'UUID của sản phẩm',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
     ApiResponse({
       status: 200,
       description: 'Lấy chi tiết sản phẩm thành công',
@@ -79,6 +88,20 @@ export function ApiCreateProductDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Tạo sản phẩm mới (Admin only)' }),
     ApiAuthFailures(),
+    ApiBody({
+      description: 'Thông tin sản phẩm mới',
+      schema: {
+        example: {
+          sku: 'LAN-CTRL-002',
+          name: 'Bộ điều khiển tưới tự động cho lan - v2',
+          description: 'Phiên bản nâng cấp của bộ điều khiển IoT...',
+          price: 1500000,
+          stock_quantity: 50,
+          image_url: 'https://cdn.example.com/images/lan-controller-v2.jpg',
+          is_published: true,
+        },
+      },
+    }),
     ApiResponse({
       status: 201,
       description: 'Tạo sản phẩm thành công',
@@ -116,6 +139,23 @@ export function ApiUpdateProductDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Cập nhật sản phẩm (Admin only)' }),
     ApiAuthFailures(),
+    ApiParam({
+      name: 'id',
+      description: 'UUID của sản phẩm',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({
+      description: 'Thông tin sản phẩm cần cập nhật (các trường đều optional)',
+      schema: {
+        example: {
+          name: 'Bộ điều khiển tưới tự động cho lan - v2',
+          price: 1500000,
+          stock_quantity: 75,
+          is_published: true,
+        },
+      },
+    }),
     ApiResponse({
       status: 200,
       description: 'Cập nhật sản phẩm thành công',
@@ -147,6 +187,12 @@ export function ApiDeleteProductDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Xóa sản phẩm (Admin only)' }),
     ApiAuthFailures(),
+    ApiParam({
+      name: 'id',
+      description: 'UUID của sản phẩm',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
     ApiResponse({
       status: 200,
       description: 'Xóa sản phẩm thành công',
