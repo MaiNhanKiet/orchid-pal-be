@@ -37,7 +37,7 @@ import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-@Public()
+// @Public()
 export class OrdersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
@@ -45,7 +45,7 @@ export class OrdersController {
   ) {}
 
   @Get('')
-  @Permissions(Permission.OrderViewAll)
+  // @Permissions(Permission.OrderViewAll)
   @ApiGetAllOrdersDocs()
   async getAllOrders() {
     return await firstValueFrom(
@@ -54,7 +54,7 @@ export class OrdersController {
   }
 
   @Get('/:id')
-  @Permissions(Permission.OrderView)
+  // @Permissions(Permission.OrderView)
   @ApiGetOrderByIdDocs()
   async getOrderById(@Param() id: UuidDto) {
     return await firstValueFrom(
@@ -64,7 +64,7 @@ export class OrdersController {
 
   @Get('/user/:id')
   @ApiGetOrdersByUserIdDocs()
-  @Permissions(Permission.OrderView)
+  // @Permissions(Permission.OrderView)
   async getOrdersByUserId(
     @Param() userId: UuidDto,
     @Query() pagination: PaginationDto,
@@ -79,7 +79,7 @@ export class OrdersController {
 
   @Get('/user')
   @ApiGetOrdersOfUserDocs()
-  @Permissions(Permission.OrderView)
+  // @Permissions(Permission.OrderView)
   async getOrdersOfUser(
     @CurrentUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
@@ -95,7 +95,7 @@ export class OrdersController {
 
   @Put('/:id')
   @ApiUpdateOrderDocs()
-  @Permissions(Permission.OrderUpdate)
+  // @Permissions(Permission.OrderUpdate)
   async updateOrder(@Param() id: UuidDto, @Body() dto: UpdateOrderDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'update_order' }, { id, dto }),
@@ -104,7 +104,7 @@ export class OrdersController {
 
   @Delete('/:id')
   @ApiDeleteOrderDocs()
-  @Permissions(Permission.OrderDelete)
+  // @Permissions(Permission.OrderDelete)
   async deleteOrder(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'delete_order' }, id),

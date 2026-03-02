@@ -37,7 +37,7 @@ import { UpdateTransactionDto } from '@app/common/dtos/order-fulfillment/update-
 @ApiTags('Transactions')
 @ApiBearerAuth('access-token')
 @Controller('transactions')
-@Public()
+// @Public()
 export class TransactionsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
@@ -46,7 +46,7 @@ export class TransactionsController {
 
   @Get('')
   @ApiGetAllTransactionsDocs()
-  @Permissions(Permission.TransactionView)
+  // @Permissions(Permission.TransactionView)
   async getAllTransactions() {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'get_all_transactions' }, {}),
@@ -55,7 +55,7 @@ export class TransactionsController {
 
   @Get('/:id')
   @ApiGetTransactionByIdDocs()
-  @Permissions(Permission.TransactionView)
+  // @Permissions(Permission.TransactionView)
   async getTransactionById(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'get_transaction_by_id' }, id),
@@ -64,7 +64,7 @@ export class TransactionsController {
 
   @Get('/user/:id')
   @ApiGetTransactionsByUserIdDocs()
-  @Permissions(Permission.TransactionView)
+  // @Permissions(Permission.TransactionView)
   async getTransactionsByUserId(
     @Param() id: UuidDto,
     @Query() pagination: PaginationDto,
@@ -79,7 +79,7 @@ export class TransactionsController {
 
   @Get('/user')
   @ApiGetTransactionsOfUserDocs()
-  @Permissions(Permission.TransactionView)
+  // @Permissions(Permission.TransactionView)
   async getTransactionsOfUser(
     @CurrentUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
@@ -97,7 +97,7 @@ export class TransactionsController {
 
   @ApiGetTransactionsByOrderIdDocs()
   @Get('/order/:id')
-  @Permissions(Permission.TransactionView)
+  // @Permissions(Permission.TransactionView)
   async getTransactionsByOrderId(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send(
@@ -109,7 +109,7 @@ export class TransactionsController {
 
   @Put('/:id')
   @ApiUpdateTransactionDocs()
-  @Permissions(Permission.TransactionUpdate)
+  // @Permissions(Permission.TransactionUpdate)
   async updateTransaction(
     @Param() id: UuidDto,
     @Body() dto: UpdateTransactionDto,
@@ -124,7 +124,7 @@ export class TransactionsController {
 
   @Delete('/:id')
   @ApiDeleteTransactionDocs()
-  @Permissions(Permission.TransactionDelete)
+  // @Permissions(Permission.TransactionDelete)
   async deleteTransaction(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'delete_transaction' }, id),

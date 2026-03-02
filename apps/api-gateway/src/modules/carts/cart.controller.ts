@@ -38,7 +38,7 @@ import {
 @ApiTags('Carts')
 @ApiBearerAuth('access-token')
 @Controller('carts')
-@Public()
+// @Public()
 export class CartsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
@@ -46,7 +46,7 @@ export class CartsController {
   ) {}
 
   @Get()
-  @Permissions(Permission.CartView)
+  // @Permissions(Permission.CartView)
   @ApiGetAllCartItemsDocs()
   getAllCartItems() {
     return firstValueFrom(
@@ -55,7 +55,7 @@ export class CartsController {
   }
 
   @Get('/user/:id')
-  @Permissions(Permission.CartView)
+  // @Permissions(Permission.CartView)
   @ApiGetCartItemsByUserDocs()
   getCartItemsByUserId(
     @Param() userId: UuidDto,
@@ -72,7 +72,7 @@ export class CartsController {
   }
 
   @Get('/user')
-  @Permissions(Permission.CartView)
+  // @Permissions(Permission.CartView)
   @ApiGetCartItemsOfUserDocs()
   getCartItemsOfUser(
     @CurrentUser() user: JwtPayload,
@@ -88,7 +88,7 @@ export class CartsController {
   }
 
   @Post()
-  @Permissions(Permission.CartCreate)
+  // @Permissions(Permission.CartCreate)
   @ApiAddItemToCartDocs()
   addItemToCart(@Body() data: CreateCartItemDto) {
     return firstValueFrom(
@@ -97,7 +97,7 @@ export class CartsController {
   }
 
   @Delete('/:id')
-  @Permissions(Permission.CartDelete)
+  // @Permissions(Permission.CartDelete)
   @ApiRemoveItemFromCartDocs()
   removeItemFromCart(@Param() id: UuidDto) {
     return firstValueFrom(
@@ -106,7 +106,7 @@ export class CartsController {
   }
 
   @Put('/:id')
-  @Permissions(Permission.CartUpdate)
+  // @Permissions(Permission.CartUpdate)
   @ApiUpdateCartItemDocs()
   updateCartItem(
     @Param() cartItemId: UuidDto,

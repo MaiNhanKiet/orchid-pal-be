@@ -33,7 +33,7 @@ import { UpdateShipmentDto } from '@app/common/dtos/order-fulfillment/update-shi
 @ApiTags('Shipments')
 @ApiBearerAuth('access-token')
 @Controller('shipments')
-@Public()
+// @Public()
 export class ShipmentsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
@@ -41,7 +41,7 @@ export class ShipmentsController {
   ) {}
 
   @Get('')
-  @Permissions(Permission.ShipmentView)
+  // @Permissions(Permission.ShipmentView)
   @ApiGetAllShipmentsDocs()
   async getAllShipments() {
     return await firstValueFrom(
@@ -51,7 +51,7 @@ export class ShipmentsController {
 
   @Get('/:id')
   @ApiGetShipmentByIdDocs()
-  @Permissions(Permission.ShipmentView)
+  // @Permissions(Permission.ShipmentView)
   async getShipmentById(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'get_shipment_by_id' }, id),
@@ -60,7 +60,7 @@ export class ShipmentsController {
 
   @Get('/order/:id')
   @ApiGetShipmentsByOrderIdDocs()
-  @Permissions(Permission.ShipmentView)
+  // @Permissions(Permission.ShipmentView)
   async getShipmentsByOrdersId(
     @Param() id: UuidDto,
     @Query() pagination: PaginationDto,
@@ -75,7 +75,7 @@ export class ShipmentsController {
 
   @Put('/:id')
   @ApiUpdateShipmentDocs()
-  @Permissions(Permission.ShipmentUpdate)
+  // @Permissions(Permission.ShipmentUpdate)
   async updateShipment(@Param() id: UuidDto, @Body() dto: UpdateShipmentDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'update_shipment' }, { id, dto }),
@@ -84,7 +84,7 @@ export class ShipmentsController {
 
   @Delete('/:id')
   @ApiDeleteShipmentDocs()
-  @Permissions(Permission.ShipmentDelete)
+  // @Permissions(Permission.ShipmentDelete)
   async deleteShipment(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'delete_shipment' }, id),

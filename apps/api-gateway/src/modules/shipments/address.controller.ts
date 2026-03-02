@@ -77,7 +77,7 @@ export class AddressesController {
   // GET /addresses/:id - Lấy chi tiết địa chỉ
   @Get('/:id')
   @ApiGetAddressByIdDocs()
-  @Permissions(Permission.AddressView)
+  // @Permissions(Permission.AddressView)
   async getAddressById(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
     const userId: UuidDto = { id: user.sub };
 
@@ -92,7 +92,7 @@ export class AddressesController {
   // PATCH /addresses/:id - Cập nhật địa chỉ
   @Patch('/:id')
   @ApiUpdateAddressDocs()
-  @Permissions(Permission.AddressUpdate)
+  // @Permissions(Permission.AddressUpdate)
   async updateAddress(
     @CurrentUser() user: JwtPayload,
     @Param() id: UuidDto,
@@ -111,7 +111,7 @@ export class AddressesController {
   // DELETE /addresses/:id - Xóa địa chỉ
   @Delete('/:id')
   @ApiDeleteAddressDocs()
-  @Permissions(Permission.AddressDelete)
+  // @Permissions(Permission.AddressDelete)
   async deleteAddress(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
     const userId: UuidDto = { id: user.sub };
 
@@ -126,7 +126,7 @@ export class AddressesController {
   // PATCH /addresses/:id/set-default - Đặt làm địa chỉ mặc định
   @Patch('/:id/set-default')
   @ApiSetDefaultAddressDocs()
-  @Permissions(Permission.AddressUpdate)
+  // @Permissions(Permission.AddressUpdate)
   async setDefaultAddress(
     @CurrentUser() user: JwtPayload,
     @Param() id: UuidDto,
