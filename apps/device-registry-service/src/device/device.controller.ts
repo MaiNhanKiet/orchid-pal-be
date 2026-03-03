@@ -15,6 +15,7 @@ import {
   UpdateDeviceDto,
   QueryDevicesDto,
 } from '@app/common/dtos/device/device.dto';
+import { MqttStatusPayload } from '@app/common/interfaces/mqtt-status-payload.interface';
 
 @Controller()
 export class DeviceController {
@@ -67,7 +68,7 @@ export class DeviceController {
 
   @EventPattern('device/+/status')
   async handleDeviceStatusUpdate(
-    @Payload() _payload: unknown,
+    @Payload() payload: MqttStatusPayload,
     @Ctx() context: MqttContext,
   ) {
     const topic = context.getTopic();
@@ -82,6 +83,6 @@ export class DeviceController {
       return;
     }
 
-    await this.deviceService.markDeviceOnlineBySerial(serialNumber);
+    await this.deviceService.changeDeviceStatusBySerial(serialNumber, payload.status);
   }
 }

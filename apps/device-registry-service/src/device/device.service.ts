@@ -65,21 +65,22 @@ export class DeviceService {
     };
   }
 
-  async markDeviceOnlineBySerial(serial_number: string) {
+  async changeDeviceStatusBySerial(serial_number: string, status: string) {
     const existing = await this.prisma.devices.findUnique({
       where: { serial_number },
       select: { id: true },
     });
 
     if (!existing) {
+      console.log(`[${serial_number}] Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.`);
       return;
     }
 
     await this.prisma.devices.update({
       where: { serial_number },
       data: {
-        status: 'ONLINE',
-        last_online_at: new Date(),
+        status,
+        last_online_at: status === 'ONLINE' ? new Date() : null,
       },
     });
   }
