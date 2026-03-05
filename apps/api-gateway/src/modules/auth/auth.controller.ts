@@ -68,10 +68,13 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthCallbackDocs()
-  async googleAuthRedirect(@Req() req, @Res() res) {
-    const { accessToken, refreshToken } = req.user;
-
-    console.log('accessToken', accessToken);
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+    const { accessToken, refreshToken } = (req as any).user;
+    // Ưu tiên lấy từ "state" (Google trả lại), fallback sang query "platform" nếu có
+    const platform =
+      (req.query.state as string) ||
+      (req.query.platform as string) ||
+      'web';
 
     if (refreshToken) {
       res.cookie('refresh_token', refreshToken, {
@@ -84,11 +87,22 @@ export class AuthController {
       });
     }
 
-    console.log('refreshToken', refreshToken);
+    // Nếu là mobile: redirect về deeplink (ví dụ: orchidpal://auth?token=...)
+    if (platform === 'mobile') {
+      const mobileDeeplink =
+        this.configService.get<string>('MOBILE_DEEPLINK_URL') || '';
 
-    return res.redirect(
-      `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
-    );
+      if (!mobileDeeplink) {
+        // Fallback: nếu chưa cấu hình deeplink thì trả JSON
+        return res.json({ accessToken });
+      }
+
+      return res.redirect(`${mobileDeeplink}?token=${accessToken}`);
+    }
+
+    // Mặc định: web, redirect về FRONTEND_URL như cũ
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    return res.redirect(`${frontendUrl}?token=${accessToken}`);
   }
 
   @Post('refresh')
