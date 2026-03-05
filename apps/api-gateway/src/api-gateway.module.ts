@@ -32,6 +32,7 @@ import { ZonesController } from './modules/garden/zones/zones.controller';
 import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
 import { DevicesController } from './modules/devices/devices.controller';
 import { AdminDevicesController } from './modules/devices/admin-devices.controller';
+import { MqttController } from './modules/mqtt/mqtt.controller';
 import { RedisModule } from '@app/redis';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { ExpressAdapter } from '@bull-board/express';
@@ -97,6 +98,7 @@ import { BullMQAdapter } from '@bull-board/api/dist/queueAdapters/bullMQ.js';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
+    MqttController,
   ],
   providers: [
     GoogleStrategy,

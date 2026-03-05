@@ -9,7 +9,7 @@ import {
   Inject,
   Body,
 } from '@nestjs/common';
-import { MICROSERVICES_CLIENTS, Public } from '@app/common';
+import { GoogleLoginDto, MICROSERVICES_CLIENTS, Public } from '@app/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOauthGuard } from './guards/google.guard';
 import { ApiTags } from '@nestjs/swagger';
@@ -39,6 +39,31 @@ export class AuthController {
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
   async googleAuth() { }
+
+  @Post('google/mobile')
+  async googleAuthMobile(@Body() body: GoogleLoginDto, @Req() req: Request) {
+    const deviceAgent =
+      body.deviceAgent || (req.headers['user-agent'] as string) || '';
+    const ipAddress =
+      body.ipAddress ||
+      ((req.headers['x-forwarded-for'] as string) || req.ip || '');
+
+    const payload: GoogleLoginDto = {
+      ...body,
+      provider: 'google',
+      deviceAgent,
+      ipAddress,
+    };
+
+    const result = await firstValueFrom(
+      this.iamClient.send({ cmd: 'google_login' }, payload),
+    );
+
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    };
+  }
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
