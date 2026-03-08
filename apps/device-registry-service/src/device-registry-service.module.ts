@@ -31,4 +31,4 @@ import { DeviceModule } from './device/device.module';
     },
   ],
 })
-export class DeviceRegistryServiceModule { }
+export class DeviceRegistryServiceModule {}

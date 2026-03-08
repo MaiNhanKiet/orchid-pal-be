@@ -2,6 +2,7 @@ export enum Permission {
   SysAccessDashboard = 'sys.access_dashboard',
   SysViewLogs = 'sys.view_logs',
   SysSettingsUpdate = 'sys.settings.update',
+  SysDataExport = 'sys.data.export',
 
   UserView = 'user.view',
   UserCreate = 'user.create',
@@ -48,6 +49,15 @@ export enum Permission {
   ReviewView = 'review.view',
   ReviewReply = 'review.reply',
   ReviewHide = 'review.hide',
+
+  MarketingVoucherView = 'marketing.voucher.view',
+  MarketingVoucherManage = 'marketing.voucher.manage',
+  MarketingCampaignManage = 'marketing.campaign.manage',
+
+  MediaUpload = 'media.upload',
+  MediaDelete = 'media.delete',
+
+  NotificationSend = 'notification.send',
 
   DeviceViewAll = 'device.view_all',
   DeviceProvision = 'device.provision',

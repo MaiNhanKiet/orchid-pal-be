@@ -19,7 +19,7 @@ import {
 
 @Injectable()
 export class DeviceService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -33,16 +33,15 @@ export class DeviceService {
         'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
       );
     }
+    if (device.owner_id) {
+      throw new BadRequestException(
+        'Thiết bị đã có chủ. Không thể kích hoạt lại.',
+      );
+    }
 
     if (device.secret_key !== secret_key) {
       throw new BadRequestException(
         'Secret key không đúng. Vui lòng kiểm tra lại QR code.',
-      );
-    }
-
-    if (device.owner_id) {
-      throw new BadRequestException(
-        'Thiết bị đã có chủ. Không thể kích hoạt lại.',
       );
     }
 
@@ -72,7 +71,9 @@ export class DeviceService {
     });
 
     if (!existing) {
-      console.log(`[${serial_number}] Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.`);
+      console.log(
+        `[${serial_number}] Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.`,
+      );
       return;
     }
 
@@ -148,7 +149,7 @@ export class DeviceService {
 
     return {
       message: 'Gán thiết bị vào vườn thành công',
-      device: updated,
+      device: 'updated',
     };
   }
 
