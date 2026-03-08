@@ -68,6 +68,7 @@ export enum Permission {
   MeDeviceControl = 'me.device.control',
 
   ZoneCreate = 'zone.create',
+  ZoneRead = 'zone.read',
   MyPlantCreate = 'my_plant.create',
 
   UnlockRoom = 'room.unlock',

@@ -32,10 +32,6 @@ async function bootstrap() {
     .addTag('Species', 'APIs for Species Wiki (Từ điển loài Lan)')
     .addTag('Zones', 'APIs for Garden Zones (Vườn)')
     .addTag('Devices', 'APIs for Device Registry (Quản lý thiết bị)')
-    .addTag(
-      'MQTT',
-      'MQTT Docs (chỉ xem): topic/pattern giữa ESP32 và backend + service đang xử lý',
-    )
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -48,8 +44,5 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
   console.log(`[API Gateway]: running on http://0.0.0.0:${port}/docs`);
-  console.log(
-    `[API Gateway]: accessible from network at http://<your-ip>:${port}/docs`,
-  );
 }
 bootstrap();
