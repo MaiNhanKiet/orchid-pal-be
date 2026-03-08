@@ -97,6 +97,8 @@ export class AuthController {
         return res.json({ accessToken });
       }
 
+      console.log(`${mobileDeeplink}?token=${accessToken}`);
+
       return res.redirect(`${mobileDeeplink}?token=${accessToken}`);
     }
 
