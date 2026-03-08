@@ -52,7 +52,6 @@ export class AuthController {
     const { accessToken, refreshToken } = req.user;
 
     const rawState = req.query.state as string;
-    console.log(rawState);
 
     let platform = 'web';
     let appRedirect: string;
