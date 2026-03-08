@@ -15,11 +15,11 @@ import {
   UpdateDeviceDto,
   QueryDevicesDto,
 } from '@app/common/dtos/device/device.dto';
-import { MqttStatusPayload } from '@app/common/interfaces/mqtt-status-payload.interface';
+import { MqttStatusPayload } from '@app/common';
 
 @Controller()
 export class DeviceController {
-  constructor(private readonly deviceService: DeviceService) { }
+  constructor(private readonly deviceService: DeviceService) {}
 
   @MessagePattern({ cmd: 'activate_device' })
   activateDevice(@Payload() data: ActivateDeviceCommandDto) {
@@ -83,6 +83,9 @@ export class DeviceController {
       return;
     }
 
-    await this.deviceService.changeDeviceStatusBySerial(serialNumber, payload.status);
+    await this.deviceService.changeDeviceStatusBySerial(
+      serialNumber,
+      payload.status,
+    );
   }
 }

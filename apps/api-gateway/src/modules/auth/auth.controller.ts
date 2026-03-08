@@ -9,7 +9,12 @@ import {
   Inject,
   Body,
 } from '@nestjs/common';
-import { GoogleLoginDto, MICROSERVICES_CLIENTS, Public } from '@app/common';
+import {
+  GoogleLoginDto,
+  MICROSERVICES_CLIENTS,
+  Public,
+  RequestWithUser,
+} from '@app/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOauthGuard } from './guards/google.guard';
 import { ApiTags } from '@nestjs/swagger';
@@ -33,76 +38,57 @@ export class AuthController {
     private readonly iamClient: ClientProxy,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
-  async googleAuth() { }
-
-  @Post('google/mobile')
-  async googleAuthMobile(@Body() body: GoogleLoginDto, @Req() req: Request) {
-    const deviceAgent =
-      body.deviceAgent || (req.headers['user-agent'] as string) || '';
-    const ipAddress =
-      body.ipAddress ||
-      ((req.headers['x-forwarded-for'] as string) || req.ip || '');
-
-    const payload: GoogleLoginDto = {
-      ...body,
-      provider: 'google',
-      deviceAgent,
-      ipAddress,
-    };
-
-    const result = await firstValueFrom(
-      this.iamClient.send({ cmd: 'google_login' }, payload),
-    );
-
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    };
-  }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthCallbackDocs()
-  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    const { accessToken, refreshToken } = (req as any).user;
-    // Ưu tiên lấy từ "state" (Google trả lại), fallback sang query "platform" nếu có
-    const platform =
-      (req.query.state as string) ||
-      (req.query.platform as string) ||
-      'web';
+  async googleAuthRedirect(@Req() req: RequestWithUser, @Res() res: Response) {
+    const { accessToken, refreshToken } = req.user;
 
-    if (refreshToken) {
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        // path: '/auth/refresh',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-    }
+    const rawState = req.query.state as string;
+    console.log(rawState);
 
-    // Nếu là mobile: redirect về deeplink (ví dụ: orchidpal://auth?token=...)
-    if (platform === 'mobile') {
-      const mobileDeeplink =
-        this.configService.get<string>('MOBILE_DEEPLINK_URL') || '';
+    let platform = 'web';
+    let appRedirect: string;
 
-      if (!mobileDeeplink) {
-        // Fallback: nếu chưa cấu hình deeplink thì trả JSON
-        return res.json({ accessToken });
+    if (rawState) {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(rawState, 'base64url').toString('utf-8'),
+        ) as {
+          platform?: string;
+          appRedirect?: string;
+        };
+
+        platform = decoded.platform || 'web';
+        appRedirect = decoded.appRedirect;
+      } catch {
+        platform = rawState;
       }
-
-      console.log(`${mobileDeeplink}?token=${accessToken}`);
-
-      return res.redirect(`${mobileDeeplink}?token=${accessToken}`);
     }
 
-    // Mặc định: web, redirect về FRONTEND_URL như cũ
+    if (platform === 'mobile') {
+      const redirect = new URL(appRedirect);
+      redirect.searchParams.set('token', accessToken);
+      redirect.searchParams.set('refreshToken', refreshToken);
+      return res.redirect(redirect.toString());
+    }
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      // path: '/auth/refresh',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     return res.redirect(`${frontendUrl}?token=${accessToken}`);
   }
