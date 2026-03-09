@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 import {
@@ -16,10 +17,14 @@ import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
 } from '@app/common/constants/pagination.constant';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class DeviceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('AUTOMATION') private readonly rmqClient: ClientProxy,
+  ) {}
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -51,6 +56,12 @@ export class DeviceService {
         owner_id: user_id,
         status: 'OFFLINE',
       },
+    });
+
+    this.rmqClient.emit('device.assigned.zone', {
+      device_id: updatedDevice.id,
+      zone_id: updatedDevice.zone_id,
+      user_id: updatedDevice.owner_id,
     });
 
     return {

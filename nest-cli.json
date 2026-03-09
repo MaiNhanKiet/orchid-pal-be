@@ -32,6 +32,15 @@
         ]
       }
     },
+    "automation-service": {
+      "type": "application",
+      "root": "apps/automation-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/automation-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/automation-service/tsconfig.app.json"
+      }
+    },
     "catalog-service": {
       "type": "application",
       "root": "apps/catalog-service",

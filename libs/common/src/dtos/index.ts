@@ -9,3 +9,4 @@ export * from './auth/refresh-token.dto';
 export * from './garden/zone.dto';
 export * from './garden/my-plant.dto';
 export * from './device/device.dto';
+export * from './automation/device-assigned-zone.dto';
