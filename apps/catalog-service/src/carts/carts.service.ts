@@ -11,7 +11,9 @@ export class CartsService {
   constructor(private prisma: PrismaService) {}
 
   async getAllCartItems() {
-    return this.prisma.cart_items.findMany();
+    return this.prisma.cart_items.findMany({
+      include: { products: true },
+    });
   }
 
   async getCartItemsByUserId(
@@ -24,6 +26,7 @@ export class CartsService {
       where: {
         user_id: userId,
       },
+      include: { products: true },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -66,7 +69,11 @@ export class CartsService {
     return cartItem;
   }
 
-  async updateCartItem(cartItemId: string, quantity?: number, isSelected?: boolean) {
+  async updateCartItem(
+    cartItemId: string,
+    quantity?: number,
+    isSelected?: boolean,
+  ) {
     const cartItem = await this.prisma.cart_items.update({
       where: { id: cartItemId },
       data: { quantity, is_selected: isSelected },
