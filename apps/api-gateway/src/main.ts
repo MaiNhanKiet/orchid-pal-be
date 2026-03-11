@@ -47,7 +47,7 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(port);
-  console.log(`[API Gateway]: running on http://localhost:${port}/docs`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`[API Gateway]: running on http://0.0.0.0:${port}/docs`);
 }
 bootstrap();

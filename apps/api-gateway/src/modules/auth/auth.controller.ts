@@ -9,7 +9,12 @@ import {
   Inject,
   Body,
 } from '@nestjs/common';
-import { MICROSERVICES_CLIENTS, Public } from '@app/common';
+import {
+  GoogleLoginDto,
+  MICROSERVICES_CLIENTS,
+  Public,
+  RequestWithUser,
+} from '@app/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleOauthGuard } from './guards/google.guard';
 import { ApiTags } from '@nestjs/swagger';
@@ -33,35 +38,58 @@ export class AuthController {
     private readonly iamClient: ClientProxy,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   @Get('google')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthDocs()
-  async googleAuth(@Req() req) { }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
   @ApiGoogleAuthCallbackDocs()
-  async googleAuthRedirect(@Req() req, @Res() res) {
+  async googleAuthRedirect(@Req() req: RequestWithUser, @Res() res: Response) {
     const { accessToken, refreshToken } = req.user;
 
-    if (refreshToken) {
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        path: '/auth/refresh',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+    const rawState = req.query.state as string;
+
+    let platform = 'web';
+    let appRedirect: string;
+
+    if (rawState) {
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(rawState, 'base64url').toString('utf-8'),
+        ) as {
+          platform?: string;
+          appRedirect?: string;
+        };
+
+        platform = decoded.platform || 'web';
+        appRedirect = decoded.appRedirect;
+      } catch {
+        platform = rawState;
+      }
     }
 
-    console.log(`token=${accessToken}`);
-    
+    if (platform === 'mobile') {
+      const redirect = new URL(appRedirect);
+      redirect.searchParams.set('token', accessToken);
+      redirect.searchParams.set('refreshToken', refreshToken);
+      return res.redirect(redirect.toString());
+    }
 
-    return res.redirect(
-      `${this.configService.get<string>('FRONTEND_URL')}?token=${accessToken}`,
-    );
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      // path: '/auth/refresh',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    return res.redirect(`${frontendUrl}?token=${accessToken}`);
   }
 
   @Post('refresh')
@@ -89,9 +117,10 @@ export class AuthController {
 
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: true,
       sameSite: 'lax',
-      path: '/auth/refresh',
+      secure: true,
+      // path: '/auth/refresh',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 

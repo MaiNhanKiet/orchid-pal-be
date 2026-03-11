@@ -5,6 +5,7 @@ import {
   CustomValidationPipe,
   FitRpcExceptionFilter,
   LoggingInterceptor,
+  RmqModule,
   TimeoutInterceptor,
 } from '@app/common';
 import { DeviceModule } from './device/device.module';
@@ -31,4 +32,4 @@ import { DeviceModule } from './device/device.module';
     },
   ],
 })
-export class DeviceRegistryServiceModule { }
+export class DeviceRegistryServiceModule {}

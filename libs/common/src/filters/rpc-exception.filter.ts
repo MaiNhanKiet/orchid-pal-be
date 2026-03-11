@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   Logger,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { RpcException } from '@nestjs/microservices';
@@ -56,14 +57,26 @@ export class FitRpcExceptionFilter implements RpcExceptionFilter {
           break;
       }
     }
-    // 3. Xử lý lỗi HTTP
-    else if (exception.status && exception.response) {
+    // 3. Xử lý HttpException → tự động chuyển sang RpcException
+    else if (exception instanceof HttpException) {
+      const response = exception.getResponse();
       errorResponse = {
-        statusCode: exception.status,
-        message: exception.response.message || exception.message,
+        statusCode: exception.getStatus(),
+        message:
+          typeof response === 'string'
+            ? response
+            : (response as any).message || exception.message,
       };
     }
-    // 4. Lỗi lạ khác
+    // 4. Xử lý RpcException
+    else if (exception instanceof RpcException) {
+      const error = exception.getError();
+      errorResponse =
+        typeof error === 'string'
+          ? { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, message: error }
+          : (error as any);
+    }
+    // 5. Lỗi lạ khác
     else {
       this.logger.error(exception);
       if (exception.message) errorResponse.message = exception.message;

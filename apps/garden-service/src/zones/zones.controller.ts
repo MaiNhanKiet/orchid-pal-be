@@ -11,4 +11,9 @@ export class ZonesController {
   createZone(@Payload() data: CreateZoneCommandDto) {
     return this.zonesService.createZone(data);
   }
+
+  @MessagePattern({ cmd: 'get_zones_by_user' })
+  getZonesByUser(@Payload() data: { user_id: string }) {
+    return this.zonesService.getZonesByUser(data.user_id);
+  }
 }

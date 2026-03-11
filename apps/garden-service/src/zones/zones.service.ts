@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 import { CreateZoneCommandDto } from '@app/common/dtos/garden/zone.dto';
 
@@ -21,5 +21,18 @@ export class ZonesService {
       zone_id: zone.id,
       ...zone,
     };
+  }
+
+  async getZonesByUser(user_id: string) {
+    const zones = await this.prisma.planting_zones.findMany({
+      where: { user_id },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (zones.length === 0) {
+      throw new NotFoundException('Người dùng chưa có khu vườn nào');
+    }
+
+    return zones;
   }
 }

@@ -28,9 +28,11 @@ import { RbacController } from './modules/rbac/rbac.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { CartsController } from './modules/carts/cart.controller';
 import { SpeciesController } from './modules/garden/species/species.controller';
+import { AdminSpeciesController } from './modules/garden/species/admin-species.controller';
 import { ZonesController } from './modules/garden/zones/zones.controller';
 import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
 import { DevicesController } from './modules/devices/devices.controller';
+import { AdminDevicesController } from './modules/devices/admin-devices.controller';
 import { RedisModule } from '@app/redis';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { ExpressAdapter } from '@bull-board/express';
@@ -103,9 +105,11 @@ import { AddressesController } from './modules/shipments/address.controller';
     ProductsController,
     CartsController,
     SpeciesController,
+    AdminSpeciesController,
     ZonesController,
     MyPlantsController,
     DevicesController,
+    AdminDevicesController,
     OrdersController,
     ShipmentsController,
     TransactionsController,

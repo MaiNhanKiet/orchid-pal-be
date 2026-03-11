@@ -8,6 +8,12 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class GetPlantsByZoneDto {
+  @IsUUID()
+  @IsNotEmpty()
+  zone_id: string;
+}
+
 export class CreateMyPlantDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -36,7 +42,8 @@ export class CreateMyPlantDto {
 
   @ApiPropertyOptional({
     example: '2025-01-01',
-    description: 'Ngày trồng cây (YYYY-MM-DD). Nếu không gửi, server sẽ tự set ngày hiện tại.',
+    description:
+      'Ngày trồng cây (YYYY-MM-DD). Nếu không gửi, server sẽ tự set ngày hiện tại.',
   })
   @IsDateString()
   @IsOptional()
@@ -54,10 +61,10 @@ export class CreateMyPlantDto {
 export class CreateMyPlantCommandDto extends CreateMyPlantDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174999',
-    description: 'ID của người dùng sở hữu cây (lấy từ JWT, không phải client gửi)',
+    description:
+      'ID của người dùng sở hữu cây (lấy từ JWT, không phải client gửi)',
   })
   @IsUUID()
   @IsNotEmpty()
   user_id: string;
 }
-
