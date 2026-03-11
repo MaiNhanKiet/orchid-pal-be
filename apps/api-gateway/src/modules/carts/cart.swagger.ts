@@ -8,6 +8,26 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
+const cartItemExample = {
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  user_id: '223e4567-e89b-12d3-a456-426614174001',
+  product_id: '323e4567-e89b-12d3-a456-426614174002',
+  quantity: 2,
+  is_selected: true,
+  created_at: '2024-01-01T00:00:00.000Z',
+  products: {
+    id: '323e4567-e89b-12d3-a456-426614174002',
+    sku: 'ORCHID-001',
+    name: 'Hoa lan hồ điệp',
+    description: 'Hoa lan hồ điệp đẹp',
+    price: '250000',
+    stock_quantity: 50,
+    image_url: 'https://example.com/image.jpg',
+    is_published: true,
+    created_at: '2024-01-01T00:00:00.000Z',
+  },
+};
+
 export function ApiGetAllCartItemsDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Lấy tất cả cart items' }),
@@ -15,18 +35,7 @@ export function ApiGetAllCartItemsDocs() {
     ApiResponse({
       status: 200,
       description: 'Lấy tất cả cart items thành công',
-      schema: {
-        example: [
-          {
-            id: '123e4567-e89b-12d3-a456-426614174000',
-            userId: '223e4567-e89b-12d3-a456-426614174001',
-            productId: '323e4567-e89b-12d3-a456-426614174002',
-            quantity: 2,
-            isSelected: true,
-            createdAt: '2024-01-01T00:00:00.000Z',
-          },
-        ],
-      },
+      schema: { example: [cartItemExample] },
     }),
   );
 }
@@ -48,16 +57,7 @@ export function ApiGetCartItemsByUserDocs() {
       description: 'Lấy cart items theo user thành công',
       schema: {
         example: {
-          data: [
-            {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              userId: '223e4567-e89b-12d3-a456-426614174001',
-              productId: '323e4567-e89b-12d3-a456-426614174002',
-              quantity: 2,
-              isSelected: true,
-              createdAt: '2024-01-01T00:00:00.000Z',
-            },
-          ],
+          data: [cartItemExample],
           meta: { total: 5, page: 1, limit: 10, totalPages: 1 },
         },
       },
@@ -81,16 +81,7 @@ export function ApiGetCartItemsOfUserDocs() {
       description: 'Lấy cart items theo user thành công',
       schema: {
         example: {
-          data: [
-            {
-              id: '123e4567-e89b-12d3-a456-426614174000',
-              userId: '223e4567-e89b-12d3-a456-426614174001',
-              productId: '323e4567-e89b-12d3-a456-426614174002',
-              quantity: 2,
-              isSelected: true,
-              createdAt: '2024-01-01T00:00:00.000Z',
-            },
-          ],
+          data: [cartItemExample],
           meta: { total: 5, page: 1, limit: 10, totalPages: 1 },
         },
       },
@@ -105,14 +96,27 @@ export function ApiGetCartItemsOfUserDocs() {
 
 export function ApiAddItemToCartDocs() {
   return applyDecorators(
-    ApiOperation({ summary: 'Thêm item vào giỏ hàng' }),
+    ApiOperation({
+      summary: 'Thêm item vào giỏ hàng',
+      description:
+        '`userId` được lấy tự động từ JWT token, không cần truyền trong body.',
+    }),
     ApiAuthFailures(),
     ApiBody({
-      description: 'Thông tin item cần thêm vào giỏ',
+      description: 'Thông tin item cần thêm vào giỏ (không cần truyền userId)',
       schema: {
-        example: {
-          product_id: '323e4567-e89b-12d3-a456-426614174002',
-          quantity: 2,
+        required: ['productId', 'quantity'],
+        properties: {
+          productId: {
+            type: 'string',
+            format: 'uuid',
+            example: '323e4567-e89b-12d3-a456-426614174002',
+          },
+          quantity: {
+            type: 'number',
+            minimum: 1,
+            example: 2,
+          },
         },
       },
     }),
@@ -122,11 +126,18 @@ export function ApiAddItemToCartDocs() {
       schema: {
         example: {
           id: '123e4567-e89b-12d3-a456-426614174000',
-          userId: '223e4567-e89b-12d3-a456-426614174001',
-          productId: '323e4567-e89b-12d3-a456-426614174002',
+          user_id: '223e4567-e89b-12d3-a456-426614174001',
+          product_id: '323e4567-e89b-12d3-a456-426614174002',
           quantity: 2,
-          isSelected: true,
-          createdAt: '2024-01-01T00:00:00.000Z',
+          is_selected: true,
+          created_at: '2024-01-01T00:00:00.000Z',
+          products: {
+            id: '323e4567-e89b-12d3-a456-426614174002',
+            sku: 'ORCHID-001',
+            name: 'Hoa lan hồ điệp',
+            price: '250000',
+            image_url: 'https://example.com/image.jpg',
+          },
         },
       },
     }),

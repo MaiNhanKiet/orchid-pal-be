@@ -8,6 +8,16 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
+const orderItemExample = {
+  id: '789a1234-e89b-12d3-a456-426614174003',
+  order_id: '123e4567-e89b-12d3-a456-426614174000',
+  product_id: '323e4567-e89b-12d3-a456-426614174002',
+  product_name_snapshot: 'Hoa lan hồ điệp',
+  quantity: 2,
+  unit_price: '250000.00',
+  total_price: '500000.00',
+};
+
 const orderExample = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   user_id: '456f7890-e89b-12d3-a456-426614174000',
@@ -21,6 +31,7 @@ const orderExample = {
   },
   note: 'Giao nhanh vào buổi sáng',
   created_at: '2024-01-01T00:00:00.000Z',
+  order_items: [orderItemExample],
 };
 
 export function ApiGetAllOrdersDocs() {

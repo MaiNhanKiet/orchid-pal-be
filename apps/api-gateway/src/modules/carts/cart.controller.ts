@@ -90,7 +90,11 @@ export class CartsController {
   @Post()
   // @Permissions(Permission.CartCreate)
   @ApiAddItemToCartDocs()
-  addItemToCart(@Body() data: CreateCartItemDto) {
+  addItemToCart(
+    @CurrentUser() user: JwtPayload,
+    @Body() data: CreateCartItemDto,
+  ) {
+    data.userId = user.sub;
     return firstValueFrom(
       this.catalogClient.send({ cmd: 'add_item_to_cart' }, data),
     );
