@@ -11,7 +11,9 @@ export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
   async getAllOrders() {
-    return this.prisma.orders.findMany();
+    return this.prisma.orders.findMany({
+      include: { order_items: true },
+    });
   }
 
   async getOrdersByUserId(
@@ -24,6 +26,7 @@ export class OrdersService {
       where: {
         user_id: userId,
       },
+      include: { order_items: true },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -33,6 +36,7 @@ export class OrdersService {
   async getOrderById(id: string) {
     const order = await this.prisma.orders.findUnique({
       where: { id },
+      include: { order_items: true },
     });
     if (!order) {
       throw new NotFoundException(`Order not found`);
