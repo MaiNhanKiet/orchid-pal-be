@@ -33,6 +33,7 @@ import {
   ApiRemoveItemFromCartDocs,
   ApiUpdateCartItemDocs,
   ApiGetCartItemsOfUserDocs,
+  ApiClearCartDocs,
 } from './cart.swagger';
 
 @ApiTags('Carts')
@@ -124,6 +125,16 @@ export class CartsController {
           payload,
         },
       ),
+    );
+  }
+
+  @Delete('/clear')
+  // @Permissions(Permission.CartDelete)
+  @ApiClearCartDocs()
+  clearCart(@CurrentUser() user: JwtPayload) {
+    const userId: UuidDto = { id: user.sub };
+    return firstValueFrom(
+      this.catalogClient.send({ cmd: 'clear_cart' }, userId),
     );
   }
 }

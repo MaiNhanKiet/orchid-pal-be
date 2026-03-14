@@ -224,3 +224,15 @@ export function ApiUpdateCartItemDocs() {
     }),
   );
 }
+
+export function ApiClearCartDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Xóa tất cả item khỏi giỏ hàng' }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Xóa tất cả item khỏi giỏ hàng thành công',
+      schema: { example: { message: 'Cart cleared successfully' } },
+    }),
+  );
+}

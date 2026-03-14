@@ -81,10 +81,10 @@ export class CartsService {
     return cartItem;
   }
 
-  async clearCart(cartIds: string[]) {
+  async clearCart(userId: string) {
     const deletedItems = await this.prisma.cart_items.deleteMany({
       where: {
-        id: { in: cartIds },
+        user_id: userId,
       },
     });
     return deletedItems;
