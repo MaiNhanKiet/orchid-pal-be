@@ -44,6 +44,7 @@ import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
 import { PaymentController } from './modules/payment/payment.controller';
 import { AddressesController } from './modules/shipments/address.controller';
+import { DashboardController } from './modules/dashboard/dashboard.controller';
 
 @Module({
   imports: [
@@ -115,6 +116,7 @@ import { AddressesController } from './modules/shipments/address.controller';
     TransactionsController,
     PaymentController,
     AddressesController,
+    DashboardController,
   ],
   providers: [
     GoogleStrategy,
