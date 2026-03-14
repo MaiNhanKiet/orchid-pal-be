@@ -132,9 +132,7 @@ export class CartsController {
   // @Permissions(Permission.CartDelete)
   @ApiClearCartDocs()
   clearCart(@CurrentUser() user: JwtPayload) {
-    const userId: UuidDto = { id: user.sub };
-    return firstValueFrom(
-      this.catalogClient.send({ cmd: 'clear_cart' }, userId),
-    );
+    const id: UuidDto = { id: user.sub };
+    return firstValueFrom(this.catalogClient.send({ cmd: 'clear_cart' }, id));
   }
 }
