@@ -51,15 +51,28 @@ export class CartsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    const cartItem = await this.prisma.cart_items.create({
-      data: {
+
+    const existedCartItems = await this.prisma.cart_items.findFirst({
+      where: {
         user_id: userId,
         product_id: productId,
-        quantity,
       },
     });
-
-    return cartItem;
+    if (existedCartItems) {
+      return this.prisma.cart_items.update({
+        where: { id: existedCartItems.id },
+        data: { quantity: existedCartItems.quantity + quantity },
+      });
+    } else {
+      const cartItem = await this.prisma.cart_items.create({
+        data: {
+          user_id: userId,
+          product_id: productId,
+          quantity,
+        },
+      });
+      return cartItem;
+    }
   }
 
   async removeItemFromCart(cartItemId: string) {
