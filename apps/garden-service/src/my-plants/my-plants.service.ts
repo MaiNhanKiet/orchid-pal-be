@@ -1,10 +1,11 @@
+import { CreateMyPlantCommandDto } from '@app/common/dtos/garden/my-plant.dto';
+import { PrismaService } from '@app/prisma';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '@app/prisma';
-import { CreateMyPlantCommandDto } from '@app/common/dtos/garden/my-plant.dto';
 
 @Injectable()
 export class MyPlantsService {
@@ -23,6 +24,16 @@ export class MyPlantsService {
     if (zone.user_id !== data.user_id) {
       throw new ForbiddenException(
         'Bạn không có quyền trồng cây trong khu vườn này.',
+      );
+    }
+
+    const existingPlantCount = await this.prisma.my_plants.count({
+      where: { zone_id: data.zone_id },
+    });
+
+    if (existingPlantCount >= 1) {
+      throw new BadRequestException(
+        'Mỗi bộ thiết bị OrchidPal chỉ hỗ trợ theo dõi 1 cây duy nhất. Vui lòng tạo khu vực mới cho cây khác.',
       );
     }
 

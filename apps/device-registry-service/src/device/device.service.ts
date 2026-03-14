@@ -1,22 +1,22 @@
 import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-} from '@nestjs/common';
-import { PrismaService } from '@app/prisma';
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
   CreateDeviceDto,
-  UpdateDeviceDto,
   QueryDevicesDto,
+  UpdateDeviceDto,
 } from '@app/common/dtos/device/device.dto';
+import { PrismaService } from '@app/prisma';
 import {
-  DEFAULT_LIMIT,
-  DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
@@ -129,6 +129,7 @@ export class DeviceService {
       select: {
         id: true,
         owner_id: true,
+        status: true,
       },
     });
 
@@ -141,6 +142,12 @@ export class DeviceService {
     if (device.owner_id !== user_id) {
       throw new ForbiddenException(
         'Bạn không có quyền gán thiết bị này vào vườn.',
+      );
+    }
+
+    if (device.status !== 'ONLINE') {
+      throw new BadRequestException(
+        'Thiết bị không trực tuyến. Vui lòng kiểm tra lại.',
       );
     }
 
@@ -160,7 +167,7 @@ export class DeviceService {
 
     return {
       message: 'Gán thiết bị vào vườn thành công',
-      device: 'updated',
+      device: updated,
     };
   }
 
