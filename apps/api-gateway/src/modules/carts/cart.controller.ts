@@ -101,6 +101,14 @@ export class CartsController {
     );
   }
 
+  @Delete('/clear')
+  // @Permissions(Permission.CartDelete)
+  @ApiClearCartDocs()
+  clearCart(@CurrentUser() user: JwtPayload) {
+    const id: UuidDto = { id: user.sub };
+    return firstValueFrom(this.catalogClient.send({ cmd: 'clear_cart' }, id));
+  }
+
   @Delete('/:id')
   // @Permissions(Permission.CartDelete)
   @ApiRemoveItemFromCartDocs()
@@ -126,13 +134,5 @@ export class CartsController {
         },
       ),
     );
-  }
-
-  @Delete('/clear')
-  // @Permissions(Permission.CartDelete)
-  @ApiClearCartDocs()
-  clearCart(@CurrentUser() user: JwtPayload) {
-    const id: UuidDto = { id: user.sub };
-    return firstValueFrom(this.catalogClient.send({ cmd: 'clear_cart' }, id));
   }
 }
