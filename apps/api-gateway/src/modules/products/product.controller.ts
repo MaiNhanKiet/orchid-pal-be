@@ -22,6 +22,7 @@ import {
   CreateProductDto,
   UpdateProductDto,
 } from '@app/common/dtos/catalog/product.dto';
+import { AddDevicesToProductDto } from '@app/common/dtos/device/device.dto';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -31,6 +32,7 @@ import {
   ApiCreateProductDocs,
   ApiUpdateProductDocs,
   ApiDeleteProductDocs,
+  ApiAddDevicesToProductDocs,
 } from './product.swagger';
 
 @ApiTags('Products')
@@ -87,6 +89,21 @@ export class ProductsController {
   async deleteProduct(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.catalogClient.send({ cmd: 'delete_product' }, id),
+    );
+  }
+
+  @Post('/:id/devices')
+  // @Permissions(Permission.ProductUpdate)
+  @ApiAddDevicesToProductDocs()
+  async addDevicesToProduct(
+    @Param() { id }: UuidDto,
+    @Body() dto: AddDevicesToProductDto,
+  ) {
+    return await firstValueFrom(
+      this.catalogClient.send(
+        { cmd: 'add_devices_to_product' },
+        { productId: id, secret_keys: dto.secret_keys },
+      ),
     );
   }
 }
