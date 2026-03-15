@@ -1,33 +1,13 @@
-import { DeviceAssignedZoneEventDto, MICROSERVICES_CLIENTS } from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
+import {
+  DeviceAssignedZoneEventDto,
+  HardwareConfig,
+  MICROSERVICES_CLIENTS,
+  SpeciesWiki,
+} from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
 import { PrismaService } from '@app/prisma'; // Đảm bảo đường dẫn đúng với project của bạn
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-
-// Interfaces định nghĩa kiểu dữ liệu
-interface SpeciesWiki {
-  id: string;
-  common_name: string;
-  ideal_temp_min: number | null;
-  ideal_temp_max: number | null;
-  ideal_humid_min: number | null;
-  ideal_humid_max: number | null;
-}
-
-interface HardwareConfig {
-  sensors?: {
-    temperature?: boolean;
-    humidity?: boolean;
-    soil_moisture?: boolean;
-    light?: boolean;
-  };
-  relays?: {
-    relay_1?: string | null;
-    relay_2?: string | null;
-    relay_3?: string | null;
-    relay_4?: string | null;
-  };
-}
 
 @Injectable()
 export class AutomationServiceService {
@@ -39,10 +19,10 @@ export class AutomationServiceService {
     private readonly gardenClient: ClientProxy,
     @Inject('MQTT_CLIENT')
     private readonly mqttClient: ClientProxy,
-  ) {}
+  ) { }
 
   async handleDeviceAssignedZone(payload: DeviceAssignedZoneEventDto) {
-    const { device_id, zone_id, user_id } = payload;
+    const { device_id, zone_id } = payload;
 
     if (!zone_id) {
       this.logger.warn(

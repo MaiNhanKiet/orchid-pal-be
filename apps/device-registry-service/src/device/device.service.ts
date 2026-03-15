@@ -1,3 +1,4 @@
+import { DeviceAssignedZoneEventDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
@@ -23,8 +24,8 @@ import { ClientProxy } from '@nestjs/microservices';
 export class DeviceService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject('AUTOMATION') private readonly rmqClient: ClientProxy,
-  ) {}
+    @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
+  ) { }
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -56,12 +57,6 @@ export class DeviceService {
         owner_id: user_id,
         status: 'OFFLINE',
       },
-    });
-
-    this.rmqClient.emit('device.assigned.zone', {
-      device_id: updatedDevice.id,
-      zone_id: updatedDevice.zone_id,
-      user_id: updatedDevice.owner_id,
     });
 
     return {
@@ -151,6 +146,14 @@ export class DeviceService {
       );
     }
 
+    // Gửi sự kiện kích hoạt thiết bị lên RabbitMQ để Automation Service xử lý
+    const payload: DeviceAssignedZoneEventDto = {
+      device_id: device.id,
+      zone_id: zone_id,
+      user_id,
+    };
+    this.automationClient.emit('device.assigned.zone', payload);
+
     const updated = await this.prisma.devices.update({
       where: { id: device.id },
       data: {
@@ -171,7 +174,6 @@ export class DeviceService {
     };
   }
 
-  // CRUD cho device phục vụ màn hình quản trị
   async listDevices(query: QueryDevicesDto) {
     let { page, limit } = query;
     if (!page) page = DEFAULT_PAGE;
