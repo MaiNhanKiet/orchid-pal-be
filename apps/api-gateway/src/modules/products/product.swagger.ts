@@ -242,6 +242,7 @@ export function ApiAddDevicesToProductDocs() {
         example: {
           product_id: '123e4567-e89b-12d3-a456-426614174000',
           created: 2,
+          stock_quantity: 52,
           devices: [
             {
               id: '6f2132a7-8f5f-46da-8ed6-89af8ef4da01',

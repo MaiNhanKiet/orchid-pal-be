@@ -113,9 +113,23 @@ export class ProductsService {
       ),
     );
 
+    const updatedProduct = await this.prisma.products.update({
+      where: { id: productId },
+      data: {
+        stock_quantity: {
+          increment: results.length,
+        },
+      },
+      select: {
+        id: true,
+        stock_quantity: true,
+      },
+    });
+
     return {
       product_id: productId,
       created: results.length,
+      stock_quantity: updatedProduct.stock_quantity,
       devices: results,
     };
   }
