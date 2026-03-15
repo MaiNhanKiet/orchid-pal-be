@@ -8,7 +8,7 @@ import {
 
 @Controller()
 export class MyPlantsController {
-  constructor(private readonly myPlantsService: MyPlantsService) {}
+  constructor(private readonly myPlantsService: MyPlantsService) { }
 
   @MessagePattern({ cmd: 'create_my_plant' })
   createMyPlant(@Payload() data: CreateMyPlantCommandDto) {

@@ -28,7 +28,7 @@ export class DeviceController {
 
   @MessagePattern({ cmd: 'get_device_status' })
   getDeviceStatus(@Payload() data: GetDeviceStatusCommandDto) {
-    return this.deviceService.getDeviceStatusBySerial(data.serial_number);
+    return this.deviceService.getDeviceBySerialPublic(data.serial_number);
   }
 
   @MessagePattern({ cmd: 'assign_device_to_zone' })
@@ -44,6 +44,11 @@ export class DeviceController {
   @MessagePattern({ cmd: 'get_device_by_id' })
   getDeviceById(@Payload() id: string) {
     return this.deviceService.getDeviceById(id);
+  }
+
+  @MessagePattern({ cmd: 'get_device_by_serial' })
+  getDeviceBySerial(@Payload() data: GetDeviceStatusCommandDto) {
+    return this.deviceService.getDeviceBySerial(data.serial_number);
   }
 
   @MessagePattern({ cmd: 'create_device' })

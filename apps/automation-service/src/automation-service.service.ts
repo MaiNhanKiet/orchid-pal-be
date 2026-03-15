@@ -50,8 +50,10 @@ export class AutomationServiceService {
     // 2. Gọi Garden Service để lấy cây trong zone
     const plants: Array<{ id: string; species_id: string | null }> =
       await firstValueFrom(
-        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, { zone_id }),
+        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, zone_id),
       );
+
+    this.logger.log(`Plants found in zone ${zone_id}: ${plants.length}`);
 
     if (!plants || plants.length === 0) {
       this.logger.warn(`No plants found in zone ${zone_id}.`);

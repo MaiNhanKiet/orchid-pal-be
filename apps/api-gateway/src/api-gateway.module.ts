@@ -142,4 +142,4 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

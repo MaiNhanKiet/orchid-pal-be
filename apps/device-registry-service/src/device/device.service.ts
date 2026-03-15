@@ -19,6 +19,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DeviceService {
@@ -152,7 +153,10 @@ export class DeviceService {
       zone_id: zone_id,
       user_id,
     };
-    this.automationClient.emit('device.assigned.zone', payload);
+
+    await firstValueFrom(
+      this.automationClient.emit('device.assigned.zone', payload),
+    );
 
     const updated = await this.prisma.devices.update({
       where: { id: device.id },
@@ -235,6 +239,47 @@ export class DeviceService {
 
     if (!device) {
       throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    return device;
+  }
+
+  async getDeviceBySerial(serial_number: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number },
+      select: {
+        id: true,
+        serial_number: true,
+        status: true,
+        last_online_at: true,
+        hardware_config: true,
+        owner_id: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
+    }
+
+    return device;
+  }
+
+  async getDeviceBySerialPublic(serial_number: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number },
+      select: {
+        serial_number: true,
+        status: true,
+        last_online_at: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
     }
 
     return device;
