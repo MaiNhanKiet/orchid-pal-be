@@ -16,6 +16,7 @@ import {
   DEVICE_REGISTRY_SERVICE_PORT,
   GARDEN_SERVICE_PORT,
   IAM_SERVICE_PORT,
+  TELEMETRY_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { RedisModule } from '@app/redis';
@@ -76,6 +77,13 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
           port: Number(DEVICE_REGISTRY_SERVICE_PORT),
         },
       },
+      {
+        name: MICROSERVICES_CLIENTS.TELEMETRY_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(TELEMETRY_SERVICE_PORT),
+        },
+      },
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
@@ -100,7 +108,7 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
-    TelemetryController
+    TelemetryController,
   ],
   providers: [
     GoogleStrategy,
@@ -134,4 +142,4 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
