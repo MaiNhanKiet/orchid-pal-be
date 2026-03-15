@@ -1,16 +1,23 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './api-gateway.module';
 import * as cookieParser from 'cookie-parser';
+import { API_GATEWAY_PORT, RmqService } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
   app.use(cookieParser());
-  const configService = app.get(ConfigService);
-  const port = configService.get('PORT') ?? 3000;
 
+  // =========================================================
+  // 1. CẤU HÌNH RABBITMQ
+  // =========================================================
+  const rmqService = app.get<RmqService>(RmqService);
+  app.connectMicroservice(rmqService.getOptions('API_GATEWAY', false));
+
+  // =========================================================
+  // 2. CẤU HÌNH SWAGGER
+  // =========================================================
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Orchid Pal API Gateway')
     .setDescription('API Gateway documentation for Orchid Pal System')
@@ -32,6 +39,7 @@ async function bootstrap() {
     .addTag('Species', 'APIs for Species Wiki (Từ điển loài Lan)')
     .addTag('Zones', 'APIs for Garden Zones (Vườn)')
     .addTag('Devices', 'APIs for Device Registry (Quản lý thiết bị)')
+    .addTag('Telemetry', 'APIs for Sensor Data & Real-time')
     .addTag('Carts', 'APIs for Shopping Cart Management')
     .addTag('Products', 'APIs for Product Management')
     .addTag('Orders', 'APIs for Order Management')
@@ -47,7 +55,18 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(port, '0.0.0.0');
-  console.log(`[API Gateway]: running on http://0.0.0.0:${port}/docs`);
+  // Mở CORS
+  app.enableCors();
+
+  // =========================================================
+  // 3. KHỞI ĐỘNG HỆ THỐNG
+  // =========================================================
+  await app.startAllMicroservices();
+  await app.listen(API_GATEWAY_PORT);
+
+  console.log(
+    `[API Gateway]: HTTP Server & Swagger running on port ${API_GATEWAY_PORT}`,
+  );
+  console.log(`[API Gateway]: running on RabbitMQ Queue`);
 }
 bootstrap();

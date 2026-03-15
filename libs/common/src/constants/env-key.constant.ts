@@ -11,6 +11,7 @@ export const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
 export const GARDEN_SERVICE_PORT = process.env.GARDEN_SERVICE_PORT;
 export const DEVICE_REGISTRY_SERVICE_PORT =
   process.env.DEVICE_REGISTRY_SERVICE_PORT;
+export const TELEMETRY_SERVICE_PORT = process.env.TELEMETRY_SERVICE_PORT;
 export const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
 export const MQTT_BROKER_USERNAME = process.env.MQTT_BROKER_USERNAME;
 export const MQTT_BROKER_PASSWORD = process.env.MQTT_BROKER_PASSWORD;

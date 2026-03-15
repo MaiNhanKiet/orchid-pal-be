@@ -22,7 +22,7 @@
     "prisma:generate": "prisma generate --schema=./libs/prisma/prisma/schema.prisma",
     "sync:permissions": "ts-node -r tsconfig-paths/register scripts/sync-permissions.ts",
     "start:all": "concurrently \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev api-gateway\"",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,GARDEN,DEVICE,AUTOMATION,ORDER-FULFILLMENT\" -c \"cyan,green,yellow,blue,purple,magenta,red,red\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev garden-service\" \"npm run start:dev device-registry-service\" \"npm run start:dev automation-service\" \"npm run start:dev order-fulfillment-service\""
+    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,GARDEN,DEVICE,AUTOMATION,TELEMETRY,ORDER-FULFILLMENT\" -c \"cyan,green,yellow,blue,purple,magenta,red,red,gray\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev garden-service\" \"npm run start:dev device-registry-service\" \"npm run start:dev automation-service\" \"npm run start:dev telemetry-service\" \"npm run start:dev order-fulfillment-service\""
   },
   "dependencies": {
     "@bull-board/api": "^6.16.4",
@@ -35,6 +35,7 @@
     "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/microservices": "^11.1.12",
+    "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.5",
@@ -47,6 +48,7 @@
     "class-validator": "^0.14.3",
     "cookie-parser": "^1.4.7",
     "ioredis": "^5.9.2",
+    "mongoose": "^9.3.0",
     "mqtt": "^5.10.4",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
@@ -106,6 +108,7 @@
     ],
     "moduleNameMapper": {
       "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+      "^@app/mongo(|/.*)$": "<rootDir>/libs/mongo/src/$1",
       "^@app/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
       "^@app/redis(|/.*)$": "<rootDir>/libs/redis/src/$1",
       "^@app/util(|/.*)$": "<rootDir>/libs/util/src/$1"

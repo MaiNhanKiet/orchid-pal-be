@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DeviceRegistryServiceModule } from './device-registry-service.module';
@@ -7,7 +8,6 @@ import {
   MQTT_BROKER_URL,
   MQTT_BROKER_USERNAME,
 } from '@app/common/constants/env-key.constant';
-import { FitRpcExceptionFilter } from '@app/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(DeviceRegistryServiceModule);

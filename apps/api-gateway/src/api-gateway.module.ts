@@ -1,4 +1,3 @@
-import { Module } from '@nestjs/common';
 import {
   AllExceptionsFilter,
   AuthGuard,
@@ -8,37 +7,40 @@ import {
   MICROSERVICES_CLIENTS,
   PermissionRbacGuard,
   QueueName,
+  RmqModule,
   TimeoutInterceptor,
   TransformInterceptor,
 } from '@app/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import {
   CATALOG_SERVICE_PORT,
-  IAM_SERVICE_PORT,
-  GARDEN_SERVICE_PORT,
   DEVICE_REGISTRY_SERVICE_PORT,
+  GARDEN_SERVICE_PORT,
+  IAM_SERVICE_PORT,
   ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
-import { AuthController } from './modules/auth/auth.controller';
-import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-import { PassportModule } from '@nestjs/passport';
-import { UsersController } from './modules/users/users.controller';
-import { RbacController } from './modules/rbac/rbac.controller';
-import { ProductsController } from './modules/products/product.controller';
-import { CartsController } from './modules/carts/cart.controller';
-import { SpeciesController } from './modules/garden/species/species.controller';
-import { AdminSpeciesController } from './modules/garden/species/admin-species.controller';
-import { ZonesController } from './modules/garden/zones/zones.controller';
-import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
-import { DevicesController } from './modules/devices/devices.controller';
-import { AdminDevicesController } from './modules/devices/admin-devices.controller';
-import { RedisModule } from '@app/redis';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
+import { RedisModule } from '@app/redis';
+import { BullMQAdapter } from '@bull-board/api/dist/queueAdapters/bullMQ.js';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs/dist/bull-board.module';
 import { BullModule } from '@nestjs/bullmq';
-import { BullMQAdapter } from '@bull-board/api/dist/queueAdapters/bullMQ.js';
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './modules/auth/auth.controller';
+import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
+import { CartsController } from './modules/carts/cart.controller';
+import { AdminDevicesController } from './modules/devices/admin-devices.controller';
+import { DevicesController } from './modules/devices/devices.controller';
+import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
+import { AdminSpeciesController } from './modules/garden/species/admin-species.controller';
+import { SpeciesController } from './modules/garden/species/species.controller';
+import { ZonesController } from './modules/garden/zones/zones.controller';
+import { ProductsController } from './modules/products/product.controller';
+import { RbacController } from './modules/rbac/rbac.controller';
+import { UsersController } from './modules/users/users.controller';
+import { TelemetryController } from './modules/telemetry/telemetry.controller';
 import { OrdersController } from './modules/orders/order.controller';
 import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
@@ -50,6 +52,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
   imports: [
     CommonModule,
     PassportModule,
+    RmqModule.register('AUTOMATION'),
     RedisModule,
     ClientsModule.register([
       {
@@ -111,6 +114,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
+    TelemetryController
     OrdersController,
     ShipmentsController,
     TransactionsController,
@@ -150,4 +154,4 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

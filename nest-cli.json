@@ -99,6 +99,15 @@
         "tsConfigPath": "apps/iam-service/tsconfig.app.json"
       }
     },
+    "mongo": {
+      "type": "library",
+      "root": "libs/mongo",
+      "entryFile": "index",
+      "sourceRoot": "libs/mongo/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/mongo/tsconfig.lib.json"
+      }
+    },
     "notification-service": {
       "type": "application",
       "root": "apps/notification-service",
@@ -133,6 +142,15 @@
       "sourceRoot": "libs/redis/src",
       "compilerOptions": {
         "tsConfigPath": "libs/redis/tsconfig.lib.json"
+      }
+    },
+    "telemetry-service": {
+      "type": "application",
+      "root": "apps/telemetry-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/telemetry-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/telemetry-service/tsconfig.app.json"
       }
     },
     "util": {

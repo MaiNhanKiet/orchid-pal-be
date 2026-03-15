@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RmqService } from './rmq.service';
 @Module({
   imports: [ConfigModule],
@@ -22,6 +22,8 @@ export class RmqModule {
               const host = configService.get<string>('RABBITMQ_HOST');
               const port = configService.get<string>('RABBITMQ_PORT');
               const vhost = configService.get<string>('RABBITMQ_VHOST');
+              const exchange =
+                configService.get<string>('RABBITMQ_EXCHANGE') || 'orchidpal';
 
               if (!user || !pass || !host || !port || !vhost) {
                 throw new Error('Missing RabbitMQ configuration in .env file');
@@ -39,6 +41,9 @@ export class RmqModule {
                   queueOptions: {
                     durable: true,
                   },
+                  // @ts-ignore
+                  exchange: exchange,
+                  type: 'topic',
                 },
               };
             },

@@ -9,6 +9,6 @@ async function bootstrap() {
   app.connectMicroservice(rmqService.getOptions('AUTOMATION', false));
 
   await app.startAllMicroservices();
-  console.log(`[ Automation Microservice]: running on RabbitMQ Queue`);
+  console.log(`[Automation Microservice]: running on RabbitMQ Queue`);
 }
 bootstrap();

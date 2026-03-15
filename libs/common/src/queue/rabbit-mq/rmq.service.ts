@@ -23,6 +23,9 @@ export class RmqService {
   }
 
   getOptions(queue: string, noAck = false): RmqOptions {
+    const exchange =
+      this.configService.get<string>('RABBITMQ_EXCHANGE') || 'orchidpal';
+
     return {
       transport: Transport.RMQ,
       options: {
@@ -33,6 +36,8 @@ export class RmqService {
         queueOptions: {
           durable: true,
         },
+        // @ts-ignore
+        exchange: exchange,
       },
     };
   }
