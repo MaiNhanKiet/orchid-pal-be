@@ -2,7 +2,7 @@ import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
 } from '@app/common/constants/pagination.constant';
-import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { UpdateTransactionDto } from '@app/common/dtos/order-fulfillment/update-transaction.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -49,4 +49,34 @@ export class TransactionsService {
     return orders;
   }
 
+  async updateTransaction(id: string, dto: UpdateTransactionDto) {
+    const transaction = await this.prisma.transactions.findUnique({
+      where: { id },
+    });
+    if (!transaction) {
+      throw new NotFoundException(`Transaction not found`);
+    }
+    return this.prisma.transactions.update({
+      where: { id },
+      data: {
+        ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.gateway_trans_id !== undefined && {
+          gateway_trans_id: dto.gateway_trans_id,
+        }),
+        ...(dto.gateway_log !== undefined && { gateway_log: dto.gateway_log }),
+        ...(dto.paid_at !== undefined && { paid_at: new Date(dto.paid_at) }),
+      },
+    });
+  }
+
+  async deleteTransaction(id: string) {
+    const transaction = await this.prisma.transactions.findUnique({
+      where: { id },
+    });
+    if (!transaction) {
+      throw new NotFoundException(`Transaction not found`);
+    }
+    await this.prisma.transactions.delete({ where: { id } });
+    return { message: 'Transaction deleted successfully' };
+  }
 }

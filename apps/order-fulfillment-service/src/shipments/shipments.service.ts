@@ -2,7 +2,7 @@ import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
 } from '@app/common/constants/pagination.constant';
-import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
+import { UpdateShipmentDto } from '@app/common/dtos/order-fulfillment/update-shipment.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -38,5 +38,39 @@ export class ShipmentsService {
       throw new NotFoundException(`Shipment not found`);
     }
     return shipment;
+  }
+
+  async updateShipment(id: string, dto: UpdateShipmentDto) {
+    const shipment = await this.prisma.shipments.findUnique({ where: { id } });
+    if (!shipment) {
+      throw new NotFoundException(`Shipment not found`);
+    }
+    return this.prisma.shipments.update({
+      where: { id },
+      data: {
+        ...(dto.carrier_name !== undefined && {
+          carrier_name: dto.carrier_name,
+        }),
+        ...(dto.tracking_code !== undefined && {
+          tracking_code: dto.tracking_code,
+        }),
+        ...(dto.shipping_fee !== undefined && {
+          shipping_fee: dto.shipping_fee,
+        }),
+        ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.estimated_delivery_at !== undefined && {
+          estimated_delivery_at: new Date(dto.estimated_delivery_at),
+        }),
+      },
+    });
+  }
+
+  async deleteShipment(id: string) {
+    const shipment = await this.prisma.shipments.findUnique({ where: { id } });
+    if (!shipment) {
+      throw new NotFoundException(`Shipment not found`);
+    }
+    await this.prisma.shipments.delete({ where: { id } });
+    return { message: 'Shipment deleted successfully' };
   }
 }
