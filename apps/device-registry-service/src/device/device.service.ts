@@ -1,30 +1,31 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-} from '@nestjs/common';
-import { PrismaService } from '@app/prisma';
-import {
-  ActivateDeviceCommandDto,
-  AssignDeviceToZoneCommandDto,
-  CreateDeviceDto,
-  UpdateDeviceDto,
-  QueryDevicesDto,
-} from '@app/common/dtos/device/device.dto';
+import { DeviceAssignedZoneEventDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
 } from '@app/common/constants/pagination.constant';
+import {
+  ActivateDeviceCommandDto,
+  AssignDeviceToZoneCommandDto,
+  CreateDeviceDto,
+  QueryDevicesDto,
+  UpdateDeviceDto,
+} from '@app/common/dtos/device/device.dto';
+import { PrismaService } from '@app/prisma';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class DeviceService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject('AUTOMATION') private readonly rmqClient: ClientProxy,
-  ) {}
+    @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
+  ) { }
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -56,12 +57,6 @@ export class DeviceService {
         owner_id: user_id,
         status: 'OFFLINE',
       },
-    });
-
-    this.rmqClient.emit('device.assigned.zone', {
-      device_id: updatedDevice.id,
-      zone_id: updatedDevice.zone_id,
-      user_id: updatedDevice.owner_id,
     });
 
     return {
@@ -129,6 +124,7 @@ export class DeviceService {
       select: {
         id: true,
         owner_id: true,
+        status: true,
       },
     });
 
@@ -143,6 +139,20 @@ export class DeviceService {
         'Bạn không có quyền gán thiết bị này vào vườn.',
       );
     }
+
+    if (device.status !== 'ONLINE') {
+      throw new BadRequestException(
+        'Thiết bị không trực tuyến. Vui lòng kiểm tra lại.',
+      );
+    }
+
+    // Gửi sự kiện kích hoạt thiết bị lên RabbitMQ để Automation Service xử lý
+    const payload: DeviceAssignedZoneEventDto = {
+      device_id: device.id,
+      zone_id: zone_id,
+      user_id,
+    };
+    this.automationClient.emit('device.assigned.zone', payload);
 
     const updated = await this.prisma.devices.update({
       where: { id: device.id },
@@ -160,11 +170,10 @@ export class DeviceService {
 
     return {
       message: 'Gán thiết bị vào vườn thành công',
-      device: 'updated',
+      device: updated,
     };
   }
 
-  // CRUD cho device phục vụ màn hình quản trị
   async listDevices(query: QueryDevicesDto) {
     let { page, limit } = query;
     if (!page) page = DEFAULT_PAGE;

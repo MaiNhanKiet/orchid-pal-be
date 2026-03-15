@@ -1,21 +1,13 @@
+import {
+  DeviceAssignedZoneEventDto,
+  HardwareConfig,
+  MICROSERVICES_CLIENTS,
+  SpeciesWiki,
+} from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
+import { PrismaService } from '@app/prisma'; // Đảm bảo đường dẫn đúng với project của bạn
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '@app/prisma';
-import {
-  MICROSERVICES_CLIENTS,
-  DeviceAssignedZoneEventDto,
-  GetPlantsByZoneDto,
-} from '@app/common';
-
-interface SpeciesWiki {
-  id: string;
-  common_name: string;
-  ideal_temp_min: number | null;
-  ideal_temp_max: number | null;
-  ideal_humid_min: number | null;
-  ideal_humid_max: number | null;
-}
 
 @Injectable()
 export class AutomationServiceService {
@@ -27,10 +19,10 @@ export class AutomationServiceService {
     private readonly gardenClient: ClientProxy,
     @Inject('MQTT_CLIENT')
     private readonly mqttClient: ClientProxy,
-  ) {}
+  ) { }
 
   async handleDeviceAssignedZone(payload: DeviceAssignedZoneEventDto) {
-    const { device_id, zone_id, user_id } = payload;
+    const { device_id, zone_id } = payload;
 
     if (!zone_id) {
       this.logger.warn(
@@ -39,10 +31,13 @@ export class AutomationServiceService {
       return;
     }
 
-    // 1. Tra cứu device để lấy serial_number
+    // 1. Lấy serial_number và hardware_config
     const device = await this.prisma.devices.findUnique({
       where: { id: device_id },
-      select: { serial_number: true },
+      select: {
+        serial_number: true,
+        hardware_config: true,
+      },
     });
 
     if (!device) {
@@ -50,11 +45,12 @@ export class AutomationServiceService {
       return;
     }
 
-    // 2. Gọi Garden Service để lấy danh sách cây trong zone, từ đó lấy species_id
-    const zoneQuery: GetPlantsByZoneDto = { zone_id };
+    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
+
+    // 2. Gọi Garden Service để lấy cây trong zone
     const plants: Array<{ id: string; species_id: string | null }> =
       await firstValueFrom(
-        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, zoneQuery),
+        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, { zone_id }),
       );
 
     if (!plants || plants.length === 0) {
@@ -68,7 +64,7 @@ export class AutomationServiceService {
       return;
     }
 
-    // 3. Gọi Garden Service để lấy thông tin loài cây (species) theo species_id
+    // 3. Gọi Garden Service để lấy spec wiki
     const species: SpeciesWiki = await firstValueFrom(
       this.gardenClient.send({ cmd: 'get_species_by_id' }, { id: speciesId }),
     );
@@ -79,15 +75,21 @@ export class AutomationServiceService {
     }
 
     // 4. Dịch chỉ số thành logic_config JSON
-    const logicConfig = this.generateRules(species);
+    const logicConfigRules = this.generateRules(species, hardwareConfig);
 
-    // 5. Lưu automation rule vào DB
+    // 5. Tắt tất cả các rule cũ trong zone (nếu có) trước khi tạo mới
+    await this.prisma.automation_rules.updateMany({
+      where: { zone_id, is_active: true },
+      data: { is_active: false },
+    });
+
+    // 6. Lưu automation rule mới vào Database
     const rule = await this.prisma.automation_rules.create({
       data: {
         zone_id,
         name: `Auto rule — ${species.common_name} (zone ${zone_id})`,
         is_active: true,
-        logic_config: logicConfig as object,
+        logic_config: logicConfigRules as object,
       },
     });
 
@@ -95,56 +97,81 @@ export class AutomationServiceService {
       `Created automation_rule ${rule.id} for zone ${zone_id} (${species.common_name}).`,
     );
 
-    // 6. Đẩy config xuống MQTT topic để ESP32 có thể nhận và thực thi
-    const topic = `device/${device.serial_number}/config`;
-    this.mqttClient.emit(topic, logicConfig);
+    // 7. Gói data cần thiết để gửi xuống MQTT cho ESP32
+    const mqttPayload = {
+      version: 1,
+      species: species.common_name,
+      generated_at: new Date().toISOString(),
+      hardware: hardwareConfig, // Gửi cấu hình phần cứng
+      logic: logicConfigRules, // Gửi xuống để ESP32 biết ngưỡng cảm biến
+    };
 
-    this.logger.log(`Pushed config to MQTT topic: ${topic}`);
+    // 8. Đẩy config xuống MQTT topic cho ESP32
+    const topic = `device/${device.serial_number}/config`;
+    this.mqttClient.emit(topic, mqttPayload);
   }
 
-  private generateRules(species: SpeciesWiki): object {
+  private generateRules(
+    species: SpeciesWiki,
+    hardware: HardwareConfig,
+  ): object[] {
     const rules: object[] = [];
-
     const { ideal_humid_min, ideal_humid_max, ideal_temp_min, ideal_temp_max } =
       species;
 
-    // Độ ẩm quá thấp → bơm nước
-    if (ideal_humid_min != null) {
+    const sensors = hardware.sensors || {};
+    const relays = hardware.relays || {};
+    const relayValues = Object.values(relays);
+
+    /* 
+      Rule 1: Độ ẩm quá thấp > Bơm nước
+      Điều kiện: 
+        + Có cảm biến độ ẩm (hoặc độ ẩm đất)
+        + Có Relay nối với 'pump'
+    */
+    const hasPump = relayValues.includes('pump');
+    if (ideal_humid_min != null && sensors.humidity && hasPump) {
       rules.push({
         if: { metric: 'humidity', op: '<', value: ideal_humid_min },
         then: { action: 'pump', duration_ms: 10_000 },
       });
     }
 
-    // Độ ẩm quá cao → thông gió
-    if (ideal_humid_max != null) {
+    /*
+      Rule 2: Độ ẩm quá cao > Thông gió / Phun sương
+    */
+    const hasVent = relayValues.includes('vent');
+    if (ideal_humid_max != null && sensors.humidity && hasVent) {
       rules.push({
         if: { metric: 'humidity', op: '>', value: ideal_humid_max },
         then: { action: 'vent', duration_ms: 15_000 },
       });
     }
 
-    // Nhiệt độ quá cao → quạt làm mát
-    if (ideal_temp_max != null) {
+    /*
+      Rule 3: Nhiệt độ quá cao > Quạt làm mát
+      Điều kiện: Có cảm biến nhiệt độ và có Relay nối với 'fan'
+    */
+    const hasFan = relayValues.includes('fan');
+    if (ideal_temp_max != null && sensors.temperature && hasFan) {
       rules.push({
         if: { metric: 'temperature', op: '>', value: ideal_temp_max },
         then: { action: 'fan', duration_ms: 20_000 },
       });
     }
 
-    // Nhiệt độ quá thấp → sưởi
-    if (ideal_temp_min != null) {
+    /*
+      Rule 4: Nhiệt độ quá thấp > Sưởi
+      Điều kiện: Có cảm biến nhiệt độ và có Relay nối với 'heater'
+    */
+    const hasHeater = relayValues.includes('heater');
+    if (ideal_temp_min != null && sensors.temperature && hasHeater) {
       rules.push({
         if: { metric: 'temperature', op: '<', value: ideal_temp_min },
         then: { action: 'heater', duration_ms: 30_000 },
       });
     }
 
-    return {
-      version: 1,
-      species: species.common_name,
-      generated_at: new Date().toISOString(),
-      rules,
-    };
+    return rules;
   }
 }

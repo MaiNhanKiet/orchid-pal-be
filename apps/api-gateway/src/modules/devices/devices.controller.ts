@@ -1,21 +1,35 @@
-import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
 import {
-  MICROSERVICES_CLIENTS,
   ActivateDeviceDto,
-  CurrentUser,
-  JwtPayload,
   AssignDeviceToZoneDto,
+  CurrentUser,
+  DeviceAssignedZoneEventDto,
+  JwtPayload,
+  MICROSERVICES_CLIENTS,
   Permissions,
 } from '@app/common';
 import { Permission } from '@app/common/enums';
+import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { IsUUID } from 'class-validator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { firstValueFrom } from 'rxjs';
 import {
   ApiActivateDeviceDocs,
   ApiAssignDeviceToZoneDocs,
   ApiGetDeviceStatusDocs,
+  ApiTestAutomationQueueDocs,
 } from './devices.swagger';
+
+class TestAutomationQueueDto {
+  @IsUUID()
+  device_id: string;
+
+  @IsUUID()
+  zone_id: string;
+
+  @IsUUID()
+  user_id: string;
+}
 
 @ApiTags('Devices')
 @ApiBearerAuth('access-token')
@@ -24,7 +38,8 @@ export class DevicesController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
     private readonly deviceRegistryClient: ClientProxy,
-  ) {}
+    @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
+  ) { }
 
   @Post('activate')
   @Permissions(Permission.DeviceActivate)
@@ -74,5 +89,25 @@ export class DevicesController {
         },
       ),
     );
+  }
+
+  @Post('automation/test-queue')
+  @Permissions(Permission.DeviceAssignZone)
+  @ApiTestAutomationQueueDocs()
+  async testAutomationQueue(@Body() body: TestAutomationQueueDto) {
+    const payload: DeviceAssignedZoneEventDto = {
+      device_id: body.device_id,
+      zone_id: body.zone_id,
+      user_id: body.user_id,
+    };
+
+    await firstValueFrom(
+      this.automationClient.emit('device.assigned.zone', payload),
+    );
+
+    return {
+      message: 'Sent event to AUTOMATION queue',
+      payload,
+    };
   }
 }
