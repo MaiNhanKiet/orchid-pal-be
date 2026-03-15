@@ -114,7 +114,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
-    TelemetryController
+    TelemetryController,
     OrdersController,
     ShipmentsController,
     TransactionsController,
