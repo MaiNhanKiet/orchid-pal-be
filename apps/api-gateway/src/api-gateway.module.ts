@@ -39,6 +39,7 @@ import { ZonesController } from './modules/garden/zones/zones.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
 import { UsersController } from './modules/users/users.controller';
+import { TelemetryController } from './modules/telemetry/telemetry.controller';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { UsersController } from './modules/users/users.controller';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
+    TelemetryController
   ],
   providers: [
     GoogleStrategy,

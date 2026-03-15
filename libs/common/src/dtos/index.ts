@@ -10,3 +10,4 @@ export * from './garden/zone.dto';
 export * from './garden/my-plant.dto';
 export * from './device/device.dto';
 export * from './automation/device-assigned-zone.dto';
+export * from './telemetry/telemetry-event.dto';
