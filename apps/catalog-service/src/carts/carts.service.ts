@@ -30,9 +30,9 @@ export class CartsService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (!cartItems || cartItems.length === 0) {
-      throw new NotFoundException('Cart items not found');
-    }
+    // if (!cartItems || cartItems.length === 0) {
+    //   throw new NotFoundException('Cart items not found');
+    // }
     return cartItems;
   }
 

@@ -16,6 +16,15 @@ export class AddressService {
 
   async create(userId: string, dto: CreateAddressDto) {
     // Nếu set is_default = true → unset các địa chỉ default khác của user
+
+    const isTheFirstAddress = await this.prisma.user_addresses.count({
+      where: { user_id: userId },
+    });
+
+    if (isTheFirstAddress === 0) {
+      dto.is_default = true;
+    }
+
     if (dto.is_default) {
       await this.prisma.user_addresses.updateMany({
         where: { user_id: userId, is_default: true },
@@ -37,7 +46,7 @@ export class AddressService {
       },
     });
 
-    return address
+    return address;
   }
 
   async findAll(userId: string) {
