@@ -1,5 +1,10 @@
-import { PartialType } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, MaxLength } from 'class-validator';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { IsString, IsOptional, IsBoolean, MaxLength, IsEnum } from 'class-validator';
+
+export enum AddressType {
+  HOME = 'HOME',
+  OFFICE = 'OFFICE',
+}
 
 export class CreateAddressDto {
   @IsString()
@@ -32,10 +37,10 @@ export class CreateAddressDto {
   @IsOptional()
   is_default?: boolean = false;
 
-  @IsString()
-  @MaxLength(20)
+  @ApiProperty({ enum: AddressType, example: AddressType.HOME, required: false })
+  @IsEnum(AddressType)
   @IsOptional()
-  type?: string;
+  type?: AddressType;
 }
 
 export class UpdateAddressDto extends PartialType(CreateAddressDto) {}

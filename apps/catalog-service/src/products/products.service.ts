@@ -1,4 +1,4 @@
-import { UuidDto } from '@app/common';
+import { CreateDeviceDto, MICROSERVICES_CLIENTS, UuidDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
@@ -8,11 +8,17 @@ import {
   UpdateProductDto,
 } from '@app/common/dtos/catalog/product.dto';
 import { PrismaService } from '@app/prisma';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
+    private readonly deviceRegistryClient: ClientProxy,
+  ) {}
 
   async getAllProducts({ page, limit }: { page?: number; limit?: number }) {
     if (!page) page = DEFAULT_PAGE;
@@ -50,8 +56,15 @@ export class ProductsService {
     const product = await this.prisma.products.create({
       data,
     });
-    // const product = {...data, id: 'sample-id'};
     return product;
+  }
+
+  async addDevicesToProduct(data: CreateDeviceDto[]) {
+    const devices = data.map((dto) => {
+      return firstValueFrom(
+        this.deviceRegistryClient.send({ cmd: 'create_device' }, dto),
+      );
+    });
   }
 
   async updateProduct(id: string, data: UpdateProductDto) {

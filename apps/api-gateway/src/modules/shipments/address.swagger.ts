@@ -12,21 +12,22 @@ const addressExample = {
   district: 'District 1',
   city: 'Ho Chi Minh City',
   is_default: true,
-  type: 'home',
+  type: 'HOME',
   created_at: '2024-01-01T00:00:00.000Z',
 };
 
 const addressBodySchema = {
-  example: {
-    recipient_name: 'Nguyen Van A',
-    phone: '0987654321',
-    street: '123 Nguyen Hue',
-    ward: 'Ben Nghe',
-    district: 'District 1',
-    city: 'Ho Chi Minh City',
-    is_default: false,
-    type: 'home',
+  properties: {
+    recipient_name: { type: 'string', example: 'Nguyen Van A' },
+    phone: { type: 'string', example: '0987654321' },
+    street: { type: 'string', example: '123 Nguyen Hue' },
+    ward: { type: 'string', example: 'Ben Nghe' },
+    district: { type: 'string', example: 'District 1' },
+    city: { type: 'string', example: 'Ho Chi Minh City' },
+    is_default: { type: 'boolean', example: false },
+    type: { type: 'string', enum: ['HOME', 'OFFICE'], example: 'HOME' },
   },
+  required: ['recipient_name', 'phone', 'street', 'city'],
 };
 
 export function ApiCreateAddressDocs() {
