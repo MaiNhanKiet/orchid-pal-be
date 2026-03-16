@@ -3,6 +3,7 @@ import {
   PAYOS_CHECKSUM_KEY,
   PAYOS_CLIENT_ID,
   MICROSERVICES_CLIENTS,
+  DEFAULT_TIMEOUT_PAYMENT,
 } from '@app/common';
 import {
   OrderStatus,
@@ -46,8 +47,8 @@ export class PaymentService {
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
     @InjectQueue('payment_timeout') private paymentQueue: Queue,
-    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE) // Dùng lại hoặc config mới nếu cần, tạm emit qua config chung
-    private readonly rmqClient: ClientProxy,
+    @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
+    private readonly apiGatewayClient: ClientProxy,
   ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
@@ -369,7 +370,7 @@ export class PaymentService {
         await this.paymentQueue.add(
           'check_timeout',
           { transactionId: createdTransaction.id },
-          { delay: 15 * 60 * 1000 }, // 15 phút
+          { delay: DEFAULT_TIMEOUT_PAYMENT }, // 15 phút
         );
       }
 
@@ -459,7 +460,7 @@ export class PaymentService {
 
       this.eventEmitter.emit('order.paid', order);
 
-      this.rmqClient.emit('payment_status_updated', {
+      this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
         status: 'PAID',
         message: 'Thanh toán thành công',
@@ -527,7 +528,7 @@ export class PaymentService {
         reason: `PayOS webhook: status ${payosStatus} - ${description || 'No description'}`,
       });
 
-      this.rmqClient.emit('payment_status_updated', {
+      this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
         status: 'FAILED',
         message: `Thanh toán thất bại hoặc đã hủy: ${payosStatus}`,
@@ -592,7 +593,7 @@ export class PaymentService {
       }
 
       // 3. Emit event SSE để frontend biết nếu đang đợi
-      this.rmqClient.emit('payment_status_updated', {
+      this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
         status: 'FAILED',
         message: 'Thanh toán quá hạn 15 phút',

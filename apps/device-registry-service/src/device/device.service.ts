@@ -2,7 +2,7 @@ import { DeviceAssignedZoneEventDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+} from '@app/common/constants/default.constant';
 import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
@@ -25,7 +25,7 @@ export class DeviceService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) { }
+  ) {}
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;

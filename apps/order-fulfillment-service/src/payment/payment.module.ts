@@ -5,7 +5,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { PaymentTimeoutProcessor } from './payment-timeout.processor';
 import { MICROSERVICES_CLIENTS } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ORDER_FULFILLMENT_SERVICE_PORT } from '@app/common/constants/env-key.constant';
+import { ORDER_FULFILLMENT_SERVICE_PORT, API_GATEWAY_PORT } from '@app/common/constants/env-key.constant';
 
 @Module({
   imports: [
@@ -15,6 +15,13 @@ import { ORDER_FULFILLMENT_SERVICE_PORT } from '@app/common/constants/env-key.co
         transport: Transport.TCP,
         options: {
           port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
+        },
+      },
+      {
+        name: MICROSERVICES_CLIENTS.API_GATEWAY,
+        transport: Transport.TCP,
+        options: {
+          port: Number(API_GATEWAY_PORT),
         },
       },
     ]),

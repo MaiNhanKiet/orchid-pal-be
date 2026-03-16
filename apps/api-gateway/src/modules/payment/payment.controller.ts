@@ -8,7 +8,7 @@ import {
 } from '@app/common';
 
 import { Public } from '@app/common';
-import { ClientProxy, EventPattern, Payload } from '@nestjs/microservices';
+import { ClientProxy, EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { firstValueFrom, fromEvent, map, Observable } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -88,7 +88,7 @@ export class PaymentController {
     );
   }
 
-  @EventPattern('payment_status_updated')
+  @MessagePattern('payment_status_updated')
   handlePaymentStatusFromRMQ(@Payload() data: { orderCode: string; status: string; message: string }) {
     // Phát event nội bộ trong API Gateway để SSE client bắt được
     this.eventEmitter.emit(`payment.update.${data.orderCode}`, data);
