@@ -27,6 +27,7 @@ import {
   ApiActivateDeviceDocs,
   ApiAssignDeviceToZoneDocs,
   ApiControlDeviceDocs,
+  ApiGetDeviceLogsDocs,
   ApiGetDeviceStatusDocs,
   ApiTestAutomationQueueDocs,
 } from './devices.swagger';
@@ -162,6 +163,25 @@ export class DevicesController {
         {
           user_id: user.sub,
           device_id: id,
+        },
+      ),
+    );
+  }
+
+  @Get(':serial_number/logs')
+  @Permissions(Permission.DeviceViewLogs)
+  @ApiGetDeviceLogsDocs()
+  getDeviceLogs(
+    @Param('serial_number') serialNumber: string,
+    @Query() query: PaginationDto,
+  ) {
+    return firstValueFrom(
+      this.automationClient.send(
+        { cmd: 'get_device_logs' },
+        {
+          device_id: serialNumber,
+          page: query.page,
+          limit: query.limit,
         },
       ),
     );
