@@ -576,7 +576,10 @@ export class PaymentService {
             'Timeout quá 15 phút',
           );
         } catch (error) {
-          console.warn(`Không thể huỷ PayOS link cho order ${transaction.gateway_trans_id}`, error);
+          console.warn(
+            `Không thể huỷ PayOS link cho order ${transaction.gateway_trans_id}`,
+            error,
+          );
         }
       }
 
