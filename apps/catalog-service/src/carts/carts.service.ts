@@ -11,7 +11,9 @@ export class CartsService {
   constructor(private prisma: PrismaService) {}
 
   async getAllCartItems() {
-    return this.prisma.cart_items.findMany();
+    return this.prisma.cart_items.findMany({
+      include: { products: true },
+    });
   }
 
   async getCartItemsByUserId(
@@ -24,12 +26,13 @@ export class CartsService {
       where: {
         user_id: userId,
       },
+      include: { products: true },
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (!cartItems || cartItems.length === 0) {
-      throw new NotFoundException('Cart items not found');
-    }
+    // if (!cartItems || cartItems.length === 0) {
+    //   throw new NotFoundException('Cart items not found');
+    // }
     return cartItems;
   }
 
@@ -48,15 +51,28 @@ export class CartsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    const cartItem = await this.prisma.cart_items.create({
-      data: {
+
+    const existedCartItems = await this.prisma.cart_items.findFirst({
+      where: {
         user_id: userId,
         product_id: productId,
-        quantity,
       },
     });
-
-    return cartItem;
+    if (existedCartItems) {
+      return this.prisma.cart_items.update({
+        where: { id: existedCartItems.id },
+        data: { quantity: existedCartItems.quantity + quantity },
+      });
+    } else {
+      const cartItem = await this.prisma.cart_items.create({
+        data: {
+          user_id: userId,
+          product_id: productId,
+          quantity,
+        },
+      });
+      return cartItem;
+    }
   }
 
   async removeItemFromCart(cartItemId: string) {
@@ -66,18 +82,22 @@ export class CartsService {
     return cartItem;
   }
 
-  async updateCartItemQuantity(cartItemId: string, quantity: number) {
+  async updateCartItem(
+    cartItemId: string,
+    quantity?: number,
+    isSelected?: boolean,
+  ) {
     const cartItem = await this.prisma.cart_items.update({
       where: { id: cartItemId },
-      data: { quantity },
+      data: { quantity, is_selected: isSelected },
     });
     return cartItem;
   }
 
-  async clearCart(cartIds: string[]) {
+  async clearCart(userId: string) {
     const deletedItems = await this.prisma.cart_items.deleteMany({
       where: {
-        id: { in: cartIds },
+        user_id: userId,
       },
     });
     return deletedItems;

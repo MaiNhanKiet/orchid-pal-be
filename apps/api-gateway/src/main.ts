@@ -40,6 +40,11 @@ async function bootstrap() {
     .addTag('Zones', 'APIs for Garden Zones (Vườn)')
     .addTag('Devices', 'APIs for Device Registry (Quản lý thiết bị)')
     .addTag('Telemetry', 'APIs for Sensor Data & Real-time')
+    .addTag('Carts', 'APIs for Shopping Cart Management')
+    .addTag('Products', 'APIs for Product Management')
+    .addTag('Orders', 'APIs for Order Management')
+    .addTag('Transactions', 'APIs for Payment Transaction Management')
+    .addTag('Shipments', 'APIs for Shipment & Delivery Management')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -59,7 +64,9 @@ async function bootstrap() {
   await app.startAllMicroservices();
   await app.listen(API_GATEWAY_PORT);
 
-  console.log(`[API Gateway]: HTTP Server & Swagger running on port ${API_GATEWAY_PORT}`);
+  console.log(
+    `[API Gateway]: HTTP Server & Swagger running on port ${API_GATEWAY_PORT}`,
+  );
   console.log(`[API Gateway]: running on RabbitMQ Queue`);
 }
 bootstrap();

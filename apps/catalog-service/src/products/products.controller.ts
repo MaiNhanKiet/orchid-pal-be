@@ -37,4 +37,14 @@ export class ProductsController {
   deleteProduct(@Payload() id: UuidDto) {
     return this.productService.deleteProduct(id.id);
   }
+
+  @MessagePattern({ cmd: 'add_devices_to_product' })
+  addDevicesToProduct(
+    @Payload() payload: { productId: string; secret_keys: string[] },
+  ) {
+    return this.productService.addDevicesToProduct(
+      payload.productId,
+      payload.secret_keys,
+    );
+  }
 }

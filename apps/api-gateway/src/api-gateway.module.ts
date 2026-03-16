@@ -17,6 +17,7 @@ import {
   GARDEN_SERVICE_PORT,
   IAM_SERVICE_PORT,
   TELEMETRY_SERVICE_PORT,
+  ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { RedisModule } from '@app/redis';
@@ -41,6 +42,12 @@ import { ProductsController } from './modules/products/product.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
 import { UsersController } from './modules/users/users.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
+import { OrdersController } from './modules/orders/order.controller';
+import { ShipmentsController } from './modules/shipments/shipment.controller';
+import { TransactionsController } from './modules/transactions/transaction.controller';
+import { PaymentController } from './modules/payment/payment.controller';
+import { AddressesController } from './modules/shipments/address.controller';
+import { DashboardController } from './modules/dashboard/dashboard.controller';
 
 @Module({
   imports: [
@@ -84,6 +91,13 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
           port: Number(TELEMETRY_SERVICE_PORT),
         },
       },
+      {
+        name: MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
+        },
+      }
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
@@ -108,7 +122,13 @@ import { TelemetryController } from './modules/telemetry/telemetry.controller';
     MyPlantsController,
     DevicesController,
     AdminDevicesController,
-    TelemetryController,
+    TelemetryController
+    OrdersController,
+    ShipmentsController,
+    TransactionsController,
+    PaymentController,
+    AddressesController,
+    DashboardController,
   ],
   providers: [
     GoogleStrategy,
