@@ -37,7 +37,7 @@ import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-// @Public()
+@Public()
 export class OrdersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)

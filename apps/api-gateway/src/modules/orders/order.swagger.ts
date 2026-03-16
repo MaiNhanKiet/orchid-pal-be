@@ -1,4 +1,5 @@
 import { ApiAuthFailures } from '@app/common';
+import { OrderStatus } from '@app/common/enums';
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBody,
@@ -23,7 +24,7 @@ const orderExample = {
   user_id: '456f7890-e89b-12d3-a456-426614174000',
   order_code: 'ORD20240101001',
   total_amount: '2750000.00',
-  status: 'pending',
+  status: OrderStatus.PENDING,
   shipping_info: {
     address: '123 Nguyen Hue, District 1, HCMC',
     phone: '0987654321',
@@ -127,7 +128,7 @@ export function ApiUpdateOrderDocs() {
       description: 'Thông tin đơn hàng cần cập nhật (các trường đều optional)',
       schema: {
         example: {
-          status: 'completed',
+          status: OrderStatus.COMPLETED,
           shipping_info: {
             address: '456 Tran Hung Dao, District 5, HCMC',
             phone: '0912345678',
@@ -141,7 +142,7 @@ export function ApiUpdateOrderDocs() {
       status: 200,
       description: 'Cập nhật đơn hàng thành công',
       schema: {
-        example: { ...orderExample, status: 'completed', note: 'Đã giao hàng' },
+        example: { ...orderExample, status: OrderStatus.COMPLETED, note: 'Đã giao hàng' },
       },
     }),
     ApiResponse({

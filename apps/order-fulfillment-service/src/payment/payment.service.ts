@@ -5,6 +5,11 @@ import {
   MICROSERVICES_CLIENTS,
 } from '@app/common';
 import {
+  OrderStatus,
+  TransactionStatus,
+  ShipmentStatus,
+} from '@app/common/enums';
+import {
   BadRequestException,
   forwardRef,
   Inject,
@@ -254,7 +259,7 @@ export class PaymentService {
           user_id: userId,
           order_code: orderCode,
           total_amount: totalAmount,
-          status: 'PENDING',
+          status: OrderStatus.PENDING,
           // payment_method: dto.paymentMethod,
           shipping_info: shippingInfo as Prisma.InputJsonValue,
           note: dto.note,
@@ -280,7 +285,7 @@ export class PaymentService {
             user_id: userId,
             amount: totalAmount,
             method: 'COD',
-            status: 'PENDING_COD',
+            status: TransactionStatus.PENDING,
           },
         });
 
@@ -291,7 +296,7 @@ export class PaymentService {
             carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
             tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
             shipping_fee: new Prisma.Decimal(30000), // ví dụ, có thể tính động sau
-            status: 'PROCESSING', // trạng thái ban đầu: đang chuẩn bị
+            status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
             estimated_delivery_at: new Date(
               Date.now() + 3 * 24 * 60 * 60 * 1000,
             ), // +3 ngày ví dụ
@@ -348,7 +353,7 @@ export class PaymentService {
           user_id: userId,
           amount: totalAmount,
           method: 'PAYOS',
-          status: 'PENDING',
+          status: TransactionStatus.PENDING,
           gateway_trans_id: payosResponse.orderCode.toString(),
           gateway_log: payosResponse,
         },
@@ -394,7 +399,7 @@ export class PaymentService {
         where: {
           method: 'PAYOS',
           gateway_trans_id: payosOrderCode,
-          status: 'PENDING',
+          status: TransactionStatus.PENDING,
         },
         include: {
           orders: {
@@ -413,13 +418,13 @@ export class PaymentService {
 
       await tx.orders.update({
         where: { id: order.id },
-        data: { status: 'PAID' },
+        data: { status: OrderStatus.PAID },
       });
 
       await tx.transactions.update({
         where: { id: transaction.id },
         data: {
-          status: 'PAID',
+          status: TransactionStatus.SUCCESS,
           paid_at: new Date(),
         },
       });
@@ -431,7 +436,7 @@ export class PaymentService {
           carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
           tracking_code: null, // sẽ update sau
           shipping_fee: new Prisma.Decimal(30000), // tính động dựa trên địa chỉ, trọng lượng...
-          status: 'PENDING', // trạng thái chờ xác nhận vận chuyển
+          status: ShipmentStatus.READY, // trạng thái chờ xác nhận vận chuyển
           estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
         },
       });
@@ -474,7 +479,7 @@ export class PaymentService {
         where: {
           method: 'PAYOS',
           gateway_trans_id: payosOrderCode,
-          status: 'PENDING', // chỉ xử lý nếu vẫn đang pending
+          status: TransactionStatus.PENDING, // chỉ xử lý nếu vẫn đang pending
         },
         include: {
           orders: true,
@@ -500,7 +505,7 @@ export class PaymentService {
       await tx.orders.update({
         where: { id: order.id },
         data: {
-          status: newOrderStatus,
+          status: newOrderStatus === 'CANCELLED' ? OrderStatus.CANCELLED : OrderStatus.PENDING,
           // optional: cancelled_at: new Date(),
           // cancelled_reason: `PayOS: ${payosCode} - ${description || 'Unknown'}`,
         },
@@ -509,7 +514,7 @@ export class PaymentService {
       await tx.transactions.update({
         where: { id: transaction.id },
         data: {
-          status: 'FAILED', // hoặc 'CANCELLED' nếu bạn muốn phân biệt
+          status: TransactionStatus.FAILED, // hoặc 'CANCELLED' nếu bạn muốn phân biệt
         },
       });
 
@@ -543,13 +548,13 @@ export class PaymentService {
         include: { orders: true },
       });
 
-      if (!transaction || transaction.status !== 'PENDING') {
+      if (!transaction || transaction.status !== TransactionStatus.PENDING) {
         // Có thể user đã thanh toán thành công, transaction không còn PENDING -> bỏ qua
         return;
       }
 
       const order = transaction.orders;
-      if (!order || order.status !== 'PENDING') {
+      if (!order || order.status !== OrderStatus.PENDING) {
         return;
       }
 
@@ -557,14 +562,14 @@ export class PaymentService {
       await tx.orders.update({
         where: { id: order.id },
         data: {
-          status: 'CANCELLED',
+          status: OrderStatus.CANCELLED,
         },
       });
 
       await tx.transactions.update({
         where: { id: transactionId },
         data: {
-          status: 'FAILED',
+          status: TransactionStatus.FAILED,
         },
       });
 
