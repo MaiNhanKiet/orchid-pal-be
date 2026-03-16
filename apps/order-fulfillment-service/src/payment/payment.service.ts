@@ -2,6 +2,7 @@ import {
   PAYOS_API_KEY,
   PAYOS_CHECKSUM_KEY,
   PAYOS_CLIENT_ID,
+  MICROSERVICES_CLIENTS,
 } from '@app/common';
 import {
   BadRequestException,
@@ -17,6 +18,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@app/prisma';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { Prisma } from '@prisma/client';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { ClientProxy } from '@nestjs/microservices';
 
 interface PayOSPaymentLinkRequest {
   orderCode: number;
@@ -36,6 +40,9 @@ export class PaymentService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
+    @InjectQueue('payment_timeout') private paymentQueue: Queue,
+    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE) // Dùng lại hoặc config mới nếu cần, tạm emit qua config chung
+    private readonly rmqClient: ClientProxy,
   ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
@@ -346,6 +353,22 @@ export class PaymentService {
           gateway_log: payosResponse,
         },
       });
+      // Lấy id transaction sau khi insert (Prisma transaction không return nested creates dễ trong tx logic này)
+      const createdTransaction = await tx.transactions.findFirst({
+        where: { order_id: order.id },
+        orderBy: { paid_at: 'desc' }, // lấy cái vừa tạo
+      });
+
+      if (createdTransaction) {
+        // Dispatch job timeout sau 15 phút
+        await this.paymentQueue.add(
+          'check_timeout',
+          { transactionId: createdTransaction.id },
+          { delay: 15 * 60 * 1000 }, // 15 phút
+        );
+      }
+
+      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosPayload.description}&amount=${payosPayload.amount};`;
 
       return {
         success: true,
@@ -357,6 +380,8 @@ export class PaymentService {
         totalAmount: Number(totalAmount),
         shippingInfo,
         qrCode: payosResponse.qrCode,
+        paymentLinkId: payosResponse.paymentLinkId,
+        imageUrl,
       };
     });
   }
@@ -429,6 +454,12 @@ export class PaymentService {
 
       this.eventEmitter.emit('order.paid', order);
 
+      this.rmqClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'PAID',
+        message: 'Thanh toán thành công',
+      });
+
       return { success: true };
     });
   }
@@ -454,7 +485,10 @@ export class PaymentService {
         console.warn(
           `Không tìm thấy transaction cho PayOS orderCode: ${payosOrderCode}`,
         );
-        return { success: false };
+        return {
+          success: false,
+          message: `Không tìm thấy transaction cho PayOS orderCode: ${payosOrderCode}`,
+        };
       }
 
       const order = transaction.orders;
@@ -485,11 +519,75 @@ export class PaymentService {
         reason: `PayOS webhook: status ${payosStatus} - ${description || 'No description'}`,
       });
 
+      this.rmqClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'FAILED',
+        message: `Thanh toán thất bại hoặc đã hủy: ${payosStatus}`,
+      });
+
       console.log(
         `Order ${order.order_code} đã được xử lý cancel/failed từ PayOS (status: ${payosStatus})`,
       );
 
-      return { success: true };
+      return {
+        success: true,
+        message: `Order ${order.order_code} đã được xử lý cancel/failed từ PayOS (status: ${payosStatus})`,
+      };
+    });
+  }
+
+  async handleTimeoutPayment(transactionId: string): Promise<void> {
+    return this.prisma.$transaction(async (tx) => {
+      const transaction = await tx.transactions.findUnique({
+        where: { id: transactionId },
+        include: { orders: true },
+      });
+
+      if (!transaction || transaction.status !== 'PENDING') {
+        // Có thể user đã thanh toán thành công, transaction không còn PENDING -> bỏ qua
+        return;
+      }
+
+      const order = transaction.orders;
+      if (!order || order.status !== 'PENDING') {
+        return;
+      }
+
+      // 1. Cập nhật trạng thái
+      await tx.orders.update({
+        where: { id: order.id },
+        data: {
+          status: 'CANCELLED',
+        },
+      });
+
+      await tx.transactions.update({
+        where: { id: transactionId },
+        data: {
+          status: 'FAILED',
+        },
+      });
+
+      // 2. Có thể gọi cancel link bên PayOS để vô hiệu hóa mã QR cũ
+      if (transaction.gateway_trans_id) {
+        try {
+          await this.payos.paymentRequests.cancel(
+            Number(transaction.gateway_trans_id),
+            'Timeout quá 15 phút',
+          );
+        } catch (error) {
+          console.warn(`Không thể huỷ PayOS link cho order ${transaction.gateway_trans_id}`, error);
+        }
+      }
+
+      // 3. Emit event SSE để frontend biết nếu đang đợi
+      this.rmqClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'FAILED',
+        message: 'Thanh toán quá hạn 15 phút',
+      });
+
+      console.log(`[Timeout] Đã tự động hủy đơn hàng ${order.order_code}`);
     });
   }
 
