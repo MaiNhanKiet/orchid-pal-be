@@ -1,4 +1,4 @@
-import { DeviceAssignedZoneEventDto } from '@app/common';
+import { DeviceAssignedZoneEventDto, HardwareConfig, ManualControlEventDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
@@ -7,6 +7,7 @@ import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
   CreateDeviceDto,
+  ManualControlDeviceCommandDto,
   QueryDevicesDto,
   UpdateDeviceDto,
 } from '@app/common/dtos/device/device.dto';
@@ -17,16 +18,22 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
-export class DeviceService {
+export class DeviceService implements OnModuleInit {
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
   ) { }
+
+  async onModuleInit() {
+    await this.automationClient.connect();
+  }
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -283,6 +290,56 @@ export class DeviceService {
     }
 
     return device;
+  }
+
+  async manualControlDevice(data: ManualControlDeviceCommandDto) {
+
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number: data.serial_number },
+      select: {
+        serial_number: true,
+        hardware_config: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
+    }
+
+    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
+    const relays = hardwareConfig.relays || {};
+
+    const relayEntries: Array<[number, string | null | undefined]> = [
+      [1, relays.relay_1],
+      [2, relays.relay_2],
+      [3, relays.relay_3],
+      [4, relays.relay_4],
+    ];
+
+    const relayNumber = relayEntries.find(([, role]) => role === data.role)?.[0];
+
+    if (!relayNumber) {
+      throw new BadRequestException(
+        'Thiết bị chưa cấu hình relay cho role này.',
+      );
+    }
+
+    const payload: ManualControlEventDto = {
+      serial_number: data.serial_number,
+      relay_number: relayNumber,
+      role: data.role,
+      action: data.action,
+    };
+
+    await this.automationClient.connect();
+    this.automationClient.emit('send.manual.control', payload);
+
+    return {
+      message: 'Đã gửi lệnh điều khiển relay',
+      payload,
+    };
   }
 
   async createDevice(data: CreateDeviceDto) {

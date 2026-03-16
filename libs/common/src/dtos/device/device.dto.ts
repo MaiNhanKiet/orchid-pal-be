@@ -79,6 +79,21 @@ export class ControlDeviceDto {
   action: 'ON' | 'OFF';
 }
 
+export class ManualControlDeviceCommandDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  serial_number: string;
+
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @IsString()
+  @IsNotEmpty()
+  action: 'ON' | 'OFF';
+}
+
 export class AssignDeviceToZoneCommandDto {
   @IsString()
   @IsNotEmpty()

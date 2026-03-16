@@ -1,6 +1,7 @@
 import {
   DeviceAssignedZoneEventDto,
   HardwareConfig,
+  ManualControlEventDto,
   MICROSERVICES_CLIENTS,
   SpeciesWiki,
 } from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
@@ -111,6 +112,23 @@ export class AutomationServiceService {
     // 8. Đẩy config xuống MQTT topic cho ESP32
     const topic = `device/${device.serial_number}/config`;
     this.mqttClient.emit(topic, mqttPayload);
+  }
+
+  async handleManualControl(payload: ManualControlEventDto) {
+    const topic = `device/${payload.serial_number}/control/${payload.relay_number}`;
+    const message = payload.action;
+    const retryDelays = [0, 200, 500];
+
+    for (const delayMs of retryDelays) {
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      this.mqttClient.emit(topic, message);
+    }
+
+    this.logger.log(
+      `[Manual Control] Đã bắn lệnh xuống MQTT topic: ${topic} (payload: ${message})`,
+    );
   }
 
   private generateRules(

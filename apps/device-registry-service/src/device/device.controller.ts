@@ -14,12 +14,13 @@ import {
   CreateDeviceDto,
   UpdateDeviceDto,
   QueryDevicesDto,
+  ManualControlDeviceCommandDto,
 } from '@app/common/dtos/device/device.dto';
 import { MqttStatusPayload } from '@app/common';
 
 @Controller()
 export class DeviceController {
-  constructor(private readonly deviceService: DeviceService) {}
+  constructor(private readonly deviceService: DeviceService) { }
 
   @MessagePattern({ cmd: 'activate_device' })
   activateDevice(@Payload() data: ActivateDeviceCommandDto) {
@@ -49,6 +50,11 @@ export class DeviceController {
   @MessagePattern({ cmd: 'get_device_by_serial' })
   getDeviceBySerial(@Payload() data: GetDeviceStatusCommandDto) {
     return this.deviceService.getDeviceBySerial(data.serial_number);
+  }
+
+  @MessagePattern({ cmd: 'manual_control_device' })
+  manualControlDevice(@Payload() data: ManualControlDeviceCommandDto) {
+    return this.deviceService.manualControlDevice(data);
   }
 
   @MessagePattern({ cmd: 'create_device' })

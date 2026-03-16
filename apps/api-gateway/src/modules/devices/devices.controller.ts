@@ -7,16 +7,13 @@ import {
   MICROSERVICES_CLIENTS,
   Permissions,
   ControlDeviceDto,
-  HardwareConfig,
 } from '@app/common';
 import { Permission } from '@app/common/enums';
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   Inject,
-  NotFoundException,
   Param,
   Post,
 } from '@nestjs/common';
@@ -130,49 +127,15 @@ export class DevicesController {
     @Param('serial_number') serialNumber: string,
     @Body() body: ControlDeviceDto,
   ) {
-    const device = await firstValueFrom(
+    return firstValueFrom(
       this.deviceRegistryClient.send(
-        { cmd: 'get_device_by_serial' },
-        { serial_number: serialNumber },
+        { cmd: 'manual_control_device' },
+        {
+          serial_number: serialNumber,
+          role: body.role,
+          action: body.action,
+        },
       ),
     );
-
-    if (!device) {
-      throw new NotFoundException(
-        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
-      );
-    }
-
-    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
-    const relays = hardwareConfig.relays || {};
-
-    const roleRelayEntries: Array<[number, string | null | undefined]> = [
-      [1, relays.relay_1],
-      [2, relays.relay_2],
-      [3, relays.relay_3],
-      [4, relays.relay_4],
-    ];
-
-    const relayNumber = roleRelayEntries.find(([, role]) => role === body.role)?.[0];
-
-    if (!relayNumber) {
-      throw new BadRequestException(
-        'Thiết bị chưa cấu hình relay cho role này.',
-      );
-    }
-
-    const payload = {
-      serial_number: serialNumber,
-      relay_number: relayNumber,
-      role: body.role,
-      action: body.action,
-    };
-
-    this.automationClient.emit('send.manual.control', payload);
-
-    return {
-      message: 'Đã gửi lệnh điều khiển relay',
-      payload,
-    };
   }
 }
