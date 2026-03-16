@@ -40,11 +40,12 @@ export class ProductsController {
 
   @MessagePattern({ cmd: 'add_devices_to_product' })
   addDevicesToProduct(
-    @Payload() payload: { productId: string; secret_keys: string[] },
+    @Payload() payload: { productId: string; secretKey: string; quantity: number },
   ) {
     return this.productService.addDevicesToProduct(
       payload.productId,
-      payload.secret_keys,
+      payload.secretKey,
+      payload.quantity,
     );
   }
 }

@@ -70,7 +70,8 @@ export class ProductsService {
 
   async addDevicesToProduct(
     productId: string,
-    secretKeys: string[],
+    secretKey: string,
+    quantity: number,
   ) {
     const product = await this.prisma.products.findUnique({
       where: { id: productId },
@@ -80,16 +81,13 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    if (!Array.isArray(secretKeys) || secretKeys.length === 0) {
-      throw new BadRequestException('secret_keys must be a non-empty array');
+    if (!secretKey) {
+      throw new BadRequestException('secret_key is required');
     }
 
-    const hasDuplicatedSecretKeys = new Set(secretKeys).size !== secretKeys.length;
-    if (hasDuplicatedSecretKeys) {
-      throw new BadRequestException('Each device must have a unique secret key');
+    if (!quantity || quantity <= 0) {
+      throw new BadRequestException('quantity must be a positive integer');
     }
-
-    const quantity = secretKeys.length;
 
     // Tìm serial_number lớn nhất hiện tại của product này
     const latestDevice = await this.prisma.devices.findFirst({
@@ -112,7 +110,7 @@ export class ProductsService {
     // Tạo serial numbers: {SKU}-001, {SKU}-002, ... tiếp tục từ latestIndex
     const devicesPayload = Array.from({ length: quantity }, (_, i) => ({
       serial_number: `${product.sku}-${String(latestIndex + i + 1).padStart(3, '0')}`,
-      secret_key: secretKeys[i],
+      secret_key: secretKey,
       product_id: productId,
       hardware_config: product.specs_config,
     }));

@@ -373,7 +373,7 @@ export class PaymentService {
         );
       }
 
-      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosPayload.description}&amount=${payosPayload.amount};`;
+      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosPayload.description}&amount=${payosPayload.amount}`;
 
       return {
         success: true,
@@ -505,7 +505,10 @@ export class PaymentService {
       await tx.orders.update({
         where: { id: order.id },
         data: {
-          status: newOrderStatus === 'CANCELLED' ? OrderStatus.CANCELLED : OrderStatus.PENDING,
+          status:
+            newOrderStatus === 'CANCELLED'
+              ? OrderStatus.CANCELLED
+              : OrderStatus.PENDING,
           // optional: cancelled_at: new Date(),
           // cancelled_reason: `PayOS: ${payosCode} - ${description || 'Unknown'}`,
         },
