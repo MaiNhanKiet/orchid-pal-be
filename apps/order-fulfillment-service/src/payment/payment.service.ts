@@ -608,6 +608,6 @@ export class PaymentService {
 
   private generateOrderCode(): string {
     const shortCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-7 chữ số
-    return `ORD${shortCode}`;
+    return shortCode;
   }
 }

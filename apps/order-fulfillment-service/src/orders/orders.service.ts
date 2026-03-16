@@ -4,7 +4,8 @@ import {
 } from '@app/common/constants/default.constant';
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 import { PrismaService } from '@app/prisma';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { OrderStatus } from '@app/common/enums';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class OrdersService {
@@ -59,6 +60,33 @@ export class OrdersService {
         ...(dto.note !== undefined && { note: dto.note }),
       },
     });
+  }
+
+  async bulkUpdateOrderStatus(orderIds: string[], status: string) {
+    if (!orderIds || orderIds.length === 0) {
+      throw new BadRequestException('Bắt buộc phải cung cấp danh sách orderIds');
+    }
+
+    const upperStatus = status.toUpperCase() as OrderStatus;
+    if (!Object.values(OrderStatus).includes(upperStatus)) {
+      throw new BadRequestException(`Trạng thái không hợp lệ: ${status}`);
+    }
+    
+    const result = await this.prisma.orders.updateMany({
+      where: {
+        id: {
+          in: orderIds,
+        },
+      },
+      data: {
+        status: upperStatus,
+      },
+    });
+
+    return {
+      message: `Đã cập nhật trạng thái thành công cho ${result.count} đơn hàng`,
+      count: result.count,
+    };
   }
 
   async deleteOrder(id: string) {

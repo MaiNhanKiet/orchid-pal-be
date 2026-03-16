@@ -8,8 +8,23 @@ import {
 } from '@app/common';
 
 import { Public } from '@app/common';
-import { ClientProxy, EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
-import { firstValueFrom, fromEvent, map, Observable } from 'rxjs';
+import {
+  ClientProxy,
+  Ctx,
+  EventPattern,
+  MessagePattern,
+  Payload,
+  RmqContext,
+} from '@nestjs/microservices';
+import {
+  firstValueFrom,
+  fromEvent,
+  interval,
+  map,
+  merge,
+  Observable,
+  startWith,
+} from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   ApiHandlePayOSWebhookDocs,
@@ -20,6 +35,7 @@ import {
 
 import { type Webhook } from '@payos/node';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
+import { BypassInterceptors } from '@app/common/decorators/bypass-interceptors.decorator';
 
 @ApiTags('Payment')
 @ApiBearerAuth('access-token')
@@ -88,22 +104,52 @@ export class PaymentController {
     );
   }
 
-  @MessagePattern('payment_status_updated')
-  handlePaymentStatusFromRMQ(@Payload() data: { orderCode: string; status: string; message: string }) {
+  @EventPattern('payment_status_updated') // NÊN DÙNG EventPattern thay vì MessagePattern cho các luồng thông báo 1 chiều
+  handlePaymentStatusFromRMQ(
+    @Payload() data: { orderCode: string; status: string; message: string },
+    @Ctx() context: RmqContext, // Phải có context để báo RMQ xoá tin nhắn
+  ) {
+    console.log(
+      `[API Gateway] Nhận update thanh toán RMQ cho đơn: ${data.orderCode}`,
+      data,
+    );
+
     // Phát event nội bộ trong API Gateway để SSE client bắt được
     this.eventEmitter.emit(`payment.update.${data.orderCode}`, data);
+
+    // Xác nhận (Ack) với RabbitMQ để tránh kẹt Queue (Giống hệt luồng Telemetry của bạn)
+    const channel = context.getChannelRef();
+    channel.ack(context.getMessage());
   }
 
   @Sse('/sse/:orderCode')
   @Public()
-  ssePaymentStatus(@Param('orderCode') orderCode: string): Observable<MessageEvent> {
-    return fromEvent(this.eventEmitter, `payment.update.${orderCode}`).pipe(
+  @BypassInterceptors() // QUAN TRỌNG NHẤT: Bỏ qua Timeout 5s và Transform JSON
+  ssePaymentStatus(
+    @Param('orderCode') orderCode: string,
+  ): Observable<MessageEvent> {
+    console.log(`[API Gateway] Mở SSE cho đơn ${orderCode}`);
+
+    const payment$ = fromEvent(
+      this.eventEmitter,
+      `payment.update.${orderCode}`,
+    ).pipe(
+      map((data) => {
+        return { data: data } as MessageEvent;
+      }),
+    );
+
+    const heartbeat$ = interval(15000).pipe(
+      startWith(0),
       map(
-        (data) =>
+        () =>
           ({
-            data: data,
+            data: { type: 'ping', status: 'waiting_for_payment' },
           }) as MessageEvent,
       ),
     );
+
+    // Gộp cả 2 luồng trả về cho FE
+    return merge(payment$, heartbeat$);
   }
 }

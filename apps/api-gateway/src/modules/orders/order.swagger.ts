@@ -175,3 +175,37 @@ export function ApiDeleteOrderDocs() {
     }),
   );
 }
+
+export function ApiBulkUpdateOrderStatusDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Cập nhật trạng thái nhiều đơn hàng cùng lúc' }),
+    ApiAuthFailures(),
+    ApiBody({
+      description: 'Danh sách ID đơn hàng và trạng thái mới',
+      schema: {
+        example: {
+          orderIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+          ],
+          status: OrderStatus.COMPLETED,
+        },
+      },
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Cập nhật trạng thái thành công',
+      schema: {
+        example: {
+          message: 'Đã cập nhật trạng thái thành công cho 2 đơn hàng',
+          count: 2,
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Dữ liệu đầu vào không hợp lệ',
+      schema: { example: { message: 'Bắt buộc phải cung cấp danh sách orderIds' } },
+    }),
+  );
+}

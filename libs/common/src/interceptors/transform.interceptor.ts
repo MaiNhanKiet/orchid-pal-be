@@ -1,12 +1,13 @@
 import {
+  CallHandler,
+  ExecutionContext,
+  HttpStatus,
   Injectable,
   NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  HttpStatus,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { BYPASS_INTERCEPTORS } from '../decorators';
 import { Reflector } from '@nestjs/core';
 
 export interface Response<T> {
@@ -21,10 +22,19 @@ export class TransformInterceptor<T> implements NestInterceptor<
   T,
   Response<T>
 > {
+  constructor(private reflector: Reflector) {}
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<Response<T>> {
+    const bypass = this.reflector.get<boolean>(
+      BYPASS_INTERCEPTORS,
+      context.getHandler(),
+    );
+    if (bypass) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         const contextHttp = context.switchToHttp();
@@ -36,12 +46,9 @@ export class TransformInterceptor<T> implements NestInterceptor<
         let meta = undefined;
 
         if (data && typeof data === 'object') {
-          // Nếu data là mảng thì giữ nguyên
           if (Array.isArray(data)) {
             resultData = data;
           } else {
-            // Nếu data có cấu trúc { data: ..., meta: ... }
-            // Thì tách riêng phần data và meta
             if ('data' in data && 'meta' in data) {
               message = data.message || message;
               status = data.statusCode || status;
