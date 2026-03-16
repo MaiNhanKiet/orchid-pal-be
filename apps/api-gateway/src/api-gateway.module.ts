@@ -94,12 +94,16 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
+    BullModule.registerQueue({ name: QueueName.PaymentTimeoutQueue }),
     BullBoardModule.forRoot({
       route: '/admin/queues',
       adapter: ExpressAdapter,
     }),
     BullBoardModule.forFeature({
       name: QueueName.IamCronQueue,
+      adapter: BullMQAdapter,
+    }, {
+      name: QueueName.PaymentTimeoutQueue,
       adapter: BullMQAdapter,
     }),
     EventEmitterModule.forRoot(),

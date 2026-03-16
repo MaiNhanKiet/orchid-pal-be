@@ -4,6 +4,7 @@ import {
   PAYOS_CLIENT_ID,
   MICROSERVICES_CLIENTS,
   DEFAULT_TIMEOUT_PAYMENT,
+  QueueName,
 } from '@app/common';
 import {
   OrderStatus,
@@ -46,7 +47,7 @@ export class PaymentService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
-    @InjectQueue('payment_timeout') private paymentQueue: Queue,
+    @InjectQueue(QueueName.PaymentTimeoutQueue) private paymentQueue: Queue,
     @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
     private readonly apiGatewayClient: ClientProxy,
   ) {

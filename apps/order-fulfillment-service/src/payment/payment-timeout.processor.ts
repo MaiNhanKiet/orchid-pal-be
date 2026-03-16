@@ -2,7 +2,9 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PaymentService } from './payment.service';
 
-@Processor('payment_timeout')
+import { QueueName } from '@app/common';
+
+@Processor(QueueName.PaymentTimeoutQueue)
 export class PaymentTimeoutProcessor extends WorkerHost {
   constructor(private readonly paymentService: PaymentService) {
     super();

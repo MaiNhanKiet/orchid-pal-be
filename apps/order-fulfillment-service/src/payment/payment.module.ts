@@ -3,7 +3,7 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { BullModule } from '@nestjs/bullmq';
 import { PaymentTimeoutProcessor } from './payment-timeout.processor';
-import { MICROSERVICES_CLIENTS } from '@app/common';
+import { MICROSERVICES_CLIENTS, QueueName } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ORDER_FULFILLMENT_SERVICE_PORT, API_GATEWAY_PORT } from '@app/common/constants/env-key.constant';
 
@@ -26,7 +26,7 @@ import { ORDER_FULFILLMENT_SERVICE_PORT, API_GATEWAY_PORT } from '@app/common/co
       },
     ]),
     BullModule.registerQueue({
-      name: 'payment_timeout',
+      name: QueueName.PaymentTimeoutQueue,
     }),
   ],
   controllers: [PaymentController],
