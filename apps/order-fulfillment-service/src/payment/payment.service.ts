@@ -378,7 +378,7 @@ export class PaymentService {
       return {
         success: true,
         orderId: order.id,
-        orderCode,
+        orderCode: payosResponse.orderCode.toString(),
         paymentUrl: payosResponse.checkoutUrl,
         status: 'PENDING',
         paymentMethod: 'PAYOS',
