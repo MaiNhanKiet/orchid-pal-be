@@ -5,12 +5,14 @@ import {
   ManualControlEventDto,
   MICROSERVICES_CLIENTS,
   RmqService,
+  UpdateAutomationRulesDto,
 } from '@app/common';
 import { Controller, Inject } from '@nestjs/common';
 import {
   ClientProxy,
   Ctx,
   EventPattern,
+  MessagePattern,
   MqttContext,
   Payload,
   RmqContext,
@@ -25,7 +27,7 @@ export class AutomationServiceController {
     private readonly rmqService: RmqService,
     @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
     private readonly deviceRegistryClient: ClientProxy,
-  ) { }
+  ) {}
 
   @EventPattern('device.assigned.zone')
   async handleDeviceAssigned(
@@ -45,6 +47,11 @@ export class AutomationServiceController {
     this.rmqService.ack(context);
   }
 
+  @MessagePattern({ cmd: 'update_automation_rules' })
+  async updateAutomationRules(@Payload() data: UpdateAutomationRulesDto) {
+    return this.automationServiceService.updateAutomationRules(data);
+  }
+
   @EventPattern('device/+/action_log')
   async handleDeviceActionLog(
     @Payload() data: DeviceActionLogEventDto,
@@ -56,10 +63,9 @@ export class AutomationServiceController {
     if (!serialNumber) return;
 
     const device = await firstValueFrom(
-      this.deviceRegistryClient.send(
-        { cmd: 'get_device_by_serial' },
-        { serial_number: serialNumber } as GetDeviceStatusCommandDto,
-      ),
+      this.deviceRegistryClient.send({ cmd: 'get_device_by_serial' }, {
+        serial_number: serialNumber,
+      } as GetDeviceStatusCommandDto),
     );
 
     await this.automationServiceService.logAction({

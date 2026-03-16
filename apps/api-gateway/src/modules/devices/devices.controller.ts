@@ -1,12 +1,13 @@
 import {
   ActivateDeviceDto,
   AssignDeviceToZoneDto,
+  ControlDeviceDto,
   CurrentUser,
   DeviceAssignedZoneEventDto,
   JwtPayload,
   MICROSERVICES_CLIENTS,
+  PaginationDto,
   Permissions,
-  ControlDeviceDto,
 } from '@app/common';
 import { Permission } from '@app/common/enums';
 import {
@@ -16,17 +17,18 @@ import {
   Inject,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { IsUUID } from 'class-validator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { IsUUID } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
 import {
   ApiActivateDeviceDocs,
   ApiAssignDeviceToZoneDocs,
+  ApiControlDeviceDocs,
   ApiGetDeviceStatusDocs,
   ApiTestAutomationQueueDocs,
-  ApiControlDeviceDocs,
 } from './devices.swagger';
 
 class TestAutomationQueueDto {
@@ -48,7 +50,7 @@ export class DevicesController {
     @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
     private readonly deviceRegistryClient: ClientProxy,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) { }
+  ) {}
 
   @Post('activate')
   @Permissions(Permission.DeviceActivate)
@@ -134,6 +136,32 @@ export class DevicesController {
           serial_number: serialNumber,
           role: body.role,
           action: body.action,
+        },
+      ),
+    );
+  }
+
+  @Get()
+  getMyDevices(@CurrentUser() user: JwtPayload, @Query() query: PaginationDto) {
+    return firstValueFrom(
+      this.deviceRegistryClient.send(
+        { cmd: 'get_my_devices' },
+        {
+          user_id: user.sub,
+          ...query,
+        },
+      ),
+    );
+  }
+
+  @Get(':id')
+  getMyDeviceDetail(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return firstValueFrom(
+      this.deviceRegistryClient.send(
+        { cmd: 'get_my_device_detail' },
+        {
+          user_id: user.sub,
+          device_id: id,
         },
       ),
     );

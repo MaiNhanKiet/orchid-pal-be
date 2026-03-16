@@ -1,3 +1,13 @@
+import { MqttStatusPayload } from '@app/common';
+import {
+  ActivateDeviceCommandDto,
+  AssignDeviceToZoneCommandDto,
+  CreateDeviceDto,
+  GetDeviceStatusCommandDto,
+  ManualControlDeviceCommandDto,
+  QueryDevicesDto,
+  UpdateDeviceDto,
+} from '@app/common/dtos/device/device.dto';
 import { Controller } from '@nestjs/common';
 import {
   Ctx,
@@ -7,20 +17,10 @@ import {
   Payload,
 } from '@nestjs/microservices';
 import { DeviceService } from './device.service';
-import {
-  ActivateDeviceCommandDto,
-  GetDeviceStatusCommandDto,
-  AssignDeviceToZoneCommandDto,
-  CreateDeviceDto,
-  UpdateDeviceDto,
-  QueryDevicesDto,
-  ManualControlDeviceCommandDto,
-} from '@app/common/dtos/device/device.dto';
-import { MqttStatusPayload } from '@app/common';
 
 @Controller()
 export class DeviceController {
-  constructor(private readonly deviceService: DeviceService) { }
+  constructor(private readonly deviceService: DeviceService) {}
 
   @MessagePattern({ cmd: 'activate_device' })
   activateDevice(@Payload() data: ActivateDeviceCommandDto) {
@@ -42,9 +42,27 @@ export class DeviceController {
     return this.deviceService.listDevices(query);
   }
 
+  @MessagePattern({ cmd: 'get_my_devices' })
+  getMyDevices(
+    @Payload()
+    data: {
+      user_id: string;
+      page?: number;
+      limit?: number;
+      search?: string;
+    },
+  ) {
+    return this.deviceService.getMyDevices(data.user_id, data);
+  }
+
   @MessagePattern({ cmd: 'get_device_by_id' })
   getDeviceById(@Payload() id: string) {
     return this.deviceService.getDeviceById(id);
+  }
+
+  @MessagePattern({ cmd: 'get_my_device_detail' })
+  getMyDeviceDetail(@Payload() data: { user_id: string; device_id: string }) {
+    return this.deviceService.getMyDeviceDetail(data.user_id, data.device_id);
   }
 
   @MessagePattern({ cmd: 'get_device_by_serial' })

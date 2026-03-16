@@ -1,16 +1,20 @@
-import { DeviceAssignedZoneEventDto, HardwareConfig, ManualControlEventDto } from '@app/common';
-import {
-  DEFAULT_LIMIT,
-  DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
 import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
   CreateDeviceDto,
+  DeviceAssignedZoneEventDto,
+  HardwareConfig,
   ManualControlDeviceCommandDto,
+  ManualControlEventDto,
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
   QueryDevicesDto,
   UpdateDeviceDto,
-} from '@app/common/dtos/device/device.dto';
+} from '@app/common';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 import { PrismaService } from '@app/prisma';
 import {
   BadRequestException,
@@ -25,14 +29,16 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class DeviceService implements OnModuleInit {
-
   constructor(
     private readonly prisma: PrismaService,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) { }
+    @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
+    private readonly gardenClient: ClientProxy,
+  ) {}
 
   async onModuleInit() {
     await this.automationClient.connect();
+    await this.gardenClient.connect();
   }
 
   async activateDevice(data: ActivateDeviceCommandDto) {
@@ -154,6 +160,16 @@ export class DeviceService implements OnModuleInit {
       );
     }
 
+    const plantCount = await firstValueFrom(
+      this.gardenClient.send({ cmd: 'count_plants_in_zone' }, { zone_id }),
+    );
+
+    if (plantCount < 1) {
+      throw new BadRequestException(
+        'Khu vườn chưa có cây nào. Vui lòng thêm cây vào vườn trước khi gán thiết bị.',
+      );
+    }
+
     // Gửi sự kiện kích hoạt thiết bị lên RabbitMQ để Automation Service xử lý
     const payload: DeviceAssignedZoneEventDto = {
       device_id: device.id,
@@ -239,6 +255,64 @@ export class DeviceService implements OnModuleInit {
     };
   }
 
+  async getMyDevices(
+    user_id: string,
+    query: PaginationDto & { search?: string },
+  ) {
+    let { page, limit } = query;
+    page = page ? Number(page) : DEFAULT_PAGE;
+    limit = limit ? Number(limit) : DEFAULT_LIMIT;
+
+    const where: any = {
+      owner_id: user_id,
+    };
+
+    if (query.search) {
+      where.serial_number = {
+        contains: query.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.devices.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          products: {
+            select: {
+              name: true,
+              image_url: true,
+            },
+          },
+          planting_zones: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.devices.count({ where }),
+    ]);
+
+    return {
+      data: data.map((device) => ({
+        ...device,
+        product_name: device.products?.name,
+        product_image: device.products?.image_url,
+        zone_name: device.planting_zones?.name,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: limit ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
+
   async getDeviceById(id: string) {
     const device = await this.prisma.devices.findUnique({
       where: { id },
@@ -294,13 +368,12 @@ export class DeviceService implements OnModuleInit {
   }
 
   async manualControlDevice(data: ManualControlDeviceCommandDto) {
-
     const device = await this.prisma.devices.findUnique({
       where: { serial_number: data.serial_number },
       select: {
         serial_number: true,
         hardware_config: true,
-        zone_id: true
+        zone_id: true,
       },
     });
 
@@ -320,7 +393,9 @@ export class DeviceService implements OnModuleInit {
       [4, relays.relay_4],
     ];
 
-    const relayNumber = relayEntries.find(([, role]) => role === data.role)?.[0];
+    const relayNumber = relayEntries.find(
+      ([, role]) => role === data.role,
+    )?.[0];
 
     if (!relayNumber) {
       throw new BadRequestException(
@@ -433,6 +508,30 @@ export class DeviceService implements OnModuleInit {
         status: 'INACTIVE',
       },
     });
+
+    return device;
+  }
+
+  async getMyDeviceDetail(user_id: string, device_id: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id: device_id },
+      include: {
+        products: true,
+        planting_zones: {
+          include: {
+            my_plants: true,
+          },
+        },
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    if (device.owner_id !== user_id) {
+      throw new ForbiddenException('Bạn không sở hữu thiết bị này');
+    }
 
     return device;
   }
