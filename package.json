@@ -22,7 +22,7 @@
     "prisma:generate": "prisma generate --schema=./libs/prisma/prisma/schema.prisma",
     "sync:permissions": "ts-node -r tsconfig-paths/register scripts/sync-permissions.ts",
     "start:all": "concurrently \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev api-gateway\"",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,GARDEN,DEVICE,AUTOMATION,TELEMETRY\" -c \"cyan,green,yellow,blue,purple,magenta,red,gray\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev garden-service\" \"npm run start:dev device-registry-service\" \"npm run start:dev automation-service\" \"npm run start:dev telemetry-service\""
+    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,GARDEN,DEVICE,AUTOMATION,TELEMETRY,ORDER-FULFILLMENT\" -c \"cyan,green,yellow,blue,purple,magenta,red,red,gray\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev garden-service\" \"npm run start:dev device-registry-service\" \"npm run start:dev automation-service\" \"npm run start:dev telemetry-service\" \"npm run start:dev order-fulfillment-service\""
   },
   "dependencies": {
     "@bull-board/api": "^6.16.4",
@@ -39,6 +39,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.5",
+    "@payos/node": "^2.0.4",
     "@prisma/client": "^6.19.2",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^0.10.9",

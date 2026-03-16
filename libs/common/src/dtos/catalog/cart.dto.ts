@@ -22,3 +22,14 @@ export class CreateCartItemDto {
   @IsPositive()
   quantity: number;
 }
+
+export class UpdateCartItemDto {
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  quantity?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isSelected?: boolean;
+}

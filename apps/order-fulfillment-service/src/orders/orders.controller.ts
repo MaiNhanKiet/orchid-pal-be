@@ -4,6 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { PaginationDto } from '@app/common/dtos/pagination.dto';
 import { UuidDto } from '@app/common';
+import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 
 @Controller()
 export class OrdersController {
@@ -25,5 +26,15 @@ export class OrdersController {
   @MessagePattern({ cmd: 'get_order_by_id' })
   getOrderById(@Payload() id: UuidDto) {
     return this.orderService.getOrderById(id.id);
+  }
+
+  @MessagePattern({ cmd: 'update_order' })
+  updateOrder(@Payload() { id, dto }: { id: UuidDto; dto: UpdateOrderDto }) {
+    return this.orderService.updateOrder(id.id, dto);
+  }
+
+  @MessagePattern({ cmd: 'delete_order' })
+  deleteOrder(@Payload() id: UuidDto) {
+    return this.orderService.deleteOrder(id.id);
   }
 }

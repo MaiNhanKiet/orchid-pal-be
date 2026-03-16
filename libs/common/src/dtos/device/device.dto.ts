@@ -4,6 +4,8 @@ import {
   IsUUID,
   MaxLength,
   IsOptional,
+  IsArray,
+  ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../pagination.dto';
@@ -239,4 +241,18 @@ export class QueryDevicesDto extends PaginationDto {
   @IsString()
   @IsOptional()
   sortOrder?: 'asc' | 'desc';
+}
+
+export class AddDevicesToProductDto {
+  @ApiProperty({
+    example: ['secret-key-001', 'secret-key-002'],
+    description: 'Danh sách secret key tương ứng từng device trong batch (mỗi device một key)',
+    type: [String],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @MaxLength(100, { each: true })
+  secret_keys: string[];
 }
