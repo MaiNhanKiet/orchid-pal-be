@@ -1,5 +1,4 @@
 import {
-  AnalyzeSeasonalConfigDto,
   BypassInterceptors,
   GetHistoryTelemetryDto,
   GetHistoryTelemetryQueryDto,
@@ -8,6 +7,7 @@ import {
   Public,
   TelemetryEventDto,
 } from '@app/common';
+import { AnalyzeSeasonalConfigDto } from '@app/common/dtos/telemetry/analyze-seasonal-config.dto';
 import {
   Body,
   Controller,
