@@ -156,4 +156,4 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
