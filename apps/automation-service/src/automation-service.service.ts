@@ -9,6 +9,9 @@ import { PrismaService } from '@app/prisma'; // Đảm bảo đường dẫn đ�
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { AutomationLog, AutomationLogDocument } from './schema/automation-log.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class AutomationServiceService {
@@ -20,6 +23,8 @@ export class AutomationServiceService {
     private readonly gardenClient: ClientProxy,
     @Inject('MQTT_CLIENT')
     private readonly mqttClient: ClientProxy,
+    @InjectModel(AutomationLog.name)
+    private readonly automationLogModel: Model<AutomationLogDocument>,
   ) { }
 
   async handleDeviceAssignedZone(payload: DeviceAssignedZoneEventDto) {
@@ -117,18 +122,21 @@ export class AutomationServiceService {
   async handleManualControl(payload: ManualControlEventDto) {
     const topic = `device/${payload.serial_number}/control/${payload.relay_number}`;
     const message = payload.action;
-    const retryDelays = [0, 200, 500];
 
-    for (const delayMs of retryDelays) {
-      if (delayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-      this.mqttClient.emit(topic, message);
-    }
+    await firstValueFrom(
+      this.mqttClient.emit(topic, message)
+    );
 
     this.logger.log(
       `[Manual Control] Đã bắn lệnh xuống MQTT topic: ${topic} (payload: ${message})`,
     );
+
+    await this.logAction({
+      zone_id: payload.zone_id,
+      device_id: payload.serial_number,
+      action: `Lệnh ${payload.action} rơ-le số ${payload.relay_number} (${payload.role})`,
+      trigger_reason: 'MANUAL_USER_APP',
+    });
   }
 
   private generateRules(
@@ -193,5 +201,21 @@ export class AutomationServiceService {
     }
 
     return rules;
+  }
+
+  async logAction(data: {
+    zone_id: string;
+    device_id: string;
+    action: string;
+    trigger_reason: string;
+    value?: number;
+  }) {
+    try {
+      const newLog = new this.automationLogModel(data);
+      await newLog.save();
+      this.logger.log(`[Activity Log] Đã lưu log: ${data.action} (Lý do: ${data.trigger_reason})`);
+    } catch (error) {
+      this.logger.error(`[Activity Log] Lỗi khi lưu log: ${error.message}`);
+    }
   }
 }

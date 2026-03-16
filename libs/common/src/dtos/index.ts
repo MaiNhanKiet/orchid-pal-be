@@ -11,4 +11,5 @@ export * from './garden/my-plant.dto';
 export * from './device/device.dto';
 export * from './automation/device-assigned-zone.dto';
 export * from './automation/manual-control.dto';
+export * from './automation/device-action-log.dto';
 export * from './telemetry/telemetry.dto';

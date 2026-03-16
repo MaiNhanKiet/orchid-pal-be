@@ -261,6 +261,7 @@ export class DeviceService implements OnModuleInit {
         last_online_at: true,
         hardware_config: true,
         owner_id: true,
+        zone_id: true,
       },
     });
 
@@ -299,6 +300,7 @@ export class DeviceService implements OnModuleInit {
       select: {
         serial_number: true,
         hardware_config: true,
+        zone_id: true
       },
     });
 
@@ -331,6 +333,7 @@ export class DeviceService implements OnModuleInit {
       relay_number: relayNumber,
       role: data.role,
       action: data.action,
+      zone_id: device.zone_id,
     };
 
     await this.automationClient.connect();
