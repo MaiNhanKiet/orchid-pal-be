@@ -125,6 +125,7 @@ export class PaymentService {
   }
 
   async handleWebhook(body: Webhook) {
+    console.log('handleWebhook', body);
     const valid = await this.verifyWebhook(body);
 
     if (!valid) {
@@ -333,7 +334,7 @@ export class PaymentService {
       const payosPayload = {
         orderCode: Number(orderCode.replace(/\D/g, '')),
         amount: Number(totalAmount),
-        description: `Đơn hàng ${orderCode}`,
+        description: orderCode,
         buyerName: shippingInfo.recipient_name ?? undefined,
         buyerPhone: shippingInfo.phone ?? undefined,
         returnUrl: `${process.env.FRONTEND_URL}/checkout/success?orderId=${order.id}`,
@@ -341,6 +342,7 @@ export class PaymentService {
       };
 
       const payosResponse = await this.createPaymentLink(payosPayload);
+      console.log('payosResponse', payosResponse);
 
       // await tx.orders.update({
       //   where: { id: order.id },
@@ -349,7 +351,7 @@ export class PaymentService {
       //   },
       // });
 
-      await tx.transactions.create({
+      const createdTransaction = await tx.transactions.create({
         data: {
           order_id: order.id,
           user_id: userId,
@@ -361,10 +363,10 @@ export class PaymentService {
         },
       });
       // Lấy id transaction sau khi insert (Prisma transaction không return nested creates dễ trong tx logic này)
-      const createdTransaction = await tx.transactions.findFirst({
-        where: { order_id: order.id },
-        orderBy: { paid_at: 'desc' }, // lấy cái vừa tạo
-      });
+      // const createdTransaction = await tx.transactions.findFirst({
+      //   where: { order_id: order.id },
+      //   orderBy: { paid_at: 'desc' }, // lấy cái vừa tạo
+      // });
 
       if (createdTransaction) {
         // Dispatch job timeout sau 15 phút
@@ -375,7 +377,7 @@ export class PaymentService {
         );
       }
 
-      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosPayload.description}&amount=${payosPayload.amount}`;
+      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosResponse.description.replace(/\s/g, '+')}&amount=${payosResponse.amount}`;
 
       return {
         success: true,
