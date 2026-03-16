@@ -218,6 +218,66 @@ export function ApiTestAutomationQueueDocs() {
     );
 }
 
+export function ApiControlDeviceDocs() {
+    return applyDecorators(
+        ApiOperation({
+            summary: 'Điều khiển relay thủ công theo role',
+            description:
+                'Gửi lệnh điều khiển relay thủ công (ON/OFF) theo role của relay đã cấu hình.\n\n' +
+                '- API sẽ kiểm tra thiết bị có relay tương ứng role hay không.\n' +
+                '- Nếu hợp lệ, hệ thống sẽ emit event `send_manual_control` tới Automation Service để bắn xuống ESP32 qua MQTT.',
+        }),
+        ApiAuthFailures(),
+        ApiResponse({
+            status: 200,
+            description: 'Gửi lệnh điều khiển relay thành công.',
+            schema: {
+                example: {
+                    message: 'Đã gửi lệnh điều khiển relay',
+                    payload: {
+                        serial_number: 'SN-1234567890',
+                        relay_number: 1,
+                        role: 'pump',
+                        action: 'ON',
+                    },
+                },
+            },
+        }),
+        ApiResponse({
+            status: 400,
+            description: 'Dữ liệu không hợp lệ hoặc relay chưa được cấu hình role.',
+            schema: {
+                examples: {
+                    invalidData: {
+                        value: {
+                            message: 'Bad Request',
+                            errors: [
+                                'role should not be empty',
+                                'action should not be empty',
+                            ],
+                        },
+                    },
+                    relayNotConfigured: {
+                        value: {
+                            message: 'Thiết bị chưa cấu hình relay cho role này.',
+                        },
+                    },
+                },
+            },
+        }),
+        ApiResponse({
+            status: 404,
+            description: 'Thiết bị không tồn tại.',
+            schema: {
+                example: {
+                    message:
+                        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+                },
+            },
+        }),
+    );
+}
+
 /**
  * API 1: Thêm mới thiết bị vào hệ thống (Import Device)
  */

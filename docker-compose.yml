@@ -1,53 +1,123 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # 1. Mosquitto MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto_broker
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    entrypoint: >
+      sh -c "
+        mkdir -p /mosquitto/config;
+        echo 'listener 1883 0.0.0.0' > /mosquitto/config/mosquitto.conf;
+        echo 'protocol mqtt' >> /mosquitto/config/mosquitto.conf;
+        echo 'listener 9001 0.0.0.0' >> /mosquitto/config/mosquitto.conf;
+        echo 'protocol websockets' >> /mosquitto/config/mosquitto.conf;
+        echo 'allow_anonymous false' >> /mosquitto/config/mosquitto.conf;
+        echo 'password_file /mosquitto/config/passwd' >> /mosquitto/config/mosquitto.conf;
+        touch /mosquitto/config/passwd;
+        mosquitto_passwd -b /mosquitto/config/passwd admin 123456;
+        exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+      "
+    networks:
+      - orchid-network
+
+  # 2. PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: orchid-pal-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_PASSWORD: kietmn
       POSTGRES_DB: postgres
     ports:
-      - '5435:5432'
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - orchid-network
 
-  # RabbitMQ Message Broker
+  # 3. RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: orchid-pal-rabbitmq
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_USER: kietmn
+      RABBITMQ_DEFAULT_PASS: 123123
       RABBITMQ_DEFAULT_VHOST: /
     ports:
-      - '5672:5672' # AMQP protocol
-      - '15672:15672' # Management UI
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - rabbitmq_log:/var/log/rabbitmq
     networks:
       - orchid-network
 
+  # 4. Redis Cache
+  redis:
+    image: redis:7
+    container_name: orchid-pal-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      REDIS_PASSWORD: kietmn
+    command: >
+      sh -c " redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes "
+    networks:
+      - orchid-network
+
+  # 5. MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: orchid-pal-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: kietmn
+      MONGO_INITDB_ROOT_PASSWORD: 123123
+      MONGO_INITDB_DATABASE: orchidpal
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - orchid-network
+
 # Volumes
 volumes:
+  mosquitto_data:
+  mosquitto_log:
+
   postgres_data:
     driver: local
     name: orchid-pal-postgres-data
+
   rabbitmq_data:
     driver: local
     name: orchid-pal-rabbitmq-data
+
   rabbitmq_log:
     driver: local
     name: orchid-pal-rabbitmq-log
 
-# Networks
+  redis_data:
+
+  mongodb_data:
+    driver: local
+    name: orchid-pal-mongodb-data
+
+# Network
 networks:
   orchid-network:
     driver: bridge

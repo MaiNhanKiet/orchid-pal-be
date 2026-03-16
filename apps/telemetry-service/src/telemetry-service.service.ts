@@ -51,4 +51,39 @@ export class TelemetryServiceService {
       this.logger.error(`Error saving telemetry: ${error.message}`);
     }
   }
+
+  async getLatestTelemetry(serialNumber: string) {
+    try {
+      const latestData = await this.telemetryModel
+        .findOne({ 'metadata.serial_number': serialNumber })
+        .sort({ timestamp: -1 })
+        .exec();
+
+      return latestData;
+    } catch (error) {
+      this.logger.error(`Error getting latest telemetry for ${serialNumber}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getHistoryTelemetry(serialNumber: string, hours: number = 24) {
+    try {
+      const startTime = new Date();
+      startTime.setHours(startTime.getHours() - hours);
+
+      const historyData = await this.telemetryModel
+        .find({
+          'metadata.serial_number': serialNumber,
+          timestamp: { $gte: startTime },
+        })
+        .sort({ timestamp: 1 })
+        .select('timestamp temperature humidity soil_moisture light -_id')
+        .exec();
+
+      return historyData;
+    } catch (error) {
+      this.logger.error(`Error getting history telemetry for ${serialNumber}: ${error.message}`);
+      throw error;
+    }
+  }
 }

@@ -16,6 +16,7 @@ import {
   DEVICE_REGISTRY_SERVICE_PORT,
   GARDEN_SERVICE_PORT,
   IAM_SERVICE_PORT,
+  TELEMETRY_SERVICE_PORT,
   ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
@@ -84,12 +85,19 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
         },
       },
       {
+        name: MICROSERVICES_CLIENTS.TELEMETRY_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(TELEMETRY_SERVICE_PORT),
+        },
+      },
+      {
         name: MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE,
         transport: Transport.TCP,
         options: {
           port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
         },
-      },
+      }
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),

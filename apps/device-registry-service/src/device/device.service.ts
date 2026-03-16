@@ -1,15 +1,20 @@
-import { DeviceAssignedZoneEventDto } from '@app/common';
-import {
-  DEFAULT_LIMIT,
-  DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
 import {
   ActivateDeviceCommandDto,
   AssignDeviceToZoneCommandDto,
   CreateDeviceDto,
+  DeviceAssignedZoneEventDto,
+  HardwareConfig,
+  ManualControlDeviceCommandDto,
+  ManualControlEventDto,
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
   QueryDevicesDto,
   UpdateDeviceDto,
-} from '@app/common/dtos/device/device.dto';
+} from '@app/common';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+} from '@app/common/constants/pagination.constant';
 import { PrismaService } from '@app/prisma';
 import {
   BadRequestException,
@@ -17,15 +22,24 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
-export class DeviceService {
+export class DeviceService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) { }
+    @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
+    private readonly gardenClient: ClientProxy,
+  ) {}
+
+  async onModuleInit() {
+    await this.automationClient.connect();
+    await this.gardenClient.connect();
+  }
 
   async activateDevice(data: ActivateDeviceCommandDto) {
     const { serial_number, secret_key, user_id } = data;
@@ -146,13 +160,26 @@ export class DeviceService {
       );
     }
 
+    const plantCount = await firstValueFrom(
+      this.gardenClient.send({ cmd: 'count_plants_in_zone' }, { zone_id }),
+    );
+
+    if (plantCount < 1) {
+      throw new BadRequestException(
+        'Khu vườn chưa có cây nào. Vui lòng thêm cây vào vườn trước khi gán thiết bị.',
+      );
+    }
+
     // Gửi sự kiện kích hoạt thiết bị lên RabbitMQ để Automation Service xử lý
     const payload: DeviceAssignedZoneEventDto = {
       device_id: device.id,
       zone_id: zone_id,
       user_id,
     };
-    this.automationClient.emit('device.assigned.zone', payload);
+
+    await firstValueFrom(
+      this.automationClient.emit('device.assigned.zone', payload),
+    );
 
     const updated = await this.prisma.devices.update({
       where: { id: device.id },
@@ -228,6 +255,64 @@ export class DeviceService {
     };
   }
 
+  async getMyDevices(
+    user_id: string,
+    query: PaginationDto & { search?: string },
+  ) {
+    let { page, limit } = query;
+    page = page ? Number(page) : DEFAULT_PAGE;
+    limit = limit ? Number(limit) : DEFAULT_LIMIT;
+
+    const where: any = {
+      owner_id: user_id,
+    };
+
+    if (query.search) {
+      where.serial_number = {
+        contains: query.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.devices.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          products: {
+            select: {
+              name: true,
+              image_url: true,
+            },
+          },
+          planting_zones: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.devices.count({ where }),
+    ]);
+
+    return {
+      data: data.map((device) => ({
+        ...device,
+        product_name: device.products?.name,
+        product_image: device.products?.image_url,
+        zone_name: device.planting_zones?.name,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: limit ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
+
   async getDeviceById(id: string) {
     const device = await this.prisma.devices.findUnique({
       where: { id },
@@ -238,6 +323,101 @@ export class DeviceService {
     }
 
     return device;
+  }
+
+  async getDeviceBySerial(serial_number: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number },
+      select: {
+        id: true,
+        serial_number: true,
+        status: true,
+        last_online_at: true,
+        hardware_config: true,
+        owner_id: true,
+        zone_id: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
+    }
+
+    return device;
+  }
+
+  async getDeviceBySerialPublic(serial_number: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number },
+      select: {
+        serial_number: true,
+        status: true,
+        last_online_at: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
+    }
+
+    return device;
+  }
+
+  async manualControlDevice(data: ManualControlDeviceCommandDto) {
+    const device = await this.prisma.devices.findUnique({
+      where: { serial_number: data.serial_number },
+      select: {
+        serial_number: true,
+        hardware_config: true,
+        zone_id: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
+      );
+    }
+
+    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
+    const relays = hardwareConfig.relays || {};
+
+    const relayEntries: Array<[number, string | null | undefined]> = [
+      [1, relays.relay_1],
+      [2, relays.relay_2],
+      [3, relays.relay_3],
+      [4, relays.relay_4],
+    ];
+
+    const relayNumber = relayEntries.find(
+      ([, role]) => role === data.role,
+    )?.[0];
+
+    if (!relayNumber) {
+      throw new BadRequestException(
+        'Thiết bị chưa cấu hình relay cho role này.',
+      );
+    }
+
+    const payload: ManualControlEventDto = {
+      serial_number: data.serial_number,
+      relay_number: relayNumber,
+      role: data.role,
+      action: data.action,
+      zone_id: device.zone_id,
+    };
+
+    await this.automationClient.connect();
+    this.automationClient.emit('send.manual.control', payload);
+
+    return {
+      message: 'Đã gửi lệnh điều khiển relay',
+      payload,
+    };
   }
 
   async createDevice(data: CreateDeviceDto) {
@@ -328,6 +508,30 @@ export class DeviceService {
         status: 'INACTIVE',
       },
     });
+
+    return device;
+  }
+
+  async getMyDeviceDetail(user_id: string, device_id: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id: device_id },
+      include: {
+        products: true,
+        planting_zones: {
+          include: {
+            my_plants: true,
+          },
+        },
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    if (device.owner_id !== user_id) {
+      throw new ForbiddenException('Bạn không sở hữu thiết bị này');
+    }
 
     return device;
   }

@@ -63,6 +63,39 @@ export class AssignDeviceToZoneDto {
   zone_id: string;
 }
 
+export class ControlDeviceDto {
+  @ApiProperty({
+    example: 'pump',
+    description: "Role relay cần điều khiển ('pump', 'fan', 'light')",
+  })
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @ApiProperty({
+    example: 'ON',
+    description: "Hành động điều khiển relay ('ON' | 'OFF')",
+  })
+  @IsString()
+  @IsNotEmpty()
+  action: 'ON' | 'OFF';
+}
+
+export class ManualControlDeviceCommandDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  serial_number: string;
+
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @IsString()
+  @IsNotEmpty()
+  action: 'ON' | 'OFF';
+}
+
 export class AssignDeviceToZoneCommandDto {
   @IsString()
   @IsNotEmpty()
