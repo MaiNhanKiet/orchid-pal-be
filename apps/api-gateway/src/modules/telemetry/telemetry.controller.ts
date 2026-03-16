@@ -1,4 +1,5 @@
 import {
+  AnalyzeSeasonalConfigDto,
   BypassInterceptors,
   GetHistoryTelemetryDto,
   GetHistoryTelemetryQueryDto,
@@ -7,7 +8,16 @@ import {
   Public,
   TelemetryEventDto,
 } from '@app/common';
-import { Controller, Get, Inject, Param, Query, Sse } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Sse,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ClientProxy,
@@ -66,7 +76,11 @@ export class TelemetryController {
     const telemetry$ = fromEvent(
       this.eventEmitter,
       `telemetry.${serialNumber}`,
-    ).pipe(map((data: TelemetryEventDto) => ({ data: data.sensors })));
+    ).pipe(
+      map((data: TelemetryEventDto) => {
+        return { data: data.sensors };
+      }),
+    );
 
     const heartbeat$ = interval(60000).pipe(
       startWith(0),
@@ -99,6 +113,20 @@ export class TelemetryController {
         {
           serialNumber: params.serialNumber,
           hours: query.hours,
+        },
+      ),
+    );
+  }
+
+  @Post('analyze-seasonal-config')
+  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'analyze_seasonal_config' },
+        {
+          zoneId: body.zoneId,
+          currentConfig: body.currentConfig,
+          days: body.days,
         },
       ),
     );

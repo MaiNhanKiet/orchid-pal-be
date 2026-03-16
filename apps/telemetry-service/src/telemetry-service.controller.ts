@@ -1,12 +1,15 @@
 import { Controller } from '@nestjs/common';
-import { Ctx, MessagePattern, MqttContext, Payload } from '@nestjs/microservices';
+import {
+  Ctx,
+  MessagePattern,
+  MqttContext,
+  Payload,
+} from '@nestjs/microservices';
 import { TelemetryServiceService } from './telemetry-service.service';
 
 @Controller()
 export class TelemetryServiceController {
-  constructor(
-    private readonly telemetryService: TelemetryServiceService,
-  ) { }
+  constructor(private readonly telemetryService: TelemetryServiceService) {}
 
   @MessagePattern('device/+/telemetry')
   async handleTelemetryData(@Payload() data: any, @Ctx() context: MqttContext) {
@@ -22,14 +25,33 @@ export class TelemetryServiceController {
 
   @MessagePattern({ cmd: 'get_latest_telemetry' })
   async getLatestTelemetry(@Payload() payload: { serialNumber: string }) {
-    const data = await this.telemetryService.getLatestTelemetry(payload.serialNumber);
+    const data = await this.telemetryService.getLatestTelemetry(
+      payload.serialNumber,
+    );
     return data ? data : null;
   }
 
   @MessagePattern({ cmd: 'get_history_telemetry' })
-  async getHistoryTelemetry(@Payload() payload: { serialNumber: string, hours: number }) {
+  async getHistoryTelemetry(
+    @Payload() payload: { serialNumber: string; hours: number },
+  ) {
     const hours = payload.hours ? Number(payload.hours) : 24;
-    const data = await this.telemetryService.getHistoryTelemetry(payload.serialNumber, hours);
+    const data = await this.telemetryService.getHistoryTelemetry(
+      payload.serialNumber,
+      hours,
+    );
     return data;
+  }
+
+  @MessagePattern({ cmd: 'analyze_seasonal_config' })
+  async analyzeSeasonalConfig(
+    @Payload() payload: { zoneId: string; currentConfig: any; days?: number },
+  ) {
+    const days = payload.days || 3;
+    return this.telemetryService.analyzeSeasonalConfig(
+      payload.zoneId,
+      payload.currentConfig,
+      days,
+    );
   }
 }

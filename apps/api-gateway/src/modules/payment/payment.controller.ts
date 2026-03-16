@@ -1,23 +1,22 @@
-import { Body, Controller, Inject, Param, Post } from '@nestjs/common';
 import {
   CurrentUser,
   JwtPayload,
   MICROSERVICES_CLIENTS,
   UuidDto,
 } from '@app/common';
+import { Body, Controller, Inject, Param, Post } from '@nestjs/common';
 
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { firstValueFrom } from 'rxjs';
 import {
-  ApiHandlePayOSWebhookDocs,
-  ApiCheckOutDocs,
   ApiCancelPaymentDocs,
+  ApiCheckOutDocs,
   ApiGetPaymentInformationDocs,
+  ApiHandlePayOSWebhookDocs,
 } from './payment.swagger';
 
-import { type Webhook } from '@payos/node';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 
 @ApiTags('Payment')
@@ -33,7 +32,7 @@ export class PaymentController {
   @Post('/webhooks/payos')
   @Public()
   @ApiHandlePayOSWebhookDocs()
-  async handlePayOS(@Body() body: Webhook) {
+  async handlePayOS(@Body() body: any) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'handle_webhook' }, { body }),
     );
