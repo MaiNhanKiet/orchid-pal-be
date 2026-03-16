@@ -1,7 +1,38 @@
 import { ApiAuthFailures } from '@app/common';
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
-import { CreateRoleDto, UpdateRoleDto } from '@app/common';
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+
+export function ApiGetRoleDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy thông tin chi tiết một Role (Bao gồm Permission)',
+    }),
+    ApiAuthFailures(),
+    ApiParam({ name: 'id', description: 'Role ID' }),
+    ApiResponse({
+      status: 200,
+      description: 'Lấy thông tin Role thành công.',
+      schema: {
+        example: {
+          id: 1,
+          name: 'Admin',
+          description: 'Quản trị viên hệ thống',
+          permissions: [
+            {
+              id: 1,
+              slug: 'user.create',
+              description: 'Tạo user',
+            },
+          ],
+        },
+      },
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Role không tồn tại.',
+    }),
+  );
+}
 
 export function ApiGetRolesDocs() {
   return applyDecorators(
