@@ -1,8 +1,8 @@
-import { Controller } from '@nestjs/common';
-import { RbacService } from './rbac.service';
-import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateRoleDto, IdDto, UpdateRoleCommandDto } from '@app/common';
 import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { RbacService } from './rbac.service';
 
 @Controller()
 export class RbacController {
@@ -26,6 +26,11 @@ export class RbacController {
   @MessagePattern({ cmd: 'delete_role' })
   deleteRole(@Payload() idDto: IdDto) {
     return this.rbacService.deleteRole({ ...idDto });
+  }
+
+  @MessagePattern({ cmd: 'get_role_with_permissions' })
+  getRoleWithPermissions(@Payload() idDto: IdDto) {
+    return this.rbacService.getRoleWithPermissions(idDto.id);
   }
 
   @MessagePattern({ cmd: 'get_permissions' })

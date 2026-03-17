@@ -84,6 +84,53 @@ export class DeviceService implements OnModuleInit {
     };
   }
 
+  async getLatestDevice(user_id: string) {
+    const device = await this.prisma.devices.findFirst({
+      where: {
+        owner_id: user_id,
+        zone_id: { not: null },
+        planting_zones: {
+          my_plants: {
+            some: {},
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      include: {
+        planting_zones: {
+          include: {
+            my_plants: true,
+          },
+        },
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException(
+        'Không tìm thấy thiết bị nào phù hợp (đã gán zone và có cây).',
+      );
+    }
+
+    return {
+      device: {
+        id: device.id,
+        serial_number: device.serial_number,
+        status: device.status,
+        last_online_at: device.last_online_at,
+        created_at: device.created_at,
+      },
+      zone: {
+        id: device.planting_zones.id,
+        name: device.planting_zones.name,
+        exposure: device.planting_zones.exposure,
+        image_url: device.planting_zones.image_url,
+      },
+      plants: device.planting_zones.my_plants,
+    };
+  }
+
   async changeDeviceStatusBySerial(serial_number: string, status: string) {
     const existing = await this.prisma.devices.findUnique({
       where: { serial_number },

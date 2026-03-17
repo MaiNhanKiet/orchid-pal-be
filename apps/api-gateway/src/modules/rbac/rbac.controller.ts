@@ -1,4 +1,14 @@
 import {
+  CreateRoleDto,
+  IdDto,
+  MICROSERVICES_CLIENTS,
+  Permissions,
+  Public,
+  UpdateRoleDto,
+} from '@app/common';
+import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
+import { Permission } from '@app/common/enums';
+import {
   Body,
   Controller,
   Delete,
@@ -8,26 +18,17 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import {
-  CreateRoleDto,
-  IdDto,
-  MICROSERVICES_CLIENTS,
-  Permissions,
-  Public,
-  UpdateRoleDto,
-} from '@app/common';
-import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
-import { AssignPermissionsDto } from '@app/common/dtos/rbac/assign-role.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { firstValueFrom } from 'rxjs';
 import {
-  ApiGetRolesDocs,
+  ApiAssignPermissionsDocs,
   ApiCreateRoleDocs,
-  ApiUpdateRoleDocs,
   ApiDeleteRoleDocs,
   ApiGetPermissionsDocs,
-  ApiAssignPermissionsDocs,
+  ApiGetRoleDocs,
+  ApiGetRolesDocs,
+  ApiUpdateRoleDocs,
 } from './rbac.swagger';
 
 @ApiTags('RBAC')
@@ -38,13 +39,22 @@ export class RbacController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
     private readonly iamClient: ClientProxy,
-  ) { }
+  ) {}
 
   @Get('roles')
   @Permissions(Permission.RoleView)
   @ApiGetRolesDocs()
   getRoles() {
     return firstValueFrom(this.iamClient.send({ cmd: 'get_roles' }, {}));
+  }
+
+  @Get('roles/:id')
+  @Permissions(Permission.RoleView)
+  @ApiGetRoleDocs()
+  getRole(@Param() idDto: IdDto) {
+    return firstValueFrom(
+      this.iamClient.send({ cmd: 'get_role_with_permissions' }, { ...idDto }),
+    );
   }
 
   @Post('roles')
@@ -81,9 +91,7 @@ export class RbacController {
   @Permissions(Permission.RoleView)
   @ApiGetPermissionsDocs()
   getPermissions() {
-    return firstValueFrom(
-      this.iamClient.send({ cmd: 'get_permissions' }, {}),
-    );
+    return firstValueFrom(this.iamClient.send({ cmd: 'get_permissions' }, {}));
   }
 
   @Post('permissions')

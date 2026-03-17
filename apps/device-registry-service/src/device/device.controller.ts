@@ -55,6 +55,11 @@ export class DeviceController {
     return this.deviceService.getMyDevices(data.user_id, data);
   }
 
+  @MessagePattern({ cmd: 'get_latest_device' })
+  getLatestDevice(@Payload() data: { user_id: string }) {
+    return this.deviceService.getLatestDevice(data.user_id);
+  }
+
   @MessagePattern({ cmd: 'get_device_by_id' })
   getDeviceById(@Payload() id: string) {
     return this.deviceService.getDeviceById(id);

@@ -278,4 +278,26 @@ export class AutomationServiceService {
       this.logger.error(`[Activity Log] Lỗi khi lưu log: ${error.message}`);
     }
   }
+
+  async getDeviceLogs(deviceId: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      this.automationLogModel
+        .find({ device_id: deviceId })
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.automationLogModel.countDocuments({ device_id: deviceId }),
+    ]);
+
+    return {
+      data: logs,
+      total,
+      page,
+      limit,
+      last_page: Math.ceil(total / limit),
+    };
+  }
 }

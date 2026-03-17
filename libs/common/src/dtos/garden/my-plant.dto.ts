@@ -91,3 +91,22 @@ export class CreateMyPlantCommandDto extends CreateMyPlantDto {
   @IsNotEmpty()
   user_id: string;
 }
+
+export class UpdateMyPlantDto {
+  @ApiPropertyOptional({
+    example: 'Cô nàng Hồ Điệp số 2',
+    description: 'Tên gọi riêng/nickname mới cho chậu cây này',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  nickname?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/my-orchid-new.jpg',
+    description: 'Ảnh chụp mới của chậu cây',
+  })
+  @IsString()
+  @IsOptional()
+  image_url?: string;
+}

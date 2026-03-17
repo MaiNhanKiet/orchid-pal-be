@@ -1,80 +1,134 @@
-import { GetHistoryTelemetryDto, GetHistoryTelemetryQueryDto, GetLatestTelemetryDto, MICROSERVICES_CLIENTS, TelemetryEventDto } from '@app/common';
-import { Controller, Get, Inject, Param, Query, Sse } from '@nestjs/common';
 import {
-    ClientProxy,
-    Ctx,
-    EventPattern,
-    Payload,
-    RmqContext,
+  BypassInterceptors,
+  GetHistoryTelemetryDto,
+  GetHistoryTelemetryQueryDto,
+  GetLatestTelemetryDto,
+  MICROSERVICES_CLIENTS,
+  Public,
+  TelemetryEventDto,
+} from '@app/common';
+import { AnalyzeSeasonalConfigDto } from '@app/common/dtos/telemetry/analyze-seasonal-config.dto';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Sse,
+} from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  ClientProxy,
+  Ctx,
+  EventPattern,
+  Payload,
+  RmqContext,
 } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { filter, firstValueFrom, map, Observable, Subject } from 'rxjs';
 import {
-    ApiGetHistoryTelemetryDocs,
-    ApiGetLatestTelemetryDocs,
-    ApiStreamTelemetryDocs,
+  firstValueFrom,
+  fromEvent,
+  interval,
+  map,
+  merge,
+  Observable,
+  startWith,
+  Subject,
+} from 'rxjs';
+import {
+  ApiGetHistoryTelemetryDocs,
+  ApiGetLatestTelemetryDocs,
+  ApiStreamTelemetryDocs,
 } from './telemetry.swagger';
 
 @ApiTags('Telemetry')
 @ApiBearerAuth('access-token')
 @Controller('telemetry')
 export class TelemetryController {
-    private telemetrySubject = new Subject<TelemetryEventDto>();
+  private telemetrySubject = new Subject<TelemetryEventDto>();
 
-    constructor(
-        @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
-        private readonly telemetryClient: ClientProxy,
-    ) { }
+  constructor(
+    @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
+    private readonly telemetryClient: ClientProxy,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
-    @EventPattern('telemetry_created_event')
-    handleNewTelemetry(
-        @Payload() data: TelemetryEventDto,
-        @Ctx() context: RmqContext,
-    ) {
-        this.telemetrySubject.next(data);
+  @EventPattern('telemetry_created_event')
+  handleNewTelemetry(
+    @Payload() data: TelemetryEventDto,
+    @Ctx() context: RmqContext,
+  ) {
+    this.eventEmitter.emit(`telemetry.${data.serialNumber}`, data);
 
-        const channel = context.getChannelRef();
-        const originalMsg = context.getMessage();
+    const channel = context.getChannelRef();
+    channel.ack(context.getMessage());
+  }
 
-        channel.ack(originalMsg);
-    }
+  @Public()
+  @BypassInterceptors()
+  @Sse('stream/:serialNumber')
+  @ApiStreamTelemetryDocs()
+  streamTelemetry(
+    @Param('serialNumber') serialNumber: string,
+  ): Observable<any> {
+    const telemetry$ = fromEvent(
+      this.eventEmitter,
+      `telemetry.${serialNumber}`,
+    ).pipe(
+      map((data: TelemetryEventDto) => {
+        return { data: data.sensors };
+      }),
+    );
 
-    @Sse('stream/:serialNumber')
-    @ApiStreamTelemetryDocs()
-    streamTelemetry(
-        @Param('serialNumber') serialNumber: string,
-    ): Observable<MessageEvent> {
-        return this.telemetrySubject.asObservable().pipe(
-            filter((data) => data.serialNumber === serialNumber),
-            map((data) => ({ data: data.sensors } as MessageEvent)),
-        );
-    }
+    const heartbeat$ = interval(60000).pipe(
+      startWith(0),
+      map(() => ({ data: { type: 'ping' } })),
+    );
 
-    @Get(':serialNumber/latest')
-    @ApiGetLatestTelemetryDocs()
-    getLatestTelemetry(@Param() params: GetLatestTelemetryDto) {
-        return firstValueFrom(
-            this.telemetryClient.send(
-                { cmd: 'get_latest_telemetry' },
-                { serialNumber: params.serialNumber },
-            ),
-        );
-    }
+    return merge(telemetry$, heartbeat$);
+  }
 
-    @Get(':serialNumber/history')
-    @ApiGetHistoryTelemetryDocs()
-    getHistoryTelemetry(
-        @Param() params: GetHistoryTelemetryDto,
-        @Query() query: GetHistoryTelemetryQueryDto,
-    ) {
-        return firstValueFrom(
-            this.telemetryClient.send(
-                { cmd: 'get_history_telemetry' },
-                {
-                    serialNumber: params.serialNumber,
-                    hours: query.hours,
-                },
-            ),
-        );
-    }
+  @Get(':serialNumber/latest')
+  @ApiGetLatestTelemetryDocs()
+  getLatestTelemetry(@Param() params: GetLatestTelemetryDto) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'get_latest_telemetry' },
+        { serialNumber: params.serialNumber },
+      ),
+    );
+  }
+
+  @Get(':serialNumber/history')
+  @ApiGetHistoryTelemetryDocs()
+  getHistoryTelemetry(
+    @Param() params: GetHistoryTelemetryDto,
+    @Query() query: GetHistoryTelemetryQueryDto,
+  ) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'get_history_telemetry' },
+        {
+          serialNumber: params.serialNumber,
+          hours: query.hours,
+        },
+      ),
+    );
+  }
+
+  @Post('analyze-seasonal-config')
+  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'analyze_seasonal_config' },
+        {
+          zoneId: body.zoneId,
+          currentConfig: body.currentConfig,
+          days: body.days,
+        },
+      ),
+    );
+  }
 }

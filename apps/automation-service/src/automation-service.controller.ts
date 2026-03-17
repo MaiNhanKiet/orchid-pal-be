@@ -76,4 +76,17 @@ export class AutomationServiceController {
       value: data.value,
     });
   }
+
+  @MessagePattern({ cmd: 'get_device_logs' })
+  async getDeviceLogs(
+    @Payload() data: { device_id: string; page: number; limit: number },
+    @Ctx() context: RmqContext,
+  ) {
+    this.rmqService.ack(context);
+    return this.automationServiceService.getDeviceLogs(
+      data.device_id,
+      data.page,
+      data.limit,
+    );
+  }
 }

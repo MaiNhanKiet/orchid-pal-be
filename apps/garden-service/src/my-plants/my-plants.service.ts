@@ -1,6 +1,7 @@
 import {
   AssignPlantToZoneCommandDto,
   CreateMyPlantCommandDto,
+  UpdateMyPlantDto,
 } from '@app/common/dtos/garden/my-plant.dto';
 import { PrismaService } from '@app/prisma';
 import {
@@ -42,6 +43,30 @@ export class MyPlantsService {
       plant_id: myPlant.id,
       ...myPlant,
     };
+  }
+
+  async updateMyPlant(id: string, userId: string, data: UpdateMyPlantDto) {
+    const plant = await this.prisma.my_plants.findUnique({
+      where: { id },
+    });
+
+    if (!plant) {
+      throw new NotFoundException('Không tìm thấy cây.');
+    }
+
+    if (plant.user_id !== userId) {
+      throw new ForbiddenException('Bạn không sở hữu cây này.');
+    }
+
+    const updated = await this.prisma.my_plants.update({
+      where: { id },
+      data: {
+        nickname: data.nickname ?? undefined,
+        image_url: data.image_url ?? undefined,
+      },
+    });
+
+    return updated;
   }
 
   async assignPlantToZone(data: AssignPlantToZoneCommandDto) {

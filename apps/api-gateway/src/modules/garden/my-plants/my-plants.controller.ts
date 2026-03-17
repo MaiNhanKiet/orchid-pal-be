@@ -6,6 +6,7 @@ import {
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
+  UpdateMyPlantDto,
 } from '@app/common';
 import { Permission } from '@app/common/enums';
 import {
@@ -14,13 +15,17 @@ import {
   Get,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { ApiCreateMyPlantDocs } from './my-plants.swagger';
+import {
+  ApiCreateMyPlantDocs,
+  ApiUpdateMyPlantDocs,
+} from './my-plants.swagger';
 
 @ApiTags('My Plants')
 @ApiBearerAuth('access-token')
@@ -44,6 +49,26 @@ export class MyPlantsController {
         {
           ...createMyPlantDto,
           user_id: user.sub,
+        },
+      ),
+    );
+  }
+
+  @Patch(':id')
+  @Permissions(Permission.MyPlantUpdate)
+  @ApiUpdateMyPlantDocs()
+  updateMyPlant(
+    @Param('id') id: string,
+    @Body() updateMyPlantDto: UpdateMyPlantDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'update_my_plant' },
+        {
+          plant_id: id,
+          user_id: user.sub,
+          ...updateMyPlantDto,
         },
       ),
     );

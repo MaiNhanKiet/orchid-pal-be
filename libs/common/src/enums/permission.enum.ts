@@ -73,6 +73,7 @@ export enum Permission {
 
   NotificationSend = 'notification.send',
 
+  DeviceView = 'device.view',
   DeviceViewAll = 'device.view_all',
   DeviceProvision = 'device.provision',
   DeviceActivate = 'device.activate',
@@ -94,6 +95,7 @@ export enum Permission {
   ZoneCreate = 'zone.create',
   ZoneRead = 'zone.read',
   MyPlantCreate = 'my_plant.create',
+  MyPlantUpdate = 'my_plant.update',
 
   UnlockRoom = 'room.unlock',
   LockRoom = 'room.lock',

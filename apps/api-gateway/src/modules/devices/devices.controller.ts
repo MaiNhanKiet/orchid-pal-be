@@ -27,7 +27,9 @@ import {
   ApiActivateDeviceDocs,
   ApiAssignDeviceToZoneDocs,
   ApiControlDeviceDocs,
+  ApiGetDeviceLogsDocs,
   ApiGetDeviceStatusDocs,
+  ApiGetLatestDeviceDocs,
   ApiTestAutomationQueueDocs,
 } from './devices.swagger';
 
@@ -66,6 +68,18 @@ export class DevicesController {
           ...activateDeviceDto,
           user_id: user.sub,
         },
+      ),
+    );
+  }
+
+  @Get('latest')
+  // @Permissions(Permission.DeviceView)
+  @ApiGetLatestDeviceDocs()
+  getLatestDevice(@CurrentUser() user: JwtPayload) {
+    return firstValueFrom(
+      this.deviceRegistryClient.send(
+        { cmd: 'get_latest_device' },
+        { user_id: user.sub },
       ),
     );
   }
@@ -162,6 +176,25 @@ export class DevicesController {
         {
           user_id: user.sub,
           device_id: id,
+        },
+      ),
+    );
+  }
+
+  @Get(':serial_number/logs')
+  @Permissions(Permission.DeviceViewLogs)
+  @ApiGetDeviceLogsDocs()
+  getDeviceLogs(
+    @Param('serial_number') serialNumber: string,
+    @Query() query: PaginationDto,
+  ) {
+    return firstValueFrom(
+      this.automationClient.send(
+        { cmd: 'get_device_logs' },
+        {
+          device_id: serialNumber,
+          page: query.page,
+          limit: query.limit,
         },
       ),
     );
