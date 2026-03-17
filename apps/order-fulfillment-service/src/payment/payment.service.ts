@@ -28,6 +28,8 @@ import { Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ClientProxy } from '@nestjs/microservices';
+import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
 
 interface PayOSPaymentLinkRequest {
   orderCode: number;
@@ -40,12 +42,23 @@ interface PayOSPaymentLinkRequest {
   items?: Array<{ name: string; price: number; quantity: number }>;
 }
 
+interface OrderSuccessEmailEvent {
+  email: string;
+  fullName?: string;
+  orderCode: string;
+  paymentMethod: 'COD' | 'PAYOS';
+  totalAmount: number;
+}
+
 @Injectable()
 export class PaymentService {
   private readonly payos: PayOS;
+  private readonly transporter: Transporter;
+  private readonly mailFrom: string;
 
   constructor(
     private prisma: PrismaService,
+    private readonly configService: ConfigService,
     private eventEmitter: EventEmitter2,
     @InjectQueue(QueueName.PaymentTimeoutQueue) private paymentQueue: Queue,
     @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
@@ -59,6 +72,24 @@ export class PaymentService {
       clientId,
       apiKey,
       checksumKey,
+    });
+
+    const host = this.configService.get<string>('SMTP_HOST');
+    const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+    const secure = this.configService.get<string>('SMTP_SECURE') === 'true';
+
+    this.mailFrom =
+      this.configService.get<string>('MAIL_FROM') ||
+      user ||
+      'no-reply@orchidpal.local';
+
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: user && pass ? { user, pass } : undefined,
     });
   }
 
@@ -277,9 +308,11 @@ export class PaymentService {
 
       // 5. Xử lý theo phương thức thanh toán
       if (dto.paymentMethod === 'COD') {
+        console.log('[COD] Xử lý COD cho orderCode:', orderCode);
+
         await tx.orders.update({
           where: { id: order.id },
-          data: { status: 'CONFIRMED' },
+          data: { status: OrderStatus.PENDING },
         });
 
         await tx.transactions.create({
@@ -298,7 +331,7 @@ export class PaymentService {
             order_id: order.id,
             carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
             tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
-            shipping_fee: new Prisma.Decimal(30000), // ví dụ, có thể tính động sau
+            shipping_fee: new Prisma.Decimal(0), // ví dụ, có thể tính động sau
             status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
             estimated_delivery_at: new Date(
               Date.now() + 3 * 24 * 60 * 60 * 1000,
@@ -319,11 +352,27 @@ export class PaymentService {
 
         this.eventEmitter.emit('order.confirmed', order);
 
+        const user = await tx.users.findUnique({
+          where: { id: userId },
+          select: { email: true, full_name: true },
+        });
+
+        if (user?.email) {
+          this.sendOrderSuccessEmail({
+            email: user.email,
+            fullName:
+              user.full_name ?? shippingInfo.recipient_name ?? undefined,
+            orderCode,
+            paymentMethod: 'COD',
+            totalAmount: Number(totalAmount),
+          });
+        }
+
         return {
           success: true,
           orderId: order.id,
           orderCode,
-          status: 'CONFIRMED',
+          status: OrderStatus.PENDING,
           paymentMethod: 'COD',
           totalAmount: Number(totalAmount),
           shippingInfo,
@@ -369,11 +418,10 @@ export class PaymentService {
       // });
 
       if (createdTransaction) {
-        // Dispatch job timeout sau 15 phút
         await this.paymentQueue.add(
           'check_timeout',
           { transactionId: createdTransaction.id },
-          { delay: DEFAULT_TIMEOUT_PAYMENT }, // 15 phút
+          { delay: DEFAULT_TIMEOUT_PAYMENT },
         );
       }
 
@@ -462,6 +510,21 @@ export class PaymentService {
       });
 
       this.eventEmitter.emit('order.paid', order);
+
+      const user = await tx.users.findUnique({
+        where: { id: order.user_id! },
+        select: { email: true, full_name: true },
+      });
+
+      if (user?.email) {
+        this.sendOrderSuccessEmail({
+          email: user.email,
+          fullName: user.full_name ?? undefined,
+          orderCode: order.order_code,
+          paymentMethod: 'PAYOS',
+          totalAmount: Number(order.total_amount),
+        });
+      }
 
       this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
@@ -609,5 +672,34 @@ export class PaymentService {
   private generateOrderCode(): string {
     const shortCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-7 chữ số
     return shortCode;
+  }
+
+  private sendOrderSuccessEmail(payload: OrderSuccessEmailEvent): void {
+    void this.transporter
+      .sendMail({
+        from: this.mailFrom,
+        to: payload.email,
+        subject: `[OrchidPal] Dat hang thanh cong - Don ${payload.orderCode}`,
+        text: [
+          `Xin chao ${payload.fullName || 'ban'},`,
+          '',
+          `Don hang ${payload.orderCode} cua ban da duoc dat thanh cong.`,
+          `Phuong thuc thanh toan: ${payload.paymentMethod}.`,
+          `Tong tien: ${new Intl.NumberFormat('vi-VN').format(payload.totalAmount)} VND.`,
+          '',
+          'Cam on ban da mua sam tai OrchidPal.',
+        ].join('\n'),
+      })
+      .then(() => {
+        console.log(
+          `[PaymentService] Sent order success email to ${payload.email} for order ${payload.orderCode}`,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          `[PaymentService] Failed to send order success email for order ${payload.orderCode}:`,
+          error,
+        );
+      });
   }
 }
