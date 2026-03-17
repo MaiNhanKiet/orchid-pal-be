@@ -1,6 +1,7 @@
 import {
   AssignPlantToZoneCommandDto,
   CreateMyPlantCommandDto,
+  UpdateMyPlantDto,
 } from '@app/common/dtos/garden/my-plant.dto';
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
@@ -13,6 +14,14 @@ export class MyPlantsController {
   @MessagePattern({ cmd: 'create_my_plant' })
   createMyPlant(@Payload() data: CreateMyPlantCommandDto) {
     return this.myPlantsService.createMyPlant(data);
+  }
+
+  @MessagePattern({ cmd: 'update_my_plant' })
+  updateMyPlant(
+    @Payload() data: UpdateMyPlantDto & { plant_id: string; user_id: string },
+  ) {
+    const { plant_id, user_id, ...updateDto } = data;
+    return this.myPlantsService.updateMyPlant(plant_id, user_id, updateDto);
   }
 
   @MessagePattern({ cmd: 'assign_plant_to_zone' })
