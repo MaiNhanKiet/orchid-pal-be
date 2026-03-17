@@ -71,6 +71,18 @@ export class DevicesController {
     );
   }
 
+  @Get('latest')
+  @Permissions(Permission.DeviceView)
+  // @ApiGetLatestDeviceDocs()
+  getLatestDevice(@CurrentUser() user: JwtPayload) {
+    return firstValueFrom(
+      this.deviceRegistryClient.send(
+        { cmd: 'get_latest_device' },
+        { user_id: user.sub },
+      ),
+    );
+  }
+
   @Get(':serial_number/status')
   @Permissions(Permission.MeDeviceControl)
   @ApiGetDeviceStatusDocs()

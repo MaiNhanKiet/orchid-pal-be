@@ -73,6 +73,7 @@ export enum Permission {
 
   NotificationSend = 'notification.send',
 
+  DeviceView = 'device.view',
   DeviceViewAll = 'device.view_all',
   DeviceProvision = 'device.provision',
   DeviceActivate = 'device.activate',

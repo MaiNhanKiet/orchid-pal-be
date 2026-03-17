@@ -115,6 +115,57 @@ export function ApiGetDeviceStatusDocs() {
   );
 }
 
+export function ApiGetLatestDeviceDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy thiết bị mới nhất đã gán vào zone có trồng cây',
+      description:
+        'API này trả về thông tin thiết bị, vườn, và cây của thiết bị MỚI NHẤT (dựa trên thời gian tạo) mà user sở hữu.\n\n' +
+        'Điều kiện:\n' +
+        '- Thiết bị thuộc về user.\n' +
+        '- Thiết bị đã được gán vào một `zone`.\n' +
+        '- Zone đó đã có ít nhất một `my_plant`.\n\n' +
+        'Dữ liệu trả về bao gồm thông tin chi tiết của Device, Zone và danh sách Plants trong zone đó.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Tìm thấy thiết bị thỏa mãn điều kiện.',
+      schema: {
+        example: {
+          device: {
+            id: 'device-uuid',
+            serial_number: 'SN-123456',
+            status: 'ONLINE',
+            last_online_at: '2025-01-01T12:00:00Z',
+            created_at: '2025-01-01T10:00:00Z',
+          },
+          zone: {
+            id: 'zone-uuid',
+            name: 'Ban công tầng 2',
+            exposure: 'SUNNY',
+            image_url: 'http://example.com/zone.jpg',
+          },
+          plants: [
+            {
+              id: 'plant-uuid',
+              nickname: 'Lan Hồ Điệp',
+              species_id: 'species-uuid',
+              planted_at: '2025-01-01',
+              health_status: 'GOOD',
+              image_url: 'http://example.com/plant.jpg',
+            },
+          ],
+        },
+      },
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Không tìm thấy thiết bị nào phù hợp.',
+    }),
+  );
+}
+
 export function ApiAssignDeviceToZoneDocs() {
   return applyDecorators(
     ApiOperation({
