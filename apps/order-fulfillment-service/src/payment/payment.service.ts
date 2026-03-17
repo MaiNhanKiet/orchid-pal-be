@@ -254,7 +254,6 @@ export class PaymentService {
         product_name_snapshot: string;
         quantity: number;
         unit_price: Prisma.Decimal;
-        // total_price: Prisma.Decimal;
       }> = [];
 
       for (const item of cartItems) {
@@ -281,7 +280,6 @@ export class PaymentService {
           product_name_snapshot: product.name,
           quantity: item.quantity!,
           unit_price: unitPrice,
-          // total_price: totalPrice,
         });
       }
 
@@ -376,6 +374,12 @@ export class PaymentService {
           paymentMethod: 'COD',
           totalAmount: Number(totalAmount),
           shippingInfo,
+          items: order.order_items.map((item) => ({
+            productName: item.product_name_snapshot,
+            quantity: item.quantity,
+            unitPrice: Number(item.unit_price),
+            totalPrice: Number(item.total_price ?? (Number(item.unit_price) * item.quantity)),
+          })),
         };
       }
 
@@ -528,8 +532,18 @@ export class PaymentService {
 
       this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
+        orderId: order.id,
         status: 'PAID',
         message: 'Thanh toán thành công',
+        paymentMethod: 'PAYOS',
+        totalAmount: Number(order.total_amount),
+        items: order.order_items.map((item) => ({
+          productName: item.product_name_snapshot,
+          quantity: item.quantity,
+          unitPrice: Number(item.unit_price),
+          totalPrice: Number(item.total_price ?? item.unit_price.mul(item.quantity)),
+        })),
+        shippingInfo: order.shipping_info,
       });
 
       return { success: true };
