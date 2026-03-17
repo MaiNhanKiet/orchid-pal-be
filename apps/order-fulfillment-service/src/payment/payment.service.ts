@@ -48,6 +48,11 @@ interface OrderSuccessEmailEvent {
   orderCode: string;
   paymentMethod: 'COD' | 'PAYOS';
   totalAmount: number;
+  items?: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
 }
 
 @Injectable()
@@ -254,7 +259,6 @@ export class PaymentService {
         product_name_snapshot: string;
         quantity: number;
         unit_price: Prisma.Decimal;
-        // total_price: Prisma.Decimal;
       }> = [];
 
       for (const item of cartItems) {
@@ -281,7 +285,6 @@ export class PaymentService {
           product_name_snapshot: product.name,
           quantity: item.quantity!,
           unit_price: unitPrice,
-          // total_price: totalPrice,
         });
       }
 
@@ -365,6 +368,11 @@ export class PaymentService {
             orderCode,
             paymentMethod: 'COD',
             totalAmount: Number(totalAmount),
+            items: order.order_items.map((item) => ({
+              name: item.product_name_snapshot,
+              quantity: item.quantity,
+              unitPrice: Number(item.unit_price),
+            })),
           });
         }
 
@@ -376,6 +384,12 @@ export class PaymentService {
           paymentMethod: 'COD',
           totalAmount: Number(totalAmount),
           shippingInfo,
+          items: order.order_items.map((item) => ({
+            productName: item.product_name_snapshot,
+            quantity: item.quantity,
+            unitPrice: Number(item.unit_price),
+            totalPrice: Number(item.total_price ?? (Number(item.unit_price) * item.quantity)),
+          })),
         };
       }
 
@@ -523,13 +537,28 @@ export class PaymentService {
           orderCode: order.order_code,
           paymentMethod: 'PAYOS',
           totalAmount: Number(order.total_amount),
+          items: order.order_items.map((item) => ({
+            name: item.product_name_snapshot,
+            quantity: item.quantity,
+            unitPrice: Number(item.unit_price),
+          })),
         });
       }
 
       this.apiGatewayClient.emit('payment_status_updated', {
         orderCode: order.order_code,
+        orderId: order.id,
         status: 'PAID',
         message: 'Thanh toán thành công',
+        paymentMethod: 'PAYOS',
+        totalAmount: Number(order.total_amount),
+        items: order.order_items.map((item) => ({
+          productName: item.product_name_snapshot,
+          quantity: item.quantity,
+          unitPrice: Number(item.unit_price),
+          totalPrice: Number(item.total_price ?? item.unit_price.mul(item.quantity)),
+        })),
+        shippingInfo: order.shipping_info,
       });
 
       return { success: true };
@@ -675,20 +704,103 @@ export class PaymentService {
   }
 
   private sendOrderSuccessEmail(payload: OrderSuccessEmailEvent): void {
+    const customerName = payload.fullName || 'bạn';
+    const totalAmountFormatted = new Intl.NumberFormat('vi-VN').format(
+      payload.totalAmount,
+    );
+    const paymentMethodText =
+      payload.paymentMethod === 'PAYOS'
+        ? 'PayOS (chuyển khoản)'
+        : 'Thanh toán khi nhận hàng (COD)';
+    const emailHeadline =
+      payload.paymentMethod === 'PAYOS'
+        ? 'Đơn hàng của bạn đã được thanh toán thành công'
+        : 'Đơn hàng của bạn đã được đặt thành công';
+    const emailIntro =
+      payload.paymentMethod === 'PAYOS'
+        ? 'Cảm ơn bạn đã thanh toán qua PayOS. Đơn hàng của bạn đã được xác nhận và đang được chuẩn bị để giao sớm nhất có thể.'
+        : 'Cảm ơn bạn đã đặt hàng tại OrchidPal. Đơn hàng của bạn đã được ghi nhận và đang được xử lý.';
+    const itemRows = (payload.items || [])
+      .map((item) => {
+        const unitPrice = new Intl.NumberFormat('vi-VN').format(item.unitPrice);
+        const lineTotal = new Intl.NumberFormat('vi-VN').format(
+          item.unitPrice * item.quantity,
+        );
+        return `
+          <tr>
+            <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;">${item.name}</td>
+            <td align="center" style="padding:10px 8px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;">${item.quantity}</td>
+            <td align="right" style="padding:10px 8px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;">${unitPrice} VND</td>
+            <td align="right" style="padding:10px 8px;border-bottom:1px solid #e5e7eb;font-size:13px;font-weight:700;color:#111827;">${lineTotal} VND</td>
+          </tr>
+        `;
+      })
+      .join('');
+    const productSection = itemRows
+      ? `
+          <div style="margin-top:16px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#ffffff;">
+              <thead>
+                <tr style="background:#f8fafc;">
+                  <th align="left" style="padding:10px 8px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Sản phẩm</th>
+                  <th align="center" style="padding:10px 8px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Số lượng</th>
+                  <th align="right" style="padding:10px 8px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Đơn giá</th>
+                  <th align="right" style="padding:10px 8px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemRows}
+              </tbody>
+            </table>
+          </div>
+        `
+      : '';
+
     void this.transporter
       .sendMail({
         from: this.mailFrom,
         to: payload.email,
-        subject: `[OrchidPal] Dat hang thanh cong - Don ${payload.orderCode}`,
-        text: [
-          `Xin chao ${payload.fullName || 'ban'},`,
-          '',
-          `Don hang ${payload.orderCode} cua ban da duoc dat thanh cong.`,
-          `Phuong thuc thanh toan: ${payload.paymentMethod}.`,
-          `Tong tien: ${new Intl.NumberFormat('vi-VN').format(payload.totalAmount)} VND.`,
-          '',
-          'Cam on ban da mua sam tai OrchidPal.',
-        ].join('\n'),
+        subject: `[OrchidPal] Đặt hàng thành công - Đơn ${payload.orderCode}`,
+        html: `
+          <div style="margin:0;padding:24px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+            <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+              <div style="padding:20px 24px;background:linear-gradient(135deg,#0f766e,#065f46);color:#ffffff;">
+                <h1 style="margin:0;font-size:20px;line-height:1.4;">OrchidPal</h1>
+                <p style="margin:8px 0 0;font-size:13px;opacity:.95;">${emailHeadline}</p>
+              </div>
+
+              <div style="padding:24px;">
+                <p style="margin:0 0 14px;font-size:15px;">Xin chào <strong>${customerName}</strong>,</p>
+                <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#374151;">
+                  ${emailIntro}
+                </p>
+
+                <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;background:#fafafa;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <tr>
+                      <td style="padding:6px 0;font-size:13px;color:#6b7280;">Mã đơn hàng</td>
+                      <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#111827;">${payload.orderCode}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;font-size:13px;color:#6b7280;">Phương thức thanh toán</td>
+                      <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#111827;">${paymentMethodText}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;font-size:13px;color:#6b7280;">Tổng thanh toán</td>
+                      <td align="right" style="padding:6px 0;font-size:15px;font-weight:800;color:#065f46;">${totalAmountFormatted} VND</td>
+                    </tr>
+                  </table>
+                </div>
+
+                ${productSection}
+
+                <p style="margin:18px 0 0;font-size:13px;line-height:1.7;color:#6b7280;">
+                  Nếu bạn cần hỗ trợ, vui lòng liên hệ đội ngũ OrchidPal. Cảm ơn bạn đã tin tưởng!
+                </p>
+              </div>
+            </div>
+          </div>
+        `,
       })
       .then(() => {
         console.log(
