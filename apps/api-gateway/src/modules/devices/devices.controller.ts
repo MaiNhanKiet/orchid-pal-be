@@ -29,6 +29,7 @@ import {
   ApiControlDeviceDocs,
   ApiGetDeviceLogsDocs,
   ApiGetDeviceStatusDocs,
+  ApiGetLatestDeviceDocs,
   ApiTestAutomationQueueDocs,
 } from './devices.swagger';
 
@@ -72,8 +73,8 @@ export class DevicesController {
   }
 
   @Get('latest')
-  @Permissions(Permission.DeviceView)
-  // @ApiGetLatestDeviceDocs()
+  // @Permissions(Permission.DeviceView)
+  @ApiGetLatestDeviceDocs()
   getLatestDevice(@CurrentUser() user: JwtPayload) {
     return firstValueFrom(
       this.deviceRegistryClient.send(
