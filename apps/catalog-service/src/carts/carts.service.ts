@@ -1,7 +1,7 @@
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+} from '@app/common/constants/default.constant';
 import { CreateCartItemDto } from '@app/common/dtos/catalog/cart.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';

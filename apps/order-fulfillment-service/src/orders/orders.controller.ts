@@ -33,6 +33,13 @@ export class OrdersController {
     return this.orderService.updateOrder(id.id, dto);
   }
 
+  @MessagePattern({ cmd: 'bulk_update_order_status' })
+  bulkUpdateOrderStatus(
+    @Payload() { orderIds, status }: { orderIds: string[]; status: string },
+  ) {
+    return this.orderService.bulkUpdateOrderStatus(orderIds, status);
+  }
+
   @MessagePattern({ cmd: 'delete_order' })
   deleteOrder(@Payload() id: UuidDto) {
     return this.orderService.deleteOrder(id.id);

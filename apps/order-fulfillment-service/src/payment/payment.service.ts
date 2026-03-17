@@ -2,7 +2,15 @@ import {
   PAYOS_API_KEY,
   PAYOS_CHECKSUM_KEY,
   PAYOS_CLIENT_ID,
+  MICROSERVICES_CLIENTS,
+  DEFAULT_TIMEOUT_PAYMENT,
+  QueueName,
 } from '@app/common';
+import {
+  OrderStatus,
+  TransactionStatus,
+  ShipmentStatus,
+} from '@app/common/enums';
 import {
   BadRequestException,
   forwardRef,
@@ -17,6 +25,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@app/prisma';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { Prisma } from '@prisma/client';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { ClientProxy } from '@nestjs/microservices';
+import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
 
 interface PayOSPaymentLinkRequest {
   orderCode: number;
@@ -29,13 +42,27 @@ interface PayOSPaymentLinkRequest {
   items?: Array<{ name: string; price: number; quantity: number }>;
 }
 
+interface OrderSuccessEmailEvent {
+  email: string;
+  fullName?: string;
+  orderCode: string;
+  paymentMethod: 'COD' | 'PAYOS';
+  totalAmount: number;
+}
+
 @Injectable()
 export class PaymentService {
   private readonly payos: PayOS;
+  private readonly transporter: Transporter;
+  private readonly mailFrom: string;
 
   constructor(
     private prisma: PrismaService,
+    private readonly configService: ConfigService,
     private eventEmitter: EventEmitter2,
+    @InjectQueue(QueueName.PaymentTimeoutQueue) private paymentQueue: Queue,
+    @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
+    private readonly apiGatewayClient: ClientProxy,
   ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
@@ -45,6 +72,24 @@ export class PaymentService {
       clientId,
       apiKey,
       checksumKey,
+    });
+
+    const host = this.configService.get<string>('SMTP_HOST');
+    const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+    const secure = this.configService.get<string>('SMTP_SECURE') === 'true';
+
+    this.mailFrom =
+      this.configService.get<string>('MAIL_FROM') ||
+      user ||
+      'no-reply@orchidpal.local';
+
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: user && pass ? { user, pass } : undefined,
     });
   }
 
@@ -111,6 +156,7 @@ export class PaymentService {
   }
 
   async handleWebhook(body: Webhook) {
+    console.log('handleWebhook', body);
     const valid = await this.verifyWebhook(body);
 
     if (!valid) {
@@ -247,7 +293,7 @@ export class PaymentService {
           user_id: userId,
           order_code: orderCode,
           total_amount: totalAmount,
-          status: 'PENDING',
+          status: OrderStatus.PENDING,
           // payment_method: dto.paymentMethod,
           shipping_info: shippingInfo as Prisma.InputJsonValue,
           note: dto.note,
@@ -262,9 +308,11 @@ export class PaymentService {
 
       // 5. Xử lý theo phương thức thanh toán
       if (dto.paymentMethod === 'COD') {
+        console.log('[COD] Xử lý COD cho orderCode:', orderCode);
+
         await tx.orders.update({
           where: { id: order.id },
-          data: { status: 'CONFIRMED' },
+          data: { status: OrderStatus.PENDING },
         });
 
         await tx.transactions.create({
@@ -273,7 +321,7 @@ export class PaymentService {
             user_id: userId,
             amount: totalAmount,
             method: 'COD',
-            status: 'PENDING_COD',
+            status: TransactionStatus.PENDING,
           },
         });
 
@@ -283,8 +331,8 @@ export class PaymentService {
             order_id: order.id,
             carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
             tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
-            shipping_fee: new Prisma.Decimal(30000), // ví dụ, có thể tính động sau
-            status: 'PROCESSING', // trạng thái ban đầu: đang chuẩn bị
+            shipping_fee: new Prisma.Decimal(0), // ví dụ, có thể tính động sau
+            status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
             estimated_delivery_at: new Date(
               Date.now() + 3 * 24 * 60 * 60 * 1000,
             ), // +3 ngày ví dụ
@@ -304,11 +352,27 @@ export class PaymentService {
 
         this.eventEmitter.emit('order.confirmed', order);
 
+        const user = await tx.users.findUnique({
+          where: { id: userId },
+          select: { email: true, full_name: true },
+        });
+
+        if (user?.email) {
+          this.sendOrderSuccessEmail({
+            email: user.email,
+            fullName:
+              user.full_name ?? shippingInfo.recipient_name ?? undefined,
+            orderCode,
+            paymentMethod: 'COD',
+            totalAmount: Number(totalAmount),
+          });
+        }
+
         return {
           success: true,
           orderId: order.id,
           orderCode,
-          status: 'CONFIRMED',
+          status: OrderStatus.PENDING,
           paymentMethod: 'COD',
           totalAmount: Number(totalAmount),
           shippingInfo,
@@ -319,7 +383,7 @@ export class PaymentService {
       const payosPayload = {
         orderCode: Number(orderCode.replace(/\D/g, '')),
         amount: Number(totalAmount),
-        description: `Đơn hàng ${orderCode}`,
+        description: orderCode,
         buyerName: shippingInfo.recipient_name ?? undefined,
         buyerPhone: shippingInfo.phone ?? undefined,
         returnUrl: `${process.env.FRONTEND_URL}/checkout/success?orderId=${order.id}`,
@@ -327,6 +391,7 @@ export class PaymentService {
       };
 
       const payosResponse = await this.createPaymentLink(payosPayload);
+      console.log('payosResponse', payosResponse);
 
       // await tx.orders.update({
       //   where: { id: order.id },
@@ -335,28 +400,45 @@ export class PaymentService {
       //   },
       // });
 
-      await tx.transactions.create({
+      const createdTransaction = await tx.transactions.create({
         data: {
           order_id: order.id,
           user_id: userId,
           amount: totalAmount,
           method: 'PAYOS',
-          status: 'PENDING',
+          status: TransactionStatus.PENDING,
           gateway_trans_id: payosResponse.orderCode.toString(),
           gateway_log: payosResponse,
         },
       });
+      // Lấy id transaction sau khi insert (Prisma transaction không return nested creates dễ trong tx logic này)
+      // const createdTransaction = await tx.transactions.findFirst({
+      //   where: { order_id: order.id },
+      //   orderBy: { paid_at: 'desc' }, // lấy cái vừa tạo
+      // });
+
+      if (createdTransaction) {
+        await this.paymentQueue.add(
+          'check_timeout',
+          { transactionId: createdTransaction.id },
+          { delay: DEFAULT_TIMEOUT_PAYMENT },
+        );
+      }
+
+      const imageUrl = `https://img.vietqr.io/image/${payosResponse.bin}-${payosResponse.accountNumber}-vietqr_pro.jpg?addInfo=${payosResponse.description.replace(/\s/g, '+')}&amount=${payosResponse.amount}`;
 
       return {
         success: true,
         orderId: order.id,
-        orderCode,
+        orderCode: payosResponse.orderCode.toString(),
         paymentUrl: payosResponse.checkoutUrl,
         status: 'PENDING',
         paymentMethod: 'PAYOS',
         totalAmount: Number(totalAmount),
         shippingInfo,
         qrCode: payosResponse.qrCode,
+        paymentLinkId: payosResponse.paymentLinkId,
+        imageUrl,
       };
     });
   }
@@ -369,7 +451,7 @@ export class PaymentService {
         where: {
           method: 'PAYOS',
           gateway_trans_id: payosOrderCode,
-          status: 'PENDING',
+          status: TransactionStatus.PENDING,
         },
         include: {
           orders: {
@@ -388,13 +470,13 @@ export class PaymentService {
 
       await tx.orders.update({
         where: { id: order.id },
-        data: { status: 'PAID' },
+        data: { status: OrderStatus.PAID },
       });
 
       await tx.transactions.update({
         where: { id: transaction.id },
         data: {
-          status: 'PAID',
+          status: TransactionStatus.SUCCESS,
           paid_at: new Date(),
         },
       });
@@ -406,7 +488,7 @@ export class PaymentService {
           carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
           tracking_code: null, // sẽ update sau
           shipping_fee: new Prisma.Decimal(30000), // tính động dựa trên địa chỉ, trọng lượng...
-          status: 'PENDING', // trạng thái chờ xác nhận vận chuyển
+          status: ShipmentStatus.READY, // trạng thái chờ xác nhận vận chuyển
           estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
         },
       });
@@ -429,6 +511,27 @@ export class PaymentService {
 
       this.eventEmitter.emit('order.paid', order);
 
+      const user = await tx.users.findUnique({
+        where: { id: order.user_id! },
+        select: { email: true, full_name: true },
+      });
+
+      if (user?.email) {
+        this.sendOrderSuccessEmail({
+          email: user.email,
+          fullName: user.full_name ?? undefined,
+          orderCode: order.order_code,
+          paymentMethod: 'PAYOS',
+          totalAmount: Number(order.total_amount),
+        });
+      }
+
+      this.apiGatewayClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'PAID',
+        message: 'Thanh toán thành công',
+      });
+
       return { success: true };
     });
   }
@@ -443,7 +546,7 @@ export class PaymentService {
         where: {
           method: 'PAYOS',
           gateway_trans_id: payosOrderCode,
-          status: 'PENDING', // chỉ xử lý nếu vẫn đang pending
+          status: TransactionStatus.PENDING, // chỉ xử lý nếu vẫn đang pending
         },
         include: {
           orders: true,
@@ -454,7 +557,10 @@ export class PaymentService {
         console.warn(
           `Không tìm thấy transaction cho PayOS orderCode: ${payosOrderCode}`,
         );
-        return { success: false };
+        return {
+          success: false,
+          message: `Không tìm thấy transaction cho PayOS orderCode: ${payosOrderCode}`,
+        };
       }
 
       const order = transaction.orders;
@@ -466,7 +572,10 @@ export class PaymentService {
       await tx.orders.update({
         where: { id: order.id },
         data: {
-          status: newOrderStatus,
+          status:
+            newOrderStatus === 'CANCELLED'
+              ? OrderStatus.CANCELLED
+              : OrderStatus.PENDING,
           // optional: cancelled_at: new Date(),
           // cancelled_reason: `PayOS: ${payosCode} - ${description || 'Unknown'}`,
         },
@@ -475,7 +584,7 @@ export class PaymentService {
       await tx.transactions.update({
         where: { id: transaction.id },
         data: {
-          status: 'FAILED', // hoặc 'CANCELLED' nếu bạn muốn phân biệt
+          status: TransactionStatus.FAILED, // hoặc 'CANCELLED' nếu bạn muốn phân biệt
         },
       });
 
@@ -485,16 +594,112 @@ export class PaymentService {
         reason: `PayOS webhook: status ${payosStatus} - ${description || 'No description'}`,
       });
 
+      this.apiGatewayClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'FAILED',
+        message: `Thanh toán thất bại hoặc đã hủy: ${payosStatus}`,
+      });
+
       console.log(
         `Order ${order.order_code} đã được xử lý cancel/failed từ PayOS (status: ${payosStatus})`,
       );
 
-      return { success: true };
+      return {
+        success: true,
+        message: `Order ${order.order_code} đã được xử lý cancel/failed từ PayOS (status: ${payosStatus})`,
+      };
+    });
+  }
+
+  async handleTimeoutPayment(transactionId: string): Promise<void> {
+    return this.prisma.$transaction(async (tx) => {
+      const transaction = await tx.transactions.findUnique({
+        where: { id: transactionId },
+        include: { orders: true },
+      });
+
+      if (!transaction || transaction.status !== TransactionStatus.PENDING) {
+        // Có thể user đã thanh toán thành công, transaction không còn PENDING -> bỏ qua
+        return;
+      }
+
+      const order = transaction.orders;
+      if (!order || order.status !== OrderStatus.PENDING) {
+        return;
+      }
+
+      // 1. Cập nhật trạng thái
+      await tx.orders.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.CANCELLED,
+        },
+      });
+
+      await tx.transactions.update({
+        where: { id: transactionId },
+        data: {
+          status: TransactionStatus.FAILED,
+        },
+      });
+
+      // 2. Có thể gọi cancel link bên PayOS để vô hiệu hóa mã QR cũ
+      if (transaction.gateway_trans_id) {
+        try {
+          await this.payos.paymentRequests.cancel(
+            Number(transaction.gateway_trans_id),
+            'Timeout quá 15 phút',
+          );
+        } catch (error) {
+          console.warn(
+            `Không thể huỷ PayOS link cho order ${transaction.gateway_trans_id}`,
+            error,
+          );
+        }
+      }
+
+      // 3. Emit event SSE để frontend biết nếu đang đợi
+      this.apiGatewayClient.emit('payment_status_updated', {
+        orderCode: order.order_code,
+        status: 'FAILED',
+        message: 'Thanh toán quá hạn 15 phút',
+      });
+
+      console.log(`[Timeout] Đã tự động hủy đơn hàng ${order.order_code}`);
     });
   }
 
   private generateOrderCode(): string {
     const shortCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-7 chữ số
-    return `ORD${shortCode}`;
+    return shortCode;
+  }
+
+  private sendOrderSuccessEmail(payload: OrderSuccessEmailEvent): void {
+    void this.transporter
+      .sendMail({
+        from: this.mailFrom,
+        to: payload.email,
+        subject: `[OrchidPal] Dat hang thanh cong - Don ${payload.orderCode}`,
+        text: [
+          `Xin chao ${payload.fullName || 'ban'},`,
+          '',
+          `Don hang ${payload.orderCode} cua ban da duoc dat thanh cong.`,
+          `Phuong thuc thanh toan: ${payload.paymentMethod}.`,
+          `Tong tien: ${new Intl.NumberFormat('vi-VN').format(payload.totalAmount)} VND.`,
+          '',
+          'Cam on ban da mua sam tai OrchidPal.',
+        ].join('\n'),
+      })
+      .then(() => {
+        console.log(
+          `[PaymentService] Sent order success email to ${payload.email} for order ${payload.orderCode}`,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          `[PaymentService] Failed to send order success email for order ${payload.orderCode}:`,
+          error,
+        );
+      });
   }
 }

@@ -102,7 +102,7 @@ export class ProductsController {
     return await firstValueFrom(
       this.catalogClient.send(
         { cmd: 'add_devices_to_product' },
-        { productId: id, secret_keys: dto.secret_keys },
+        { productId: id, secretKey: dto.secretKey, quantity: dto.quantity },
       ),
     );
   }

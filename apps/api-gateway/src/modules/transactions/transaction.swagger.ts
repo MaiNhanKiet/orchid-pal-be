@@ -1,4 +1,5 @@
 import { ApiAuthFailures } from '@app/common';
+import { TransactionStatus } from '@app/common/enums';
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBody,
@@ -14,7 +15,7 @@ const transactionExample = {
   user_id: '456f7890-e89b-12d3-a456-426614174000',
   amount: '2750000.00',
   method: 'payos',
-  status: 'completed',
+  status: TransactionStatus.SUCCESS,
   gateway_trans_id: 'payos-txn-001',
   gateway_log: {
     code: '00',
@@ -140,7 +141,7 @@ export function ApiUpdateTransactionDocs() {
       description: 'Thông tin giao dịch cần cập nhật (các trường đều optional)',
       schema: {
         example: {
-          status: 'completed',
+          status: TransactionStatus.SUCCESS,
           gateway_trans_id: 'payos-txn-updated',
           gateway_log: { code: '00', desc: 'Thanh toán thành công' },
           paid_at: '2024-01-01T02:00:00.000Z',

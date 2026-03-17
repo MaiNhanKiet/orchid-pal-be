@@ -30,6 +30,7 @@ import {
   ApiGetOrdersOfUserDocs,
   ApiUpdateOrderDocs,
   ApiDeleteOrderDocs,
+  ApiBulkUpdateOrderStatusDocs,
 } from './order.swagger';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
@@ -37,7 +38,7 @@ import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.
 @ApiTags('Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-// @Public()
+@Public()
 export class OrdersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
@@ -99,6 +100,20 @@ export class OrdersController {
   async updateOrder(@Param() id: UuidDto, @Body() dto: UpdateOrderDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'update_order' }, { id, dto }),
+    );
+  }
+
+  @Put('/bulk/status')
+  @ApiBulkUpdateOrderStatusDocs()
+  // @Permissions(Permission.OrderUpdate)
+  async bulkUpdateOrderStatus(
+    @Body() body: { orderIds: string[]; status: string },
+  ) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send(
+        { cmd: 'bulk_update_order_status' },
+        body,
+      ),
     );
   }
 

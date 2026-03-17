@@ -26,8 +26,8 @@ import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs/dist/bull-board.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './modules/auth/auth.controller';
@@ -102,12 +102,16 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
+    BullModule.registerQueue({ name: QueueName.PaymentTimeoutQueue }),
     BullBoardModule.forRoot({
       route: '/admin/queues',
       adapter: ExpressAdapter,
     }),
     BullBoardModule.forFeature({
       name: QueueName.IamCronQueue,
+      adapter: BullMQAdapter,
+    }, {
+      name: QueueName.PaymentTimeoutQueue,
       adapter: BullMQAdapter,
     }),
     EventEmitterModule.forRoot(),

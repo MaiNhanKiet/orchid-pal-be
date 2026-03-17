@@ -4,13 +4,14 @@ import {
   MaxLength,
   IsDateString,
   IsObject,
+  IsEnum,
 } from 'class-validator';
+import { TransactionStatus } from '@app/common/enums';
 
 export class UpdateTransactionDto {
   @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  status?: string;
+  @IsEnum(TransactionStatus, { message: 'status must be a valid TransactionStatus (PENDING, SUCCESS, FAILED, REFUNDED)' })
+  status?: TransactionStatus;
 
   @IsOptional()
   @IsString()
