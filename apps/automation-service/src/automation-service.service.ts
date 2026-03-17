@@ -154,7 +154,7 @@ export class AutomationServiceService {
     const rule = await this.prisma.automation_rules.create({
       data: {
         zone_id,
-        name: `Manual Update — zone ${zone_id}`,
+        name: `Manual Update`,
         is_active: true,
         logic_config: logic,
       },

@@ -55,7 +55,7 @@ export class MyPlantsController {
   }
 
   @Patch(':id')
-  @Permissions(Permission.MyPlantUpdate)
+  // @Permissions(Permission.MyPlantUpdate)
   @ApiUpdateMyPlantDocs()
   updateMyPlant(
     @Param('id') id: string,
