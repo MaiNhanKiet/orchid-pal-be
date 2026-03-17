@@ -1,33 +1,27 @@
+import { MICROSERVICES_CLIENTS, Public, RequestWithUser } from '@app/common';
+import { RedisService } from '@app/redis';
 import {
   Controller,
   Get,
-  UseGuards,
+  Inject,
+  Post,
   Req,
   Res,
-  Post,
   UnauthorizedException,
-  Inject,
-  Body,
+  UseGuards,
 } from '@nestjs/common';
-import {
-  GoogleLoginDto,
-  MICROSERVICES_CLIENTS,
-  Public,
-  RequestWithUser,
-} from '@app/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleOauthGuard } from './guards/google.guard';
+import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
-import {
-  ApiGoogleAuthDocs,
-  ApiGoogleAuthCallbackDocs,
-  ApiRefreshTokenDocs,
-  ApiLogoutDocs,
-} from './auth.swagger';
 import type { Request, Response } from 'express';
 import { firstValueFrom } from 'rxjs';
-import { ClientProxy } from '@nestjs/microservices';
-import { RedisService } from '@app/redis';
+import {
+  ApiGoogleAuthCallbackDocs,
+  ApiGoogleAuthDocs,
+  ApiLogoutDocs,
+  ApiRefreshTokenDocs,
+} from './auth.swagger';
+import { GoogleOauthGuard } from './guards/google.guard';
 
 @ApiTags('Auth')
 @Controller('auth')

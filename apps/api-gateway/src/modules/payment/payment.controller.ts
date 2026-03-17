@@ -6,7 +6,6 @@ import {
   MICROSERVICES_CLIENTS,
   UuidDto,
 } from '@app/common';
-
 import { Public } from '@app/common';
 import {
   ClientProxy,
@@ -27,13 +26,12 @@ import {
 } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
-  ApiHandlePayOSWebhookDocs,
-  ApiCheckOutDocs,
   ApiCancelPaymentDocs,
+  ApiCheckOutDocs,
   ApiGetPaymentInformationDocs,
+  ApiHandlePayOSWebhookDocs,
 } from './payment.swagger';
 
-import { type Webhook } from '@payos/node';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { BypassInterceptors } from '@app/common/decorators/bypass-interceptors.decorator';
 
@@ -51,7 +49,7 @@ export class PaymentController {
   @Post('/webhooks/payos')
   @Public()
   @ApiHandlePayOSWebhookDocs()
-  async handlePayOS(@Body() body: Webhook) {
+  async handlePayOS(@Body() body: any) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'handle_webhook' }, { body }),
     );

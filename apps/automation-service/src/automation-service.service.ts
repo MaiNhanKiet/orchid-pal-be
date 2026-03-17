@@ -1,13 +1,21 @@
 import {
   DeviceAssignedZoneEventDto,
   HardwareConfig,
+  ManualControlEventDto,
   MICROSERVICES_CLIENTS,
   SpeciesWiki,
+  UpdateAutomationRulesDto,
 } from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
 import { PrismaService } from '@app/prisma'; // Đảm bảo đường dẫn đúng với project của bạn
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
+import {
+  AutomationLog,
+  AutomationLogDocument,
+} from './schema/automation-log.schema';
 
 @Injectable()
 export class AutomationServiceService {
@@ -19,7 +27,9 @@ export class AutomationServiceService {
     private readonly gardenClient: ClientProxy,
     @Inject('MQTT_CLIENT')
     private readonly mqttClient: ClientProxy,
-  ) { }
+    @InjectModel(AutomationLog.name)
+    private readonly automationLogModel: Model<AutomationLogDocument>,
+  ) {}
 
   async handleDeviceAssignedZone(payload: DeviceAssignedZoneEventDto) {
     const { device_id, zone_id } = payload;
@@ -50,8 +60,10 @@ export class AutomationServiceService {
     // 2. Gọi Garden Service để lấy cây trong zone
     const plants: Array<{ id: string; species_id: string | null }> =
       await firstValueFrom(
-        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, { zone_id }),
+        this.gardenClient.send({ cmd: 'get_plants_by_zone' }, zone_id),
       );
+
+    this.logger.log(`Plants found in zone ${zone_id}: ${plants.length}`);
 
     if (!plants || plants.length === 0) {
       this.logger.warn(`No plants found in zone ${zone_id}.`);
@@ -109,6 +121,80 @@ export class AutomationServiceService {
     // 8. Đẩy config xuống MQTT topic cho ESP32
     const topic = `device/${device.serial_number}/config`;
     this.mqttClient.emit(topic, mqttPayload);
+  }
+
+  async handleManualControl(payload: ManualControlEventDto) {
+    const topic = `device/${payload.serial_number}/control/${payload.relay_number}`;
+    const message = payload.action;
+
+    await firstValueFrom(this.mqttClient.emit(topic, message));
+
+    this.logger.log(
+      `[Manual Control] Đã bắn lệnh xuống MQTT topic: ${topic} (payload: ${message})`,
+    );
+
+    await this.logAction({
+      zone_id: payload.zone_id,
+      device_id: payload.serial_number,
+      action: `Lệnh ${payload.action} rơ-le số ${payload.relay_number} (${payload.role})`,
+      trigger_reason: 'MANUAL_USER_APP',
+    });
+  }
+
+  async updateAutomationRules(payload: UpdateAutomationRulesDto) {
+    const { zone_id, logic } = payload;
+
+    // 1. Tắt tất cả các rule cũ trong zone
+    await this.prisma.automation_rules.updateMany({
+      where: { zone_id, is_active: true },
+      data: { is_active: false },
+    });
+
+    // 2. Tạo rule mới
+    const rule = await this.prisma.automation_rules.create({
+      data: {
+        zone_id,
+        name: `Manual Update — zone ${zone_id}`,
+        is_active: true,
+        logic_config: logic,
+      },
+    });
+
+    this.logger.log(
+      `Created manual automation_rule ${rule.id} for zone ${zone_id}`,
+    );
+
+    // 3. Lấy thiết bị trong zone để cập nhật config.
+    const device = await this.prisma.devices.findFirst({
+      where: { zone_id, status: { not: 'INACTIVE' } },
+      select: { serial_number: true, hardware_config: true },
+    });
+
+    if (!device) {
+      this.logger.warn(
+        `No active devices found in zone ${zone_id} to update config.`,
+      );
+      return { message: 'Updated rules but no devices received config.' };
+    }
+
+    // 4. Gửi config xuống thiết bị
+    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
+    const mqttPayload = {
+      version: 1,
+      species: 'Manual Update',
+      generated_at: new Date().toISOString(),
+      hardware: hardwareConfig,
+      logic: logic,
+    };
+
+    const topic = `device/${device.serial_number}/config`;
+    this.mqttClient.emit(topic, mqttPayload);
+    this.logger.log(`Sent updated config to device ${device.serial_number}`);
+
+    return {
+      message: 'Automation rules updated and sent to device.',
+      rule_id: rule.id,
+    };
   }
 
   private generateRules(
@@ -173,5 +259,45 @@ export class AutomationServiceService {
     }
 
     return rules;
+  }
+
+  async logAction(data: {
+    zone_id: string;
+    device_id: string;
+    action: string;
+    trigger_reason: string;
+    value?: number;
+  }) {
+    try {
+      const newLog = new this.automationLogModel(data);
+      await newLog.save();
+      this.logger.log(
+        `[Activity Log] Đã lưu log: ${data.action} (Lý do: ${data.trigger_reason})`,
+      );
+    } catch (error) {
+      this.logger.error(`[Activity Log] Lỗi khi lưu log: ${error.message}`);
+    }
+  }
+
+  async getDeviceLogs(deviceId: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const [logs, total] = await Promise.all([
+      this.automationLogModel
+        .find({ device_id: deviceId })
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.automationLogModel.countDocuments({ device_id: deviceId }),
+    ]);
+
+    return {
+      data: logs,
+      total,
+      page,
+      limit,
+      last_page: Math.ceil(total / limit),
+    };
   }
 }

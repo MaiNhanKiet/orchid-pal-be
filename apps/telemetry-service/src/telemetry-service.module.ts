@@ -1,5 +1,3 @@
-import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import {
   CommonModule,
   CustomValidationPipe,
@@ -8,20 +6,24 @@ import {
   RmqModule,
   TimeoutInterceptor,
 } from '@app/common';
-import { TelemetryServiceController } from './telemetry-service.controller';
-import { TelemetryServiceService } from './telemetry-service.service';
 import { MongoModule } from '@app/mongo';
+import { PrismaModule } from '@app/prisma';
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Telemetry, TelemetrySchema } from './schemas/telemetry.schema';
+import { TelemetryServiceController } from './telemetry-service.controller';
+import { TelemetryServiceService } from './telemetry-service.service';
 
 @Module({
   imports: [
     CommonModule,
     MongoModule,
+    PrismaModule,
     MongooseModule.forFeature([
       { name: Telemetry.name, schema: TelemetrySchema },
     ]),
-    RmqModule.register('API_GATEWAY')
+    RmqModule.register('API_GATEWAY'),
   ],
   controllers: [TelemetryServiceController],
   providers: [
@@ -44,4 +46,4 @@ import { Telemetry, TelemetrySchema } from './schemas/telemetry.schema';
     },
   ],
 })
-export class TelemetryServiceModule { }
+export class TelemetryServiceModule {}

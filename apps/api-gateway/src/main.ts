@@ -1,9 +1,9 @@
-import 'dotenv/config';
-import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './api-gateway.module';
-import * as cookieParser from 'cookie-parser';
 import { API_GATEWAY_PORT, RmqService } from '@app/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
+import 'dotenv/config';
+import { AppModule } from './api-gateway.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -56,7 +56,9 @@ async function bootstrap() {
   });
 
   // Mở CORS
-  app.enableCors();
+  app.enableCors({
+    origin: '*',
+  });
 
   // =========================================================
   // 3. KHỞI ĐỘNG HỆ THỐNG

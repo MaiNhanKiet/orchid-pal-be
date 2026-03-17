@@ -1,10 +1,10 @@
+import { PrismaService } from '@app/prisma';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '@app/prisma';
 
 @Injectable()
 export class RbacService {
@@ -81,6 +81,30 @@ export class RbacService {
     return this.prisma.roles.delete({
       where: { id },
     });
+  }
+
+  async getRoleWithPermissions(id: number) {
+    const role = await this.prisma.roles.findUnique({
+      where: { id },
+      include: {
+        role_permissions: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    return {
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      permissions: role.role_permissions.map((rp) => rp.permissions),
+    };
   }
 
   async findAllPermissions() {

@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsNotEmpty,
@@ -6,7 +7,13 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationDto } from '../pagination.dto';
+
+export class GetMyPlantsDto extends PaginationDto {
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
+}
 
 export class GetPlantsByZoneDto {
   @IsUUID()
@@ -15,14 +22,6 @@ export class GetPlantsByZoneDto {
 }
 
 export class CreateMyPlantDto {
-  @ApiProperty({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'ID của zone (vườn) mà cây này thuộc về',
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  zone_id: string;
-
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174111',
     description: 'ID loài lan trong species_wiki mà người dùng chọn',
@@ -58,6 +57,30 @@ export class CreateMyPlantDto {
   image_url?: string;
 }
 
+export class AssignPlantToZoneDto {
+  @ApiProperty({
+    example: 'plant_id',
+    description: 'ID của cây cần gán',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  plant_id: string;
+
+  @ApiProperty({
+    example: 'zone_id',
+    description: 'ID của zone (vườn) cần gán cây vào',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  zone_id: string;
+}
+
+export class AssignPlantToZoneCommandDto extends AssignPlantToZoneDto {
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
+}
+
 export class CreateMyPlantCommandDto extends CreateMyPlantDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174999',
@@ -67,4 +90,23 @@ export class CreateMyPlantCommandDto extends CreateMyPlantDto {
   @IsUUID()
   @IsNotEmpty()
   user_id: string;
+}
+
+export class UpdateMyPlantDto {
+  @ApiPropertyOptional({
+    example: 'Cô nàng Hồ Điệp số 2',
+    description: 'Tên gọi riêng/nickname mới cho chậu cây này',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  nickname?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/my-orchid-new.jpg',
+    description: 'Ảnh chụp mới của chậu cây',
+  })
+  @IsString()
+  @IsOptional()
+  image_url?: string;
 }

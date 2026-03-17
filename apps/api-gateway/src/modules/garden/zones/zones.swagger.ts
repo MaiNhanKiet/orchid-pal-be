@@ -84,3 +84,78 @@ export function ApiCreateZoneDocs() {
     }),
   );
 }
+
+export function ApiGetZoneDetailDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy chi tiết Zone',
+      description:
+        'Lấy thông tin chi tiết của một khu vườn, bao gồm cây, thiết bị và automation rules.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Thông tin chi tiết khu vườn',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Không tìm thấy khu vườn',
+    }),
+  );
+}
+
+export function ApiGetZoneAutomationRulesDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy cấu hình Automation Rules hiện tại',
+      description:
+        'Trả về automation rule đang active của zone để hiển thị lên form edit.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Cấu hình automation rule.',
+      schema: {
+        example: {
+          id: 'uuid',
+          zone_id: 'uuid',
+          name: 'Manual Update',
+          is_active: true,
+          logic_config: [
+            {
+              if: { metric: 'humidity', op: '<', value: 40 },
+              then: { action: 'pump', duration_ms: 10000 },
+            },
+          ],
+        },
+      },
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Không tìm thấy hoặc chưa có rule nào.',
+    }),
+  );
+}
+
+export function ApiUpdateAutomationRulesDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Cập nhật Automation Rules cho Zone',
+      description:
+        'Cập nhật logic tự động hóa (rules) cho thiết bị trong khu vườn. ' +
+        'Logic sẽ được gửi xuống ESP32 thông qua MQTT. ' +
+        'Lưu ý: API này sẽ tắt các rules cũ và tạo rules mới. Đồng thời reload lại hardware config trên thiết bị.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Cập nhật thành công.',
+      schema: {
+        example: {
+          message: 'Automation rules updated and sent to devices.',
+          rule_id: '123e4567-e89b-12d3-a456-426614174000',
+        },
+      },
+    }),
+  );
+}

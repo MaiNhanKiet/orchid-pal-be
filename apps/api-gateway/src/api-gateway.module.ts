@@ -16,6 +16,7 @@ import {
   DEVICE_REGISTRY_SERVICE_PORT,
   GARDEN_SERVICE_PORT,
   IAM_SERVICE_PORT,
+  TELEMETRY_SERVICE_PORT,
   ORDER_FULFILLMENT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
@@ -27,6 +28,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './modules/auth/auth.controller';
@@ -40,8 +42,8 @@ import { SpeciesController } from './modules/garden/species/species.controller';
 import { ZonesController } from './modules/garden/zones/zones.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
-import { UsersController } from './modules/users/users.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
+import { UsersController } from './modules/users/users.controller';
 import { OrdersController } from './modules/orders/order.controller';
 import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
@@ -85,12 +87,19 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
         },
       },
       {
+        name: MICROSERVICES_CLIENTS.TELEMETRY_SERVICE,
+        transport: Transport.TCP,
+        options: {
+          port: Number(TELEMETRY_SERVICE_PORT),
+        },
+      },
+      {
         name: MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE,
         transport: Transport.TCP,
         options: {
           port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
         },
-      },
+      }
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
