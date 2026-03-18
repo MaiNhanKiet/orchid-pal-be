@@ -10,7 +10,10 @@ import { TransactionStatus } from '@app/common/enums';
 
 export class UpdateTransactionDto {
   @IsOptional()
-  @IsEnum(TransactionStatus, { message: 'status must be a valid TransactionStatus (PENDING, SUCCESS, FAILED, REFUNDED)' })
+  @IsEnum(TransactionStatus, {
+    message:
+      'status must be a valid TransactionStatus (PENDING, SUCCESS, FAILED, REFUNDED)',
+  })
   status?: TransactionStatus;
 
   @IsOptional()

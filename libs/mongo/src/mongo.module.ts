@@ -20,4 +20,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   exports: [MongooseModule],
 })
-export class MongoModule { }
+export class MongoModule {}

@@ -7,7 +7,7 @@ import { QueueName, ScheduleId } from '@app/common';
 export class IamWorkerScheduler implements OnModuleInit {
   constructor(
     @InjectQueue(QueueName.IamCronQueue) private iamCronQueue: Queue,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     await this.iamCronQueue.upsertJobScheduler(

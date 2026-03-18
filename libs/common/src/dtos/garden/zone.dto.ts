@@ -28,7 +28,8 @@ export class CreateZoneDto {
 
   @ApiPropertyOptional({
     example: 'FULL_SUN',
-    description: 'Mức độ tiếp xúc ánh sáng (FULL_SUN, PARTIAL_SHADE, FULL_SHADE)',
+    description:
+      'Mức độ tiếp xúc ánh sáng (FULL_SUN, PARTIAL_SHADE, FULL_SHADE)',
   })
   @IsString()
   @IsOptional()
@@ -47,7 +48,8 @@ export class CreateZoneDto {
 export class CreateZoneCommandDto extends CreateZoneDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'ID của người dùng sở hữu vườn (lấy từ JWT, không phải client gửi)',
+    description:
+      'ID của người dùng sở hữu vườn (lấy từ JWT, không phải client gửi)',
   })
   @IsUUID()
   @IsNotEmpty()

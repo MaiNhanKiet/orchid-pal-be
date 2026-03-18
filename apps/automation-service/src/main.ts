@@ -29,6 +29,8 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
   console.log(`[Automation Microservice]: running on RabbitMQ Queue`);
-  console.log(`[Automation Microservice]: MQTT listening to Broker at ${MQTT_BROKER_URL}`);
+  console.log(
+    `[Automation Microservice]: MQTT listening to Broker at ${MQTT_BROKER_URL}`,
+  );
 }
 bootstrap();

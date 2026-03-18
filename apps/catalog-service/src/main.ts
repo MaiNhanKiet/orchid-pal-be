@@ -14,6 +14,8 @@ async function bootstrap() {
     },
   );
   await app.listen();
-  console.log(`[Catalog Microservice]: running on port ${CATALOG_SERVICE_PORT}`);
+  console.log(
+    `[Catalog Microservice]: running on port ${CATALOG_SERVICE_PORT}`,
+  );
 }
 bootstrap();

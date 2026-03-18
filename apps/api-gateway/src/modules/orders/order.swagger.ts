@@ -142,7 +142,11 @@ export function ApiUpdateOrderDocs() {
       status: 200,
       description: 'Cập nhật đơn hàng thành công',
       schema: {
-        example: { ...orderExample, status: OrderStatus.COMPLETED, note: 'Đã giao hàng' },
+        example: {
+          ...orderExample,
+          status: OrderStatus.COMPLETED,
+          note: 'Đã giao hàng',
+        },
       },
     }),
     ApiResponse({
@@ -205,7 +209,9 @@ export function ApiBulkUpdateOrderStatusDocs() {
     ApiResponse({
       status: 400,
       description: 'Dữ liệu đầu vào không hợp lệ',
-      schema: { example: { message: 'Bắt buộc phải cung cấp danh sách orderIds' } },
+      schema: {
+        example: { message: 'Bắt buộc phải cung cấp danh sách orderIds' },
+      },
     }),
   );
 }

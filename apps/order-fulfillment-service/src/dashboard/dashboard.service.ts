@@ -1,5 +1,9 @@
 import { PrismaService } from '@app/prisma';
 import { Injectable } from '@nestjs/common';
+import {
+  TransactionStatus,
+  OrderStatus,
+} from '@app/common/enums/order-fulfillment.enum';
 
 @Injectable()
 export class DashboardService {
@@ -12,43 +16,57 @@ export class DashboardService {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(thisMonthStart);
 
-    const [thisTx, lastTx, thisOrders, lastOrders, thisCustomers, lastCustomers, activeLicenses, lastLicenses] =
-      await Promise.all([
-        // Revenue this month
-        this.prisma.transactions.aggregate({
-          _sum: { amount: true },
-          where: { status: 'PAID', paid_at: { gte: thisMonthStart } },
-        }),
-        // Revenue last month
-        this.prisma.transactions.aggregate({
-          _sum: { amount: true },
-          where: { status: 'PAID', paid_at: { gte: lastMonthStart, lt: lastMonthEnd } },
-        }),
-        // Orders this month
-        this.prisma.orders.count({
-          where: { created_at: { gte: thisMonthStart } },
-        }),
-        // Orders last month
-        this.prisma.orders.count({
-          where: { created_at: { gte: lastMonthStart, lt: lastMonthEnd } },
-        }),
-        // Unique customers this month
-        this.prisma.orders.groupBy({
-          by: ['user_id'],
-          where: { created_at: { gte: thisMonthStart } },
-        }),
-        // Unique customers last month
-        this.prisma.orders.groupBy({
-          by: ['user_id'],
-          where: { created_at: { gte: lastMonthStart, lt: lastMonthEnd } },
-        }),
-        // Active devices (active licenses) this month
-        this.prisma.devices.count({ where: { status: 'ACTIVE' } }),
-        // Active devices last month
-        this.prisma.devices.count({
-          where: { status: 'ACTIVE', last_online_at: { lt: lastMonthEnd } },
-        }),
-      ]);
+    const [
+      thisTx,
+      lastTx,
+      thisOrders,
+      lastOrders,
+      thisCustomers,
+      lastCustomers,
+      activeLicenses,
+      lastLicenses,
+    ] = await Promise.all([
+      // Revenue this month
+      this.prisma.transactions.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: TransactionStatus.SUCCESS,
+          paid_at: { gte: thisMonthStart },
+        },
+      }),
+      // Revenue last month
+      this.prisma.transactions.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: TransactionStatus.SUCCESS,
+          paid_at: { gte: lastMonthStart, lt: lastMonthEnd },
+        },
+      }),
+      // Orders this month
+      this.prisma.orders.count({
+        where: { created_at: { gte: thisMonthStart } },
+      }),
+      // Orders last month
+      this.prisma.orders.count({
+        where: { created_at: { gte: lastMonthStart, lt: lastMonthEnd } },
+      }),
+      // Unique customers this month
+      this.prisma.orders.groupBy({
+        by: ['user_id'],
+        where: { created_at: { gte: thisMonthStart } },
+      }),
+      // Unique customers last month
+      this.prisma.orders.groupBy({
+        by: ['user_id'],
+        where: { created_at: { gte: lastMonthStart, lt: lastMonthEnd } },
+      }),
+      // Active devices (active licenses) this month
+      this.prisma.devices.count({ where: { status: 'ACTIVE' } }),
+      // Active devices last month
+      this.prisma.devices.count({
+        where: { status: 'ACTIVE', last_online_at: { lt: lastMonthEnd } },
+      }),
+    ]);
 
     const totalRevenue = Number(thisTx._sum.amount ?? 0);
     const lastRevenue = Number(lastTx._sum.amount ?? 0);
@@ -79,7 +97,10 @@ export class DashboardService {
 
     const [transactions, orders] = await Promise.all([
       this.prisma.transactions.findMany({
-        where: { status: 'PAID', paid_at: { gte: from, lt: to } },
+        where: {
+          status: TransactionStatus.SUCCESS,
+          paid_at: { gte: from, lt: to },
+        },
         select: { paid_at: true, amount: true },
       }),
       this.prisma.orders.findMany({
@@ -93,7 +114,10 @@ export class DashboardService {
 
     for (const tx of transactions) {
       const date = tx.paid_at!.toISOString().slice(0, 10);
-      revenueMap.set(date, (revenueMap.get(date) ?? 0) + Number(tx.amount ?? 0));
+      revenueMap.set(
+        date,
+        (revenueMap.get(date) ?? 0) + Number(tx.amount ?? 0),
+      );
     }
 
     for (const o of orders) {
@@ -123,11 +147,17 @@ export class DashboardService {
       this.prisma.transactions.aggregate({
         _sum: { amount: true },
         _count: { id: true },
-        where: { status: 'PAID', paid_at: { gte: fromDate, lte: toDate } },
+        where: {
+          status: TransactionStatus.SUCCESS,
+          paid_at: { gte: fromDate, lte: toDate },
+        },
       }),
       this.prisma.transactions.aggregate({
         _sum: { amount: true },
-        where: { status: 'PENDING', paid_at: { gte: fromDate, lte: toDate } },
+        where: {
+          status: TransactionStatus.PENDING,
+          paid_at: { gte: fromDate, lte: toDate },
+        },
       }),
       this.prisma.orders.count({
         where: { created_at: { gte: fromDate, lte: toDate } },
@@ -145,13 +175,20 @@ export class DashboardService {
   }
 
   // ─── 4. Revenue Trend ─────────────────────────────────────────────────────
-  async getRevenueTrend(from: string, to: string, groupBy: 'day' | 'week' | 'month' = 'day') {
+  async getRevenueTrend(
+    from: string,
+    to: string,
+    groupBy: 'day' | 'week' | 'month' = 'day',
+  ) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
     toDate.setHours(23, 59, 59, 999);
 
     const transactions = await this.prisma.transactions.findMany({
-      where: { status: 'PAID', paid_at: { gte: fromDate, lte: toDate } },
+      where: {
+        status: TransactionStatus.SUCCESS,
+        paid_at: { gte: fromDate, lte: toDate },
+      },
       select: { paid_at: true, amount: true, order_id: true },
     });
 
@@ -203,7 +240,7 @@ export class DashboardService {
     const grouped = await this.prisma.transactions.groupBy({
       by: ['method'],
       _sum: { amount: true },
-      where: { status: 'PAID' },
+      where: { status: TransactionStatus.SUCCESS },
     });
 
     const total = grouped.reduce((s, r) => s + Number(r._sum.amount ?? 0), 0);
@@ -223,7 +260,7 @@ export class DashboardService {
   // ─── 6. Cashflow Chart ────────────────────────────────────────────────────
   async getCashflow() {
     const transactions = await this.prisma.transactions.findMany({
-      where: { status: 'PAID' },
+      where: { status: TransactionStatus.SUCCESS },
       select: { paid_at: true, amount: true },
       orderBy: { paid_at: 'asc' },
     });
@@ -233,7 +270,10 @@ export class DashboardService {
     for (const tx of transactions) {
       if (!tx.paid_at) continue;
       const date = tx.paid_at.toISOString().slice(0, 10);
-      moneyInMap.set(date, (moneyInMap.get(date) ?? 0) + Number(tx.amount ?? 0));
+      moneyInMap.set(
+        date,
+        (moneyInMap.get(date) ?? 0) + Number(tx.amount ?? 0),
+      );
     }
 
     const data = Array.from(moneyInMap.entries())
@@ -254,19 +294,36 @@ export class DashboardService {
     const months: { month: string; revenue: number }[] = [];
 
     for (let i = 5; i >= 0; i--) {
-      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const monthLabel = start.toISOString().slice(0, 7);
+      // Calculate month by adjusting zero-indexed month
+      let targetMonth = now.getMonth() - i;
+      let targetYear = now.getFullYear();
+      
+      // Handle negative months gracefully (wrapping to previous year)
+      while (targetMonth < 0) {
+        targetMonth += 12;
+        targetYear -= 1;
+      }
+      
+      const start = new Date(targetYear, targetMonth, 1);
+      const end = new Date(targetYear, targetMonth + 1, 1);
+      
+      // Format securely bypassing UTC ISO string shift (e.g., getting 02 instead of 03 at midnight)
+      const monthLabel = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
 
       const agg = await this.prisma.transactions.aggregate({
         _sum: { amount: true },
-        where: { status: 'PAID', paid_at: { gte: start, lt: end } },
+        where: {
+          status: TransactionStatus.SUCCESS,
+          paid_at: { gte: start, lt: end },
+        },
       });
 
       months.push({
         month: monthLabel,
         revenue: Number(agg._sum.amount ?? 0),
       });
+
+      console.log(`Calculated growth for ${monthLabel}: $${months[months.length - 1].revenue}`);
     }
 
     return { data: months };

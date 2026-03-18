@@ -5,7 +5,9 @@ import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 // ─── 1. Summary ───────────────────────────────────────────────────────────────
 export function ApiGetDashboardSummaryDocs() {
   return applyDecorators(
-    ApiOperation({ summary: 'Dashboard summary – KPI tổng quan so với tháng trước' }),
+    ApiOperation({
+      summary: 'Dashboard summary – KPI tổng quan so với tháng trước',
+    }),
     ApiAuthFailures(),
     ApiResponse({
       status: 200,
@@ -58,8 +60,18 @@ export function ApiGetFinancialOverviewDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Financial Overview trong khoảng thời gian' }),
     ApiAuthFailures(),
-    ApiQuery({ name: 'from', required: true, type: 'string', example: '2026-04-01' }),
-    ApiQuery({ name: 'to', required: true, type: 'string', example: '2026-04-12' }),
+    ApiQuery({
+      name: 'from',
+      required: true,
+      type: 'string',
+      example: '2026-04-01',
+    }),
+    ApiQuery({
+      name: 'to',
+      required: true,
+      type: 'string',
+      example: '2026-04-12',
+    }),
     ApiResponse({
       status: 200,
       description: 'Tổng quan tài chính',
@@ -81,8 +93,18 @@ export function ApiGetRevenueTrendDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Chart Revenue Trend theo ngày/tuần/tháng' }),
     ApiAuthFailures(),
-    ApiQuery({ name: 'from', required: true, type: 'string', example: '2026-04-01' }),
-    ApiQuery({ name: 'to', required: true, type: 'string', example: '2026-04-12' }),
+    ApiQuery({
+      name: 'from',
+      required: true,
+      type: 'string',
+      example: '2026-04-01',
+    }),
+    ApiQuery({
+      name: 'to',
+      required: true,
+      type: 'string',
+      example: '2026-04-12',
+    }),
     ApiQuery({
       name: 'groupBy',
       required: false,
@@ -135,8 +157,18 @@ export function ApiGetCashflowDocs() {
       schema: {
         example: {
           data: [
-            { date: '2026-03-01', moneyIn: 5200000, moneyOut: 1400000, net: 3800000 },
-            { date: '2026-03-02', moneyIn: 5800000, moneyOut: 1500000, net: 4300000 },
+            {
+              date: '2026-03-01',
+              moneyIn: 5200000,
+              moneyOut: 1400000,
+              net: 3800000,
+            },
+            {
+              date: '2026-03-02',
+              moneyIn: 5800000,
+              moneyOut: 1500000,
+              net: 4300000,
+            },
           ],
         },
       },

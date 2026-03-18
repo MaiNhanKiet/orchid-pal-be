@@ -98,7 +98,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
         options: {
           port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
         },
-      }
+      },
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
@@ -107,13 +107,16 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
       route: '/admin/queues',
       adapter: ExpressAdapter,
     }),
-    BullBoardModule.forFeature({
-      name: QueueName.IamCronQueue,
-      adapter: BullMQAdapter,
-    }, {
-      name: QueueName.PaymentTimeoutQueue,
-      adapter: BullMQAdapter,
-    }),
+    BullBoardModule.forFeature(
+      {
+        name: QueueName.IamCronQueue,
+        adapter: BullMQAdapter,
+      },
+      {
+        name: QueueName.PaymentTimeoutQueue,
+        adapter: BullMQAdapter,
+      },
+    ),
     EventEmitterModule.forRoot(),
   ],
   controllers: [

@@ -24,7 +24,10 @@ export class UpdateShipmentDto {
   shipping_fee?: number;
 
   @IsOptional()
-  @IsEnum(ShipmentStatus, { message: 'status must be a valid ShipmentStatus (READY, PICKED_UP, DELIVERING, DELIVERED, RETURNED)' })
+  @IsEnum(ShipmentStatus, {
+    message:
+      'status must be a valid ShipmentStatus (READY, PICKED_UP, DELIVERING, DELIVERED, RETURNED)',
+  })
   status?: ShipmentStatus;
 
   @IsOptional()

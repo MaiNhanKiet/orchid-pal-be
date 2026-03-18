@@ -1,9 +1,18 @@
-import { IsOptional, IsString, MaxLength, IsObject, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsObject,
+  IsEnum,
+} from 'class-validator';
 import { OrderStatus } from '@app/common/enums';
 
 export class UpdateOrderDto {
   @IsOptional()
-  @IsEnum(OrderStatus, { message: 'status must be a valid OrderStatus (PENDING, PAID, SHIPPING, COMPLETED, CANCELLED)' })
+  @IsEnum(OrderStatus, {
+    message:
+      'status must be a valid OrderStatus (PENDING, PAID, SHIPPING, COMPLETED, CANCELLED)',
+  })
   status?: OrderStatus;
 
   @IsOptional()

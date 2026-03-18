@@ -378,7 +378,9 @@ export class PaymentService {
             productName: item.product_name_snapshot,
             quantity: item.quantity,
             unitPrice: Number(item.unit_price),
-            totalPrice: Number(item.total_price ?? (Number(item.unit_price) * item.quantity)),
+            totalPrice: Number(
+              item.total_price ?? Number(item.unit_price) * item.quantity,
+            ),
           })),
         };
       }
@@ -541,7 +543,9 @@ export class PaymentService {
           productName: item.product_name_snapshot,
           quantity: item.quantity,
           unitPrice: Number(item.unit_price),
-          totalPrice: Number(item.total_price ?? item.unit_price.mul(item.quantity)),
+          totalPrice: Number(
+            item.total_price ?? item.unit_price.mul(item.quantity),
+          ),
         })),
         shippingInfo: order.shipping_info,
       });

@@ -9,7 +9,7 @@ import {
 
 @Controller()
 export class SpeciesController {
-  constructor(private readonly speciesService: SpeciesService) { }
+  constructor(private readonly speciesService: SpeciesService) {}
 
   @MessagePattern({ cmd: 'get_all_species' })
   getAllSpecies(@Payload() pagination: PaginationDto) {
