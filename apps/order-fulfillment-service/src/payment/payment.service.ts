@@ -24,6 +24,7 @@ import { OrdersService } from '../orders/orders.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@app/prisma';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
+import { GhnService } from '../shipments/ghn.service';
 import { Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -69,6 +70,7 @@ export class PaymentService {
     @InjectQueue(QueueName.PaymentTimeoutQueue) private paymentQueue: Queue,
     @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
     private readonly apiGatewayClient: ClientProxy,
+    private readonly ghnService: GhnService,
   ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
@@ -331,17 +333,45 @@ export class PaymentService {
           },
         });
 
-        // TẠO SHIPMENT NGAY CHO COD (Tạm thời)
+        // TẠO SHIPMENT THỰC TẾ TRÊN GHN CHO COD
+        let trackingCode = null;
+        let estimatedDeliveryAt = new Date(
+          Date.now() + 3 * 24 * 60 * 60 * 1000,
+        );
+
+        if (address.ghn_district_id && address.ghn_ward_code) {
+          const ghnOrder = await this.ghnService.createShippingOrder({
+            to_name: address.recipient_name ?? 'Khách hàng',
+            to_phone: address.phone ?? '',
+            to_address: address.full_address ?? '',
+            to_ward_code: address.ghn_ward_code,
+            to_district_id: address.ghn_district_id,
+            weight: 1000, // giả định 1kg
+            service_type_id: 2, // chuẩn
+            payment_type_id: 1, // shop trả phí
+            cod_amount: Number(totalAmount), // Thu hộ cho COD
+            note: dto.note ?? 'Giao hàng OrchidPal',
+            items: order.order_items.map((item) => ({
+              name: item.product_name_snapshot,
+              quantity: item.quantity,
+              weight: 200, // giả định 200g/item
+            })),
+          });
+
+          if (ghnOrder) {
+            trackingCode = ghnOrder.order_code;
+            estimatedDeliveryAt = new Date(ghnOrder.expected_delivery_time);
+          }
+        }
+
         await tx.shipments.create({
           data: {
             order_id: order.id,
-            carrier_name: 'GHN', // hoặc lấy từ config, hoặc để user chọn sau
-            tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
-            shipping_fee: address.shipping_fee || new Prisma.Decimal(0), // ví dụ, có thể tính động sau
-            status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
-            estimated_delivery_at: new Date(
-              Date.now() + 3 * 24 * 60 * 60 * 1000,
-            ), // +3 ngày ví dụ
+            carrier_name: 'GHN',
+            tracking_code: trackingCode,
+            shipping_fee: address.shipping_fee || new Prisma.Decimal(0),
+            status: ShipmentStatus.READY,
+            estimated_delivery_at: estimatedDeliveryAt,
           },
         });
 
@@ -501,16 +531,45 @@ export class PaymentService {
         },
       });
 
-      // TẠO SHIPMENT SAU KHI THANH TOÁN THÀNH CÔNG (Tạm thời)
+      // TẠO SHIPMENT THỰC TẾ TRÊN GHN CHO PAYOS (Đã thanh toán)
+      let trackingCode = null;
+      let estimatedDeliveryAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      const shippingInfo = order.shipping_info as any;
+
+      if (shippingInfo?.ghn_district_id && shippingInfo?.ghn_ward_code) {
+        const ghnOrder = await this.ghnService.createShippingOrder({
+          to_name: shippingInfo.recipient_name ?? 'Khách hàng',
+          to_phone: shippingInfo.phone ?? '',
+          to_address: shippingInfo.full_address ?? '',
+          to_ward_code: shippingInfo.ghn_ward_code,
+          to_district_id: shippingInfo.ghn_district_id,
+          weight: 1000,
+          service_type_id: 2,
+          payment_type_id: 1,
+          cod_amount: 0, // Đã thanh toán qua PayOS
+          note: order.note ?? 'Giao hàng OrchidPal',
+          items: order.order_items.map((item) => ({
+            name: item.product_name_snapshot,
+            quantity: item.quantity,
+            weight: 200,
+          })),
+        });
+
+        if (ghnOrder) {
+          trackingCode = ghnOrder.order_code;
+          estimatedDeliveryAt = new Date(ghnOrder.expected_delivery_time);
+        }
+      }
+
       const shippingFee = (order.shipping_info as any)?.shipping_fee || 0;
       await tx.shipments.create({
         data: {
           order_id: order.id,
-          carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
-          tracking_code: null, // sẽ update sau
-          shipping_fee: new Prisma.Decimal(shippingFee), // lấy từ order
-          status: ShipmentStatus.READY, // trạng thái chờ xác nhận vận chuyển
-          estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
+          carrier_name: 'GHN',
+          tracking_code: trackingCode,
+          shipping_fee: new Prisma.Decimal(shippingFee),
+          status: ShipmentStatus.READY,
+          estimated_delivery_at: estimatedDeliveryAt,
         },
       });
 

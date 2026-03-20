@@ -9,6 +9,9 @@ import {
   ORDER_FULFILLMENT_SERVICE_PORT,
   API_GATEWAY_PORT,
 } from '@app/common/constants/env-key.constant';
+import { RefundReturnService } from './refund-return.service';
+import { RefundReturnController } from './refund-return.controller';
+import { GhnService } from '../shipments/ghn.service';
 
 @Module({
   imports: [
@@ -33,8 +36,8 @@ import {
       name: QueueName.PaymentTimeoutQueue,
     }),
   ],
-  controllers: [PaymentController],
-  providers: [PaymentService, PaymentTimeoutProcessor],
-  exports: [PaymentService],
+  controllers: [PaymentController, RefundReturnController],
+  providers: [PaymentService, PaymentTimeoutProcessor, RefundReturnService, GhnService],
+  exports: [PaymentService, RefundReturnService],
 })
 export class PaymentModule {}

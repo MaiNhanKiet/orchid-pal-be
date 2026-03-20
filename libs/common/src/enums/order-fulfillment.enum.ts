@@ -4,12 +4,16 @@ export enum OrderStatus {
   SHIPPING = 'SHIPPING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  RETURN_REQUESTED = 'RETURN_REQUESTED',
+  RETURNING = 'RETURNING',
+  RETURNED = 'RETURNED',
 }
 
 export enum TransactionStatus {
   PENDING = 'PENDING',
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
+  REFUNDING = 'REFUNDING',
   REFUNDED = 'REFUNDED',
 }
 
@@ -19,4 +23,10 @@ export enum ShipmentStatus {
   DELIVERING = 'DELIVERING',
   DELIVERED = 'DELIVERED',
   RETURNED = 'RETURNED',
+}
+
+export enum ReturnRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }

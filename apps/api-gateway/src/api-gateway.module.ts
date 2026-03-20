@@ -49,6 +49,7 @@ import { TransactionsController } from './modules/transactions/transaction.contr
 import { PaymentController } from './modules/payment/payment.controller';
 import { AddressesController } from './modules/shipments/address.controller';
 import { DashboardController } from './modules/dashboard/dashboard.controller';
+import { RefundReturnGatewayController } from './modules/refund-return/refund-return.controller';
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     PaymentController,
     AddressesController,
     DashboardController,
+    RefundReturnGatewayController,
   ],
   providers: [
     GoogleStrategy,
