@@ -252,6 +252,7 @@ export class PaymentService {
         city: address.city,
         address_id: address.id,
         shipping_fee: address.shipping_fee,
+        payment_method: dto.paymentMethod,
       } as const;
 
       // 3. Validate stock và tính tổng tiền
