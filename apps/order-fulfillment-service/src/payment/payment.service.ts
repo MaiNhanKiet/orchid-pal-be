@@ -48,6 +48,7 @@ interface OrderSuccessEmailEvent {
   orderCode: string;
   paymentMethod: 'COD' | 'PAYOS';
   totalAmount: number;
+  shippingFee?: number;
   items?: Array<{
     name: string;
     quantity: number;
@@ -250,10 +251,11 @@ export class PaymentService {
         district: address.district,
         city: address.city,
         address_id: address.id,
+        shipping_fee: address.shipping_fee,
       } as const;
 
       // 3. Validate stock và tính tổng tiền
-      let totalAmount = new Prisma.Decimal(0);
+      let totalAmount = new Prisma.Decimal(0).add(address.shipping_fee || 0);
       const orderItemsData: Array<{
         product_id: string;
         product_name_snapshot: string;
@@ -269,21 +271,21 @@ export class PaymentService {
           );
         }
 
-        if (product.stock_quantity! < item.quantity!) {
+        if (product.stock_quantity < item.quantity) {
           throw new BadRequestException(
             `Sản phẩm "${product.name}" không đủ hàng (chỉ còn ${product.stock_quantity})`,
           );
         }
 
         const unitPrice = product.price;
-        const totalPrice = unitPrice.mul(item.quantity!);
+        const totalPrice = unitPrice.mul(item.quantity);
 
         totalAmount = totalAmount.add(totalPrice);
 
         orderItemsData.push({
-          product_id: item.product_id!,
+          product_id: item.product_id,
           product_name_snapshot: product.name,
-          quantity: item.quantity!,
+          quantity: item.quantity,
           unit_price: unitPrice,
         });
       }
@@ -332,9 +334,9 @@ export class PaymentService {
         await tx.shipments.create({
           data: {
             order_id: order.id,
-            carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
+            carrier_name: 'GHN', // hoặc lấy từ config, hoặc để user chọn sau
             tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
-            shipping_fee: new Prisma.Decimal(0), // ví dụ, có thể tính động sau
+            shipping_fee: address.shipping_fee || new Prisma.Decimal(0), // ví dụ, có thể tính động sau
             status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
             estimated_delivery_at: new Date(
               Date.now() + 3 * 24 * 60 * 60 * 1000,
@@ -344,8 +346,8 @@ export class PaymentService {
 
         for (const item of order.order_items) {
           await tx.products.update({
-            where: { id: item.product_id! },
-            data: { stock_quantity: { decrement: item.quantity! } },
+            where: { id: item.product_id },
+            data: { stock_quantity: { decrement: item.quantity } },
           });
         }
 
@@ -368,6 +370,7 @@ export class PaymentService {
             orderCode,
             paymentMethod: 'COD',
             totalAmount: Number(totalAmount),
+            shippingFee: Number(shippingInfo.shipping_fee) || 0,
             items: order.order_items.map((item) => ({
               name: item.product_name_snapshot,
               quantity: item.quantity,
@@ -498,29 +501,30 @@ export class PaymentService {
       });
 
       // TẠO SHIPMENT SAU KHI THANH TOÁN THÀNH CÔNG (Tạm thời)
+      const shippingFee = (order.shipping_info as any)?.shipping_fee || 0;
       await tx.shipments.create({
         data: {
           order_id: order.id,
           carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
           tracking_code: null, // sẽ update sau
-          shipping_fee: new Prisma.Decimal(30000), // tính động dựa trên địa chỉ, trọng lượng...
+          shipping_fee: new Prisma.Decimal(shippingFee), // lấy từ order
           status: ShipmentStatus.READY, // trạng thái chờ xác nhận vận chuyển
           estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
         },
       });
 
-      const productIds = order.order_items.map((item) => item.product_id!);
+      const productIds = order.order_items.map((item) => item.product_id);
 
       for (const item of order.order_items) {
         await tx.products.update({
-          where: { id: item.product_id! },
-          data: { stock_quantity: { decrement: item.quantity! } },
+          where: { id: item.product_id },
+          data: { stock_quantity: { decrement: item.quantity } },
         });
       }
 
       await tx.cart_items.deleteMany({
         where: {
-          user_id: order.user_id!,
+          user_id: order.user_id,
           product_id: { in: productIds },
         },
       });
@@ -528,7 +532,7 @@ export class PaymentService {
       this.eventEmitter.emit('order.paid', order);
 
       const user = await tx.users.findUnique({
-        where: { id: order.user_id! },
+        where: { id: order.user_id },
         select: { email: true, full_name: true },
       });
 
@@ -539,6 +543,7 @@ export class PaymentService {
           orderCode: order.order_code,
           paymentMethod: 'PAYOS',
           totalAmount: Number(order.total_amount),
+          shippingFee: Number((order.shipping_info as any)?.shipping_fee || 0),
           items: order.order_items.map((item) => ({
             name: item.product_name_snapshot,
             quantity: item.quantity,
@@ -712,6 +717,9 @@ export class PaymentService {
     const totalAmountFormatted = new Intl.NumberFormat('vi-VN').format(
       payload.totalAmount,
     );
+    const shippingFeeFormatted = new Intl.NumberFormat('vi-VN').format(
+      payload.shippingFee || 0,
+    );
     const paymentMethodText =
       payload.paymentMethod === 'PAYOS'
         ? 'PayOS (chuyển khoản)'
@@ -788,6 +796,10 @@ export class PaymentService {
                     <tr>
                       <td style="padding:6px 0;font-size:13px;color:#6b7280;">Phương thức thanh toán</td>
                       <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#111827;">${paymentMethodText}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;font-size:13px;color:#6b7280;">Phí vận chuyển</td>
+                      <td align="right" style="padding:6px 0;font-size:13px;font-weight:500;color:#111827;">${shippingFeeFormatted} VND</td>
                     </tr>
                     <tr>
                       <td style="padding:6px 0;font-size:13px;color:#6b7280;">Tổng thanh toán</td>

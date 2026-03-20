@@ -113,7 +113,7 @@ export class DashboardService {
     const ordersMap = new Map<string, number>();
 
     for (const tx of transactions) {
-      const date = tx.paid_at!.toISOString().slice(0, 10);
+      const date = tx.paid_at.toISOString().slice(0, 10);
       revenueMap.set(
         date,
         (revenueMap.get(date) ?? 0) + Number(tx.amount ?? 0),
@@ -121,7 +121,7 @@ export class DashboardService {
     }
 
     for (const o of orders) {
-      const date = o.created_at!.toISOString().slice(0, 10);
+      const date = o.created_at.toISOString().slice(0, 10);
       ordersMap.set(date, (ordersMap.get(date) ?? 0) + 1);
     }
 
@@ -297,16 +297,16 @@ export class DashboardService {
       // Calculate month by adjusting zero-indexed month
       let targetMonth = now.getMonth() - i;
       let targetYear = now.getFullYear();
-      
+
       // Handle negative months gracefully (wrapping to previous year)
       while (targetMonth < 0) {
         targetMonth += 12;
         targetYear -= 1;
       }
-      
+
       const start = new Date(targetYear, targetMonth, 1);
       const end = new Date(targetYear, targetMonth + 1, 1);
-      
+
       // Format securely bypassing UTC ISO string shift (e.g., getting 02 instead of 03 at midnight)
       const monthLabel = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
 
@@ -323,7 +323,9 @@ export class DashboardService {
         revenue: Number(agg._sum.amount ?? 0),
       });
 
-      console.log(`Calculated growth for ${monthLabel}: $${months[months.length - 1].revenue}`);
+      console.log(
+        `Calculated growth for ${monthLabel}: $${months[months.length - 1].revenue}`,
+      );
     }
 
     return { data: months };

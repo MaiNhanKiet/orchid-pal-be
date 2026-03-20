@@ -1,6 +1,7 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsString,
+  IsNumber,
   IsOptional,
   IsBoolean,
   MaxLength,
@@ -42,6 +43,16 @@ export class CreateAddressDto {
   @IsBoolean()
   @IsOptional()
   is_default?: boolean = false;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  ghn_district_id?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  ghn_ward_code?: string;
 
   @ApiProperty({
     enum: AddressType,
