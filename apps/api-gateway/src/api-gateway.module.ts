@@ -16,8 +16,8 @@ import {
   DEVICE_REGISTRY_SERVICE_PORT,
   GARDEN_SERVICE_PORT,
   IAM_SERVICE_PORT,
-  TELEMETRY_SERVICE_PORT,
   ORDER_FULFILLMENT_SERVICE_PORT,
+  TELEMETRY_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
 import { BullConfigModule } from '@app/common/queue/bull-mq';
 import { RedisModule } from '@app/redis';
@@ -33,22 +33,22 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
 import { CartsController } from './modules/carts/cart.controller';
+import { DashboardController } from './modules/dashboard/dashboard.controller';
 import { AdminDevicesController } from './modules/devices/admin-devices.controller';
 import { DevicesController } from './modules/devices/devices.controller';
 import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
-import { AdminSpeciesController } from './modules/garden/species/admin-species.controller';
+import { ExpertSpeciesController } from './modules/garden/species/expert-species.controller';
 import { SpeciesController } from './modules/garden/species/species.controller';
 import { ZonesController } from './modules/garden/zones/zones.controller';
+import { OrdersController } from './modules/orders/order.controller';
+import { PaymentController } from './modules/payment/payment.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
-import { TelemetryController } from './modules/telemetry/telemetry.controller';
-import { UsersController } from './modules/users/users.controller';
-import { OrdersController } from './modules/orders/order.controller';
-import { ShipmentsController } from './modules/shipments/shipment.controller';
-import { TransactionsController } from './modules/transactions/transaction.controller';
-import { PaymentController } from './modules/payment/payment.controller';
 import { AddressesController } from './modules/shipments/address.controller';
-import { DashboardController } from './modules/dashboard/dashboard.controller';
+import { ShipmentsController } from './modules/shipments/shipment.controller';
+import { TelemetryController } from './modules/telemetry/telemetry.controller';
+import { TransactionsController } from './modules/transactions/transaction.controller';
+import { UsersController } from './modules/users/users.controller';
 
 @Module({
   imports: [
@@ -98,7 +98,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
         options: {
           port: Number(ORDER_FULFILLMENT_SERVICE_PORT),
         },
-      }
+      },
     ]),
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
@@ -119,7 +119,7 @@ import { DashboardController } from './modules/dashboard/dashboard.controller';
     ProductsController,
     CartsController,
     SpeciesController,
-    AdminSpeciesController,
+    ExpertSpeciesController,
     ZonesController,
     MyPlantsController,
     DevicesController,
