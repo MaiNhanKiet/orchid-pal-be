@@ -25,11 +25,11 @@ import {
   merge,
   Observable,
   startWith,
-  Subject,
 } from 'rxjs';
 import {
   ApiGetHistoryTelemetryDocs,
   ApiGetLatestTelemetryDocs,
+  ApiOrchidChatDocs,
   ApiStreamTelemetryDocs,
 } from './telemetry.swagger';
 
@@ -37,13 +37,12 @@ import {
 @ApiBearerAuth('access-token')
 @Controller('telemetry')
 export class TelemetryController {
-  private telemetrySubject = new Subject<TelemetryEventDto>();
 
   constructor(
     @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
     private readonly telemetryClient: ClientProxy,
     private eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   @EventPattern('telemetry_created_event')
   handleNewTelemetry(
@@ -107,4 +106,5 @@ export class TelemetryController {
       ),
     );
   }
+
 }

@@ -45,21 +45,6 @@ export class ZonesController {
     private readonly telemetryClient: ClientProxy,
   ) { }
 
-  @Post('analyze-seasonal-config')
-  @ApiAnalyzeSeasonalConfigDocs()
-  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
-    return firstValueFrom(
-      this.telemetryClient.send(
-        { cmd: 'analyze_seasonal_config' },
-        {
-          zoneId: body.zoneId,
-          currentConfig: body.currentConfig,
-          days: body.days,
-        },
-      ),
-    );
-  }
-
   @Get()
   @Permissions(Permission.ZoneRead)
   @ApiGetZonesDocs()
@@ -178,6 +163,20 @@ export class ZonesController {
         {
           zone_id: id,
           user_id: user.sub,
+        },
+      ),
+    );
+  }
+
+  @Post('analyze-seasonal-config')
+  @ApiAnalyzeSeasonalConfigDocs()
+  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'analyze_seasonal_config' },
+        {
+          zoneId: body.zoneId,
+          days: body.days,
         },
       ),
     );
