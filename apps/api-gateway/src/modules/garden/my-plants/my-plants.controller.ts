@@ -12,6 +12,7 @@ import { Permission } from '@app/common/enums';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -34,7 +35,7 @@ export class MyPlantsController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
     private readonly gardenClient: ClientProxy,
-  ) {}
+  ) { }
 
   @Post()
   @Permissions(Permission.MyPlantCreate)
@@ -55,7 +56,7 @@ export class MyPlantsController {
   }
 
   @Patch(':id')
-  @Permissions(Permission.MyPlantUpdate)
+  // @Permissions(Permission.MyPlantUpdate)
   @ApiUpdateMyPlantDocs()
   updateMyPlant(
     @Param('id') id: string,
@@ -116,6 +117,22 @@ export class MyPlantsController {
         {
           user_id: user.sub,
           plant_id: id,
+        },
+      ),
+    );
+  }
+
+  @Delete(':id/remove-garden')
+  removePlantFromGarden(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'remove_plant_from_garden' },
+        {
+          plant_id: id,
+          user_id: user.sub,
         },
       ),
     );

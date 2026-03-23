@@ -34,7 +34,7 @@ export class DeviceService implements OnModuleInit {
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
     @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
     private readonly gardenClient: ClientProxy,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     await this.automationClient.connect();
@@ -581,5 +581,42 @@ export class DeviceService implements OnModuleInit {
     }
 
     return device;
+  }
+
+  async removeDeviceFromGarden(device_id: string, user_id: string) {
+    const device = await this.prisma.devices.findUnique({
+      where: { id: device_id },
+      select: { id: true, owner_id: true, zone_id: true },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Thiết bị không tồn tại');
+    }
+
+    if (device.owner_id !== user_id) {
+      throw new ForbiddenException('Bạn không sở hữu thiết bị này');
+    }
+
+    if (!device.zone_id) {
+      throw new BadRequestException('Thiết bị hiện không nằm trong khu vườn nào.');
+    }
+
+    const previousZoneId = device.zone_id;
+
+    const [updatedDevice] = await this.prisma.$transaction([
+      this.prisma.devices.update({
+        where: { id: device_id },
+        data: { zone_id: null },
+      }),
+      this.prisma.automation_rules.updateMany({
+        where: { zone_id: previousZoneId, is_active: true },
+        data: { is_active: false },
+      }),
+    ]);
+
+    return {
+      message: 'Đã gỡ thiết bị khỏi vườn thành công',
+      device: updatedDevice,
+    };
   }
 }

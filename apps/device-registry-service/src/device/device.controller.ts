@@ -20,7 +20,7 @@ import { DeviceService } from './device.service';
 
 @Controller()
 export class DeviceController {
-  constructor(private readonly deviceService: DeviceService) {}
+  constructor(private readonly deviceService: DeviceService) { }
 
   @MessagePattern({ cmd: 'activate_device' })
   activateDevice(@Payload() data: ActivateDeviceCommandDto) {
@@ -68,6 +68,13 @@ export class DeviceController {
   @MessagePattern({ cmd: 'get_my_device_detail' })
   getMyDeviceDetail(@Payload() data: { user_id: string; device_id: string }) {
     return this.deviceService.getMyDeviceDetail(data.user_id, data.device_id);
+  }
+
+  @MessagePattern({ cmd: 'remove_device_from_garden' })
+  removeDeviceFromGarden(
+    @Payload() data: { user_id: string; device_id: string },
+  ) {
+    return this.deviceService.removeDeviceFromGarden(data.device_id, data.user_id);
   }
 
   @MessagePattern({ cmd: 'get_device_by_serial' })
