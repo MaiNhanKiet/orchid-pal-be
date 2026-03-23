@@ -5,7 +5,13 @@ import { BullModule } from '@nestjs/bullmq';
 import { PaymentTimeoutProcessor } from './payment-timeout.processor';
 import { MICROSERVICES_CLIENTS, QueueName, RmqModule } from '@app/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ORDER_FULFILLMENT_SERVICE_PORT, API_GATEWAY_PORT } from '@app/common/constants/env-key.constant';
+import {
+  ORDER_FULFILLMENT_SERVICE_PORT,
+  API_GATEWAY_PORT,
+} from '@app/common/constants/env-key.constant';
+import { RefundReturnService } from './refund-return.service';
+import { RefundReturnController } from './refund-return.controller';
+import { GhnService } from '../shipments/ghn.service';
 
 @Module({
   imports: [
@@ -30,8 +36,8 @@ import { ORDER_FULFILLMENT_SERVICE_PORT, API_GATEWAY_PORT } from '@app/common/co
       name: QueueName.PaymentTimeoutQueue,
     }),
   ],
-  controllers: [PaymentController],
-  providers: [PaymentService, PaymentTimeoutProcessor],
-  exports: [PaymentService],
+  controllers: [PaymentController, RefundReturnController],
+  providers: [PaymentService, PaymentTimeoutProcessor, RefundReturnService, GhnService],
+  exports: [PaymentService, RefundReturnService],
 })
 export class PaymentModule {}

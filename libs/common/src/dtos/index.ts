@@ -8,6 +8,7 @@ export * from './device/device.dto';
 export * from './garden/my-plant.dto';
 export * from './garden/zone.dto';
 export * from './id.dto';
+export * from './order-fulfillment/create-return-request.dto';
 export * from './pagination.dto';
 export * from './rbac/create-role.dto';
 export * from './rbac/update-role.dto';

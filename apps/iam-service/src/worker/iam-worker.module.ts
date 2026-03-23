@@ -13,11 +13,7 @@ import { QueueName } from '@app/common';
       name: QueueName.IamCronQueue,
     }),
   ],
-  providers: [
-    IamWorkerService,
-    IamWorkerScheduler,
-    TokenCleanupProcessor,
-  ],
+  providers: [IamWorkerService, IamWorkerScheduler, TokenCleanupProcessor],
   exports: [IamWorkerService],
 })
-export class IamWorkerModule { }
+export class IamWorkerModule {}

@@ -7,6 +7,5 @@ import { QueueName, ScheduleId } from '@app/common';
 export class IamWorkerService {
   constructor(
     @InjectQueue(QueueName.IamCronQueue) private iamCronQueue: Queue,
-  ) { }
-
+  ) {}
 }

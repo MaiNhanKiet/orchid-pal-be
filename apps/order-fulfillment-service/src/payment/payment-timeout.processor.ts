@@ -12,12 +12,17 @@ export class PaymentTimeoutProcessor extends WorkerHost {
 
   async process(job: Job<{ transactionId: string }>) {
     const { transactionId } = job.data;
-    console.log(`[PaymentTimeoutProcessor] Processing job for transaction: ${transactionId}`);
+    console.log(
+      `[PaymentTimeoutProcessor] Processing job for transaction: ${transactionId}`,
+    );
 
     try {
       await this.paymentService.handleTimeoutPayment(transactionId);
     } catch (error) {
-      console.error(`[PaymentTimeoutProcessor] Error processing transaction ${transactionId}:`, error);
+      console.error(
+        `[PaymentTimeoutProcessor] Error processing transaction ${transactionId}:`,
+        error,
+      );
       throw error;
     }
   }

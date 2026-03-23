@@ -34,4 +34,4 @@ import { MyPlantsModule } from './my-plants/my-plants.module';
     },
   ],
 })
-export class GardenServiceModule { }
+export class GardenServiceModule {}

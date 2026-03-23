@@ -1,5 +1,12 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, MaxLength, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  MaxLength,
+  IsEnum,
+} from 'class-validator';
 
 export enum AddressType {
   HOME = 'HOME',
@@ -37,7 +44,21 @@ export class CreateAddressDto {
   @IsOptional()
   is_default?: boolean = false;
 
-  @ApiProperty({ enum: AddressType, example: AddressType.HOME, required: false })
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  ghn_district_id?: number;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  ghn_ward_code?: string;
+
+  @ApiProperty({
+    enum: AddressType,
+    example: AddressType.HOME,
+    required: false,
+  })
   @IsEnum(AddressType)
   @IsOptional()
   type?: AddressType;

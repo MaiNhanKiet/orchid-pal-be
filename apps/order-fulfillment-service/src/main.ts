@@ -14,6 +14,8 @@ async function bootstrap() {
     },
   );
   await app.listen();
-  console.log(`[Order Fulfillment Microservice]: running on port ${ORDER_FULFILLMENT_SERVICE_PORT}`);
+  console.log(
+    `[Order Fulfillment Microservice]: running on port ${ORDER_FULFILLMENT_SERVICE_PORT}`,
+  );
 }
 bootstrap();

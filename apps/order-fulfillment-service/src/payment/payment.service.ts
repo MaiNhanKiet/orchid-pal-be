@@ -24,6 +24,7 @@ import { OrdersService } from '../orders/orders.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@app/prisma';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
+import { GhnService } from '../shipments/ghn.service';
 import { Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -48,6 +49,7 @@ interface OrderSuccessEmailEvent {
   orderCode: string;
   paymentMethod: 'COD' | 'PAYOS';
   totalAmount: number;
+  shippingFee?: number;
   items?: Array<{
     name: string;
     quantity: number;
@@ -68,6 +70,7 @@ export class PaymentService {
     @InjectQueue(QueueName.PaymentTimeoutQueue) private paymentQueue: Queue,
     @Inject(MICROSERVICES_CLIENTS.API_GATEWAY)
     private readonly apiGatewayClient: ClientProxy,
+    private readonly ghnService: GhnService,
   ) {
     const clientId = PAYOS_CLIENT_ID;
     const apiKey = PAYOS_API_KEY;
@@ -250,10 +253,12 @@ export class PaymentService {
         district: address.district,
         city: address.city,
         address_id: address.id,
+        shipping_fee: address.shipping_fee,
+        payment_method: dto.paymentMethod,
       } as const;
 
       // 3. Validate stock và tính tổng tiền
-      let totalAmount = new Prisma.Decimal(0);
+      let totalAmount = new Prisma.Decimal(0).add(address.shipping_fee || 0);
       const orderItemsData: Array<{
         product_id: string;
         product_name_snapshot: string;
@@ -269,21 +274,21 @@ export class PaymentService {
           );
         }
 
-        if (product.stock_quantity! < item.quantity!) {
+        if (product.stock_quantity < item.quantity) {
           throw new BadRequestException(
             `Sản phẩm "${product.name}" không đủ hàng (chỉ còn ${product.stock_quantity})`,
           );
         }
 
         const unitPrice = product.price;
-        const totalPrice = unitPrice.mul(item.quantity!);
+        const totalPrice = unitPrice.mul(item.quantity);
 
         totalAmount = totalAmount.add(totalPrice);
 
         orderItemsData.push({
-          product_id: item.product_id!,
+          product_id: item.product_id,
           product_name_snapshot: product.name,
-          quantity: item.quantity!,
+          quantity: item.quantity,
           unit_price: unitPrice,
         });
       }
@@ -328,24 +333,52 @@ export class PaymentService {
           },
         });
 
-        // TẠO SHIPMENT NGAY CHO COD (Tạm thời)
+        // TẠO SHIPMENT THỰC TẾ TRÊN GHN CHO COD
+        let trackingCode = null;
+        let estimatedDeliveryAt = new Date(
+          Date.now() + 3 * 24 * 60 * 60 * 1000,
+        );
+
+        if (address.ghn_district_id && address.ghn_ward_code) {
+          const ghnOrder = await this.ghnService.createShippingOrder({
+            to_name: address.recipient_name ?? 'Khách hàng',
+            to_phone: address.phone ?? '',
+            to_address: address.full_address ?? '',
+            to_ward_code: address.ghn_ward_code,
+            to_district_id: address.ghn_district_id,
+            weight: 1000, // giả định 1kg
+            service_type_id: 2, // chuẩn
+            payment_type_id: 1, // shop trả phí
+            cod_amount: Number(totalAmount), // Thu hộ cho COD
+            note: dto.note ?? 'Giao hàng OrchidPal',
+            items: order.order_items.map((item) => ({
+              name: item.product_name_snapshot,
+              quantity: item.quantity,
+              weight: 200, // giả định 200g/item
+            })),
+          });
+
+          if (ghnOrder) {
+            trackingCode = ghnOrder.order_code;
+            estimatedDeliveryAt = new Date(ghnOrder.expected_delivery_time);
+          }
+        }
+
         await tx.shipments.create({
           data: {
             order_id: order.id,
-            carrier_name: 'GHTK', // hoặc lấy từ config, hoặc để user chọn sau
-            tracking_code: null, // sẽ update sau khi giao cho đơn vị vận chuyển
-            shipping_fee: new Prisma.Decimal(0), // ví dụ, có thể tính động sau
-            status: ShipmentStatus.READY, // trạng thái ban đầu: đang chuẩn bị
-            estimated_delivery_at: new Date(
-              Date.now() + 3 * 24 * 60 * 60 * 1000,
-            ), // +3 ngày ví dụ
+            carrier_name: 'GHN',
+            tracking_code: trackingCode,
+            shipping_fee: address.shipping_fee || new Prisma.Decimal(0),
+            status: ShipmentStatus.READY,
+            estimated_delivery_at: estimatedDeliveryAt,
           },
         });
 
         for (const item of order.order_items) {
           await tx.products.update({
-            where: { id: item.product_id! },
-            data: { stock_quantity: { decrement: item.quantity! } },
+            where: { id: item.product_id },
+            data: { stock_quantity: { decrement: item.quantity } },
           });
         }
 
@@ -368,6 +401,7 @@ export class PaymentService {
             orderCode,
             paymentMethod: 'COD',
             totalAmount: Number(totalAmount),
+            shippingFee: Number(shippingInfo.shipping_fee) || 0,
             items: order.order_items.map((item) => ({
               name: item.product_name_snapshot,
               quantity: item.quantity,
@@ -388,7 +422,9 @@ export class PaymentService {
             productName: item.product_name_snapshot,
             quantity: item.quantity,
             unitPrice: Number(item.unit_price),
-            totalPrice: Number(item.total_price ?? (Number(item.unit_price) * item.quantity)),
+            totalPrice: Number(
+              item.total_price ?? Number(item.unit_price) * item.quantity,
+            ),
           })),
         };
       }
@@ -495,30 +531,60 @@ export class PaymentService {
         },
       });
 
-      // TẠO SHIPMENT SAU KHI THANH TOÁN THÀNH CÔNG (Tạm thời)
+      // TẠO SHIPMENT THỰC TẾ TRÊN GHN CHO PAYOS (Đã thanh toán)
+      let trackingCode = null;
+      let estimatedDeliveryAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      const shippingInfo = order.shipping_info as any;
+
+      if (shippingInfo?.ghn_district_id && shippingInfo?.ghn_ward_code) {
+        const ghnOrder = await this.ghnService.createShippingOrder({
+          to_name: shippingInfo.recipient_name ?? 'Khách hàng',
+          to_phone: shippingInfo.phone ?? '',
+          to_address: shippingInfo.full_address ?? '',
+          to_ward_code: shippingInfo.ghn_ward_code,
+          to_district_id: shippingInfo.ghn_district_id,
+          weight: 1000,
+          service_type_id: 2,
+          payment_type_id: 1,
+          cod_amount: 0, // Đã thanh toán qua PayOS
+          note: order.note ?? 'Giao hàng OrchidPal',
+          items: order.order_items.map((item) => ({
+            name: item.product_name_snapshot,
+            quantity: item.quantity,
+            weight: 200,
+          })),
+        });
+
+        if (ghnOrder) {
+          trackingCode = ghnOrder.order_code;
+          estimatedDeliveryAt = new Date(ghnOrder.expected_delivery_time);
+        }
+      }
+
+      const shippingFee = (order.shipping_info as any)?.shipping_fee || 0;
       await tx.shipments.create({
         data: {
           order_id: order.id,
-          carrier_name: 'GHTK', // có thể lấy từ config hoặc logic tự động chọn nhà vận chuyển
-          tracking_code: null, // sẽ update sau
-          shipping_fee: new Prisma.Decimal(30000), // tính động dựa trên địa chỉ, trọng lượng...
-          status: ShipmentStatus.READY, // trạng thái chờ xác nhận vận chuyển
-          estimated_delivery_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 ngày
+          carrier_name: 'GHN',
+          tracking_code: trackingCode,
+          shipping_fee: new Prisma.Decimal(shippingFee),
+          status: ShipmentStatus.READY,
+          estimated_delivery_at: estimatedDeliveryAt,
         },
       });
 
-      const productIds = order.order_items.map((item) => item.product_id!);
+      const productIds = order.order_items.map((item) => item.product_id);
 
       for (const item of order.order_items) {
         await tx.products.update({
-          where: { id: item.product_id! },
-          data: { stock_quantity: { decrement: item.quantity! } },
+          where: { id: item.product_id },
+          data: { stock_quantity: { decrement: item.quantity } },
         });
       }
 
       await tx.cart_items.deleteMany({
         where: {
-          user_id: order.user_id!,
+          user_id: order.user_id,
           product_id: { in: productIds },
         },
       });
@@ -526,7 +592,7 @@ export class PaymentService {
       this.eventEmitter.emit('order.paid', order);
 
       const user = await tx.users.findUnique({
-        where: { id: order.user_id! },
+        where: { id: order.user_id },
         select: { email: true, full_name: true },
       });
 
@@ -537,6 +603,7 @@ export class PaymentService {
           orderCode: order.order_code,
           paymentMethod: 'PAYOS',
           totalAmount: Number(order.total_amount),
+          shippingFee: Number((order.shipping_info as any)?.shipping_fee || 0),
           items: order.order_items.map((item) => ({
             name: item.product_name_snapshot,
             quantity: item.quantity,
@@ -556,7 +623,9 @@ export class PaymentService {
           productName: item.product_name_snapshot,
           quantity: item.quantity,
           unitPrice: Number(item.unit_price),
-          totalPrice: Number(item.total_price ?? item.unit_price.mul(item.quantity)),
+          totalPrice: Number(
+            item.total_price ?? item.unit_price.mul(item.quantity),
+          ),
         })),
         shippingInfo: order.shipping_info,
       });
@@ -708,6 +777,9 @@ export class PaymentService {
     const totalAmountFormatted = new Intl.NumberFormat('vi-VN').format(
       payload.totalAmount,
     );
+    const shippingFeeFormatted = new Intl.NumberFormat('vi-VN').format(
+      payload.shippingFee || 0,
+    );
     const paymentMethodText =
       payload.paymentMethod === 'PAYOS'
         ? 'PayOS (chuyển khoản)'
@@ -784,6 +856,10 @@ export class PaymentService {
                     <tr>
                       <td style="padding:6px 0;font-size:13px;color:#6b7280;">Phương thức thanh toán</td>
                       <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#111827;">${paymentMethodText}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;font-size:13px;color:#6b7280;">Phí vận chuyển</td>
+                      <td align="right" style="padding:6px 0;font-size:13px;font-weight:500;color:#111827;">${shippingFeeFormatted} VND</td>
                     </tr>
                     <tr>
                       <td style="padding:6px 0;font-size:13px;color:#6b7280;">Tổng thanh toán</td>

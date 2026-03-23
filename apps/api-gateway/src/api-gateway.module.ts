@@ -49,6 +49,7 @@ import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
 import { UsersController } from './modules/users/users.controller';
+import { RefundReturnGatewayController } from './modules/refund-return/refund-return.controller';
 
 @Module({
   imports: [
@@ -107,13 +108,16 @@ import { UsersController } from './modules/users/users.controller';
       route: '/admin/queues',
       adapter: ExpressAdapter,
     }),
-    BullBoardModule.forFeature({
-      name: QueueName.IamCronQueue,
-      adapter: BullMQAdapter,
-    }, {
-      name: QueueName.PaymentTimeoutQueue,
-      adapter: BullMQAdapter,
-    }),
+    BullBoardModule.forFeature(
+      {
+        name: QueueName.IamCronQueue,
+        adapter: BullMQAdapter,
+      },
+      {
+        name: QueueName.PaymentTimeoutQueue,
+        adapter: BullMQAdapter,
+      },
+    ),
     EventEmitterModule.forRoot(),
   ],
   controllers: [
@@ -135,6 +139,7 @@ import { UsersController } from './modules/users/users.controller';
     PaymentController,
     AddressesController,
     DashboardController,
+    RefundReturnGatewayController,
   ],
   providers: [
     GoogleStrategy,

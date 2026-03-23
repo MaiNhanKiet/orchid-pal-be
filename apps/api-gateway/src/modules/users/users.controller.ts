@@ -34,7 +34,7 @@ export class UsersController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
     private readonly iamClient: ClientProxy,
-  ) { }
+  ) {}
 
   @Get()
   @Permissions(Permission.UserView)
