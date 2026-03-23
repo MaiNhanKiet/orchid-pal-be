@@ -2,7 +2,7 @@ import { CreateDeviceDto, MICROSERVICES_CLIENTS, UuidDto } from '@app/common';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+} from '@app/common/constants/default.constant';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -70,7 +70,8 @@ export class ProductsService {
 
   async addDevicesToProduct(
     productId: string,
-    secretKeys: string[],
+    secretKey: string,
+    quantity: number,
   ) {
     const product = await this.prisma.products.findUnique({
       where: { id: productId },
@@ -80,26 +81,36 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    if (!Array.isArray(secretKeys) || secretKeys.length === 0) {
-      throw new BadRequestException('secret_keys must be a non-empty array');
+    if (!secretKey) {
+      throw new BadRequestException('secret_key is required');
     }
 
-    const hasDuplicatedSecretKeys = new Set(secretKeys).size !== secretKeys.length;
-    if (hasDuplicatedSecretKeys) {
-      throw new BadRequestException('Each device must have a unique secret key');
+    if (!quantity || quantity <= 0) {
+      throw new BadRequestException('quantity must be a positive integer');
     }
 
-    const quantity = secretKeys.length;
-
-    // Đếm số devices hiện có để tính STT tiếp theo
-    const existingCount = await this.prisma.devices.count({
+    // Tìm serial_number lớn nhất hiện tại của product này
+    const latestDevice = await this.prisma.devices.findFirst({
       where: { product_id: productId },
+      orderBy: { serial_number: 'desc' },
+      select: { serial_number: true },
     });
 
-    // Tạo serial numbers: {SKU}-001, {SKU}-002, ...
+    let latestIndex = 0;
+    if (latestDevice && latestDevice.serial_number) {
+      // Ví dụ: LAN-CTRL-001-025 -> Lấy "025" -> 25
+      const parts = latestDevice.serial_number.split('-');
+      const lastPart = parts[parts.length - 1];
+      const parsed = parseInt(lastPart, 10);
+      if (!isNaN(parsed)) {
+        latestIndex = parsed;
+      }
+    }
+
+    // Tạo serial numbers: {SKU}-001, {SKU}-002, ... tiếp tục từ latestIndex
     const devicesPayload = Array.from({ length: quantity }, (_, i) => ({
-      serial_number: `${product.sku}-${String(existingCount + i + 1).padStart(3, '0')}`,
-      secret_key: secretKeys[i],
+      serial_number: `${product.sku}-${String(latestIndex + i + 1).padStart(3, '0')}`,
+      secret_key: secretKey,
       product_id: productId,
       hardware_config: product.specs_config,
     }));

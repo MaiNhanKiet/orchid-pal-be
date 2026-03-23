@@ -1,7 +1,7 @@
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+} from '@app/common/constants/default.constant';
 import { UpdateTransactionDto } from '@app/common/dtos/order-fulfillment/update-transaction.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';

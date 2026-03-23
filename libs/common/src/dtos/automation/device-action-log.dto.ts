@@ -1,22 +1,22 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class DeviceActionLogEventDto {
-    @IsString()
-    @IsNotEmpty()
-    action: string;
+  @IsString()
+  @IsNotEmpty()
+  action: string;
 
-    @IsString()
-    @IsNotEmpty()
-    role: string;
+  @IsString()
+  @IsNotEmpty()
+  role: string;
 
-    @IsNumber()
-    relay_number: number;
+  @IsNumber()
+  relay_number: number;
 
-    @IsString()
-    @IsNotEmpty()
-    trigger_reason: string;
+  @IsString()
+  @IsNotEmpty()
+  trigger_reason: string;
 
-    @IsNumber()
-    @IsOptional()
-    value?: number;
+  @IsNumber()
+  @IsOptional()
+  value?: number;
 }

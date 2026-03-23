@@ -13,10 +13,14 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PaymentModule } from './payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BullConfigModule } from '@app/common/queue/bull-mq';
+import { RedisModule } from '@app/redis';
 
 @Module({
   imports: [
     CommonModule,
+    RedisModule,
+    BullConfigModule,
     OrdersModule,
     ShipmentsModule,
     TransactionsModule,

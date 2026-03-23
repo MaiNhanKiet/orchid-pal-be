@@ -1,4 +1,4 @@
 export enum PaymentMethod {
-    PayOS = 'PAYOS',
-    COD = 'COD',
+  PayOS = 'PAYOS',
+  COD = 'COD',
 }

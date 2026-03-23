@@ -23,7 +23,16 @@ export class DashboardController {
 
   @MessagePattern({ cmd: 'get_revenue_trend' })
   getRevenueTrend(
-    @Payload() { from, to, groupBy }: { from: string; to: string; groupBy?: 'day' | 'week' | 'month' },
+    @Payload()
+    {
+      from,
+      to,
+      groupBy,
+    }: {
+      from: string;
+      to: string;
+      groupBy?: 'day' | 'week' | 'month';
+    },
   ) {
     return this.dashboardService.getRevenueTrend(from, to, groupBy ?? 'day');
   }

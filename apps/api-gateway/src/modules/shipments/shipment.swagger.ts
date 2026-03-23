@@ -1,4 +1,5 @@
 import { ApiAuthFailures } from '@app/common';
+import { ShipmentStatus } from '@app/common/enums';
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBody,
@@ -14,7 +15,7 @@ const shipmentExample = {
   carrier_name: 'GHN',
   tracking_code: 'GHN123456789',
   shipping_fee: '50000.00',
-  status: 'in_transit',
+  status: ShipmentStatus.DELIVERING,
   estimated_delivery_at: '2024-01-05T00:00:00.000Z',
   created_at: '2024-01-01T00:00:00.000Z',
 };
@@ -96,7 +97,7 @@ export function ApiUpdateShipmentDocs() {
           carrier_name: 'GHTK',
           tracking_code: 'GHTK987654321',
           shipping_fee: 60000,
-          status: 'delivered',
+          status: ShipmentStatus.DELIVERED,
           estimated_delivery_at: '2024-01-06T00:00:00.000Z',
         },
       },
@@ -108,7 +109,7 @@ export function ApiUpdateShipmentDocs() {
         example: {
           ...shipmentExample,
           carrier_name: 'GHTK',
-          status: 'delivered',
+          status: ShipmentStatus.DELIVERED,
         },
       },
     }),

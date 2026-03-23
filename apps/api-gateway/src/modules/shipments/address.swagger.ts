@@ -13,6 +13,9 @@ const addressExample = {
   city: 'Ho Chi Minh City',
   is_default: true,
   type: 'HOME',
+  ghn_district_id: 1452,
+  ghn_ward_code: '21012',
+  shipping_fee: 36300,
   created_at: '2024-01-01T00:00:00.000Z',
 };
 
@@ -26,6 +29,8 @@ const addressBodySchema = {
     city: { type: 'string', example: 'Ho Chi Minh City' },
     is_default: { type: 'boolean', example: false },
     type: { type: 'string', enum: ['HOME', 'OFFICE'], example: 'HOME' },
+    ghn_district_id: { type: 'number', example: 1452 },
+    ghn_ward_code: { type: 'string', example: '21012' },
   },
   required: ['recipient_name', 'phone', 'street', 'city'],
 };
