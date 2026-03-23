@@ -19,7 +19,7 @@ const orderItemExample = {
   total_price: '500000.00',
 };
 
-const orderExample = {
+const simpleOrderExample = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   user_id: '456f7890-e89b-12d3-a456-426614174000',
   order_code: 'ORD20240101001',
@@ -32,6 +32,15 @@ const orderExample = {
   },
   note: 'Giao nhanh vào buổi sáng',
   created_at: '2024-01-01T00:00:00.000Z',
+};
+
+const orderExample = {
+  ...simpleOrderExample,
+  users: {
+    id: '456f7890-e89b-12d3-a456-426614174000',
+    full_name: 'Nguyen Van A',
+    email: 'nguyenvana@example.com',
+  },
   order_items: [orderItemExample],
   shipments: [
     {
@@ -155,7 +164,7 @@ export function ApiUpdateOrderDocs() {
       description: 'Cập nhật đơn hàng thành công',
       schema: {
         example: {
-          ...orderExample,
+          ...simpleOrderExample,
           status: OrderStatus.COMPLETED,
           note: 'Đã giao hàng',
         },
@@ -247,10 +256,19 @@ export function ApiCancelOrderDocs() {
     ApiResponse({
       status: 200,
       description: 'Hủy đơn hàng thành công',
+      schema: {
+        example: {
+          ...simpleOrderExample,
+          status: OrderStatus.CANCELLED,
+          note: 'Lý do hủy: Đổi ý không muốn mua nữa',
+        },
+      },
     }),
     ApiResponse({
       status: 400,
-      description: 'Không thể hủy vì đơn hàng đã giao hoặc vì lý do hệ thống vận chuyển',
+      description:
+        'Không thể hủy vì đơn hàng đã giao hoặc vì lý do hệ thống vận chuyển',
     }),
   );
 }
+
