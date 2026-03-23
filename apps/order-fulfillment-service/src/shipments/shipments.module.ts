@@ -9,5 +9,6 @@ import { GhnService } from './ghn.service';
   imports: [],
   controllers: [ShipmentsController, AddressesController],
   providers: [ShipmentsService, AddressService, GhnService],
+  exports: [GhnService],
 })
 export class ShipmentsModule {}

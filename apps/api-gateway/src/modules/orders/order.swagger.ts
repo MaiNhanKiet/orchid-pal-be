@@ -33,6 +33,18 @@ const orderExample = {
   note: 'Giao nhanh vào buổi sáng',
   created_at: '2024-01-01T00:00:00.000Z',
   order_items: [orderItemExample],
+  shipments: [
+    {
+      id: '223e4567-e89b-12d3-a456-426614174000',
+      order_id: '123e4567-e89b-12d3-a456-426614174000',
+      carrier_name: 'GHN',
+      tracking_code: 'GHN123456789',
+      shipping_fee: '35000.00',
+      status: 'PENDING',
+      estimated_delivery_at: '2024-01-05T00:00:00.000Z',
+      ghn_status: 'ready_to_pick',
+    },
+  ],
 };
 
 export function ApiGetAllOrdersDocs() {
