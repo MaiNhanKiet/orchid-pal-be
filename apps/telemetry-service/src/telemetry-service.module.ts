@@ -8,6 +8,7 @@ import {
 } from '@app/common';
 import { MongoModule } from '@app/mongo';
 import { PrismaModule } from '@app/prisma';
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -20,6 +21,7 @@ import { TelemetryServiceService } from './telemetry-service.service';
     CommonModule,
     MongoModule,
     PrismaModule,
+    HttpModule,
     MongooseModule.forFeature([
       { name: Telemetry.name, schema: TelemetrySchema },
     ]),
@@ -46,4 +48,4 @@ import { TelemetryServiceService } from './telemetry-service.service';
     },
   ],
 })
-export class TelemetryServiceModule {}
+export class TelemetryServiceModule { }

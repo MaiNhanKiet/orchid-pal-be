@@ -1,228 +1,417 @@
 import { PrismaService } from '@app/prisma';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { firstValueFrom } from 'rxjs';
+import { GoogleGenAI } from '@google/genai';
 import { Telemetry, TelemetryDocument } from './schemas/telemetry.schema';
 
 @Injectable()
 export class TelemetryServiceService {
-  private readonly logger = new Logger(TelemetryServiceService.name);
-  private readonly genAI: GoogleGenerativeAI;
-  private readonly model: any;
-
   constructor(
     @InjectModel(Telemetry.name)
     private readonly telemetryModel: Model<TelemetryDocument>,
     @Inject('API_GATEWAY') private readonly rmqClient: ClientProxy,
     private readonly prismaService: PrismaService,
-  ) {
-    // In a production environment, use ConfigService to get the key from process.env
-    this.genAI = new GoogleGenerativeAI(
-      'AIzaSyCiygy4dmp1Vvvixlg6vKsAoPk3JdBaSa4',
-    );
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-  }
+    private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
+  ) { }
 
   async saveTelemetryData(serialNumber: string, payload: any) {
-    try {
-      const temperature =
-        payload.temp !== undefined ? Number(payload.temp) : null;
-      const humidity =
-        payload.humid !== undefined ? Number(payload.humid) : null;
-      const soil_moisture =
-        payload.soil !== undefined ? Number(payload.soil) : null;
-      const light = payload.light !== undefined ? Number(payload.light) : null;
+    const temperature = payload.temp !== undefined ? Number(payload.temp) : null;
+    const humidity = payload.humid !== undefined ? Number(payload.humid) : null;
+    const soil_moisture =
+      payload.soil !== undefined ? Number(payload.soil) : null;
+    const light = payload.light !== undefined ? Number(payload.light) : null;
 
-      const newData = new this.telemetryModel({
-        timestamp: new Date(),
-        metadata: { serial_number: serialNumber },
-        temperature,
-        humidity,
-        soil_moisture,
+    const savedData = await this.telemetryModel.create({
+      timestamp: new Date(),
+      metadata: { serial_number: serialNumber },
+      temperature,
+      humidity,
+      soil_moisture,
+      light,
+    });
+
+    this.rmqClient.emit('telemetry_created_event', {
+      serialNumber,
+      timestamp: savedData.timestamp,
+      sensors: {
+        temp: temperature,
+        humid: humidity,
+        soil: soil_moisture,
         light,
-      });
+      },
+    });
 
-      // 1. Lưu vào MongoDB
-      const savedData = await newData.save();
-      this.logger.log(`[${serialNumber}] Saved telemetry to DB`);
-
-      // 2. Bắn Event qua RabbitMQ cho API Gateway
-      this.rmqClient.emit('telemetry_created_event', {
-        serialNumber: serialNumber,
-        timestamp: savedData.timestamp,
-        sensors: {
-          temp: temperature,
-          humid: humidity,
-          soil: soil_moisture,
-          light: light,
-        },
-      });
-
-      this.logger.debug(
-        `[${serialNumber}] Emitted RMQ event 'telemetry_created_event'`,
-      );
-    } catch (error) {
-      this.logger.error(`Error saving telemetry: ${error.message}`);
-    }
+    return savedData;
   }
 
   async getLatestTelemetry(serialNumber: string) {
-    try {
-      const latestData = await this.telemetryModel
-        .findOne({ 'metadata.serial_number': serialNumber })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      return latestData;
-    } catch (error) {
-      this.logger.error(
-        `Error getting latest telemetry for ${serialNumber}: ${error.message}`,
-      );
-      throw error;
-    }
+    return this.telemetryModel
+      .findOne({ 'metadata.serial_number': serialNumber })
+      .sort({ timestamp: -1 })
+      .exec();
   }
 
   async getHistoryTelemetry(serialNumber: string, hours: number = 24) {
-    try {
-      const startTime = new Date();
-      startTime.setHours(startTime.getHours() - hours);
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - hours);
 
-      const historyData = await this.telemetryModel
-        .find({
-          'metadata.serial_number': serialNumber,
-          timestamp: { $gte: startTime },
-        })
-        .sort({ timestamp: 1 })
-        .select('timestamp temperature humidity soil_moisture light -_id')
-        .exec();
-
-      return historyData;
-    } catch (error) {
-      this.logger.error(
-        `Error getting history telemetry for ${serialNumber}: ${error.message}`,
-      );
-      throw error;
-    }
+    return this.telemetryModel
+      .find({
+        'metadata.serial_number': serialNumber,
+        timestamp: { $gte: startTime },
+      })
+      .sort({ timestamp: 1 })
+      .select('timestamp temperature humidity soil_moisture light -_id')
+      .exec();
   }
 
-  async analyzeSeasonalConfig(
-    zoneId: string,
-    currentConfig: any,
-    days: number = 3,
-  ) {
+  async analyzeSeasonalConfig(zoneId: string, days: number = 3) {
+    const zone = await this.prismaService.planting_zones.findUnique({
+      where: { id: zoneId },
+      include: { devices: { select: { serial_number: true } } },
+    });
+
+    if (!zone) {
+      throw new NotFoundException('Zone not found');
+    }
+
+    if (!zone.devices?.length) {
+      throw new BadRequestException('No devices found in zone');
+    }
+
+    const serialNumber = zone.devices[0].serial_number;
+    const history = await this.getHistoryTelemetry(serialNumber, days * 24);
+
+    let totalTemp = 0;
+    let totalHumid = 0;
+    let count = 0;
+
+    for (const record of history) {
+      if (record.temperature != null && record.humidity != null) {
+        totalTemp += Number(record.temperature);
+        totalHumid += Number(record.humidity);
+        count++;
+      }
+    }
+
+    if (count === 0) {
+      throw new BadRequestException('Không có dữ liệu telemetry hợp lệ để phân tích.');
+    }
+
+    const avgTemp = totalTemp / count;
+    const avgHumid = totalHumid / count;
+
+    const apiUrl = this.configService.get<string>('AI_PLATFORM_URL');
+    const apiKey = this.configService.get<string>('AI_PLATFORM_KEY');
+
+    if (!apiUrl) {
+      throw new ServiceUnavailableException('Thiếu cấu hình AI_PLATFORM_URL');
+    }
+
+    const activeRule = await this.prismaService.automation_rules.findFirst({
+      where: {
+        zone_id: zoneId,
+        is_active: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      select: {
+        id: true,
+        logic_config: true,
+      },
+    });
+
+    if (!activeRule) {
+      throw new NotFoundException('Không tìm thấy automation rule đang active cho zone này.');
+    }
+
+    const currentLogicConfig =
+      (activeRule.logic_config as any)?.logic_config ?? activeRule.logic_config;
+
+    if (!Array.isArray(currentLogicConfig)) {
+      throw new BadRequestException('logic_config trong DB không đúng định dạng mảng.');
+    }
+
+    const payloadToAi = {
+      zone_id: zoneId,
+      zone: {
+        id: zone.id,
+        name: zone.name,
+        location_city: zone.location_city,
+        exposure: zone.exposure,
+        device_count: 1,
+        devices: [serialNumber],
+      },
+      automation_rule: {
+        id: activeRule.id,
+        logic_config: currentLogicConfig,
+      },
+      telemetry_summary: {
+        period_days: days,
+        average_temperature: Number(avgTemp.toFixed(2)),
+        average_humidity: Number(avgHumid.toFixed(2)),
+        sample_count: count,
+      },
+    };
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        apiUrl,
+        {
+          zoneId,
+          context: payloadToAi,
+          expected_output_format: {
+            logic_config: [
+              {
+                if: {
+                  metric: 'humidity',
+                  op: '<',
+                  value: 40,
+                },
+                then: {
+                  action: 'pump',
+                  duration_ms: 10000,
+                },
+              },
+            ],
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(apiKey ? { 'x-api-key': apiKey } : {}),
+          },
+          validateStatus: () => true,
+        },
+      ),
+    );
+
+    const result = response.data;
+
+    if (response.status >= 400) {
+      throw new ServiceUnavailableException(
+        result?.message || 'AI Platform đang bận hoặc lỗi.',
+      );
+    }
+
+    if (result?.status !== 'success' || !result?.data) {
+      throw new ServiceUnavailableException(
+        result?.message || 'AI Platform trả về dữ liệu không hợp lệ.',
+      );
+    }
+
+    const aiData = result.data;
+    const suggestedLogicConfig = aiData?.logic_config;
+
+    if (!Array.isArray(suggestedLogicConfig)) {
+      throw new ServiceUnavailableException(
+        'AI Platform trả về logic_config không đúng định dạng mảng.',
+      );
+    }
+
+    return {
+      original: {
+        logic_config: currentLogicConfig,
+      },
+      suggestion: {
+        logic_config: suggestedLogicConfig,
+      },
+      analysis: {
+        period: `${days} ngày`,
+        average_temperature: avgTemp,
+        average_humidity: avgHumid,
+        zone_name: zone.name,
+        ai_note: aiData?.ai_reason || 'AI đã điều chỉnh cấu hình theo mùa vụ.',
+      },
+    };
+  }
+
+  async geminianalyzeSeasonalConfig(zoneId: string, days: number = 3) {
+    const zone = await this.prismaService.planting_zones.findUnique({
+      where: { id: zoneId },
+      include: { devices: { select: { serial_number: true } } },
+    });
+
+    if (!zone) {
+      throw new NotFoundException('Zone not found');
+    }
+
+    if (!zone.devices?.length) {
+      throw new BadRequestException('No devices found in zone');
+    }
+
+    const serialNumber = zone.devices[0].serial_number;
+    const history = await this.getHistoryTelemetry(serialNumber, days * 24);
+    let totalTemp = 0;
+    let totalHumid = 0;
+    let count = 0;
+
+    for (const record of history) {
+      if (record.temperature != null && record.humidity != null) {
+        totalTemp += Number(record.temperature);
+        totalHumid += Number(record.humidity);
+        count++;
+      }
+    }
+
+    if (count === 0) {
+      throw new BadRequestException('Không có dữ liệu telemetry hợp lệ để phân tích.');
+    }
+
+    const avgTemp = totalTemp / count;
+    const avgHumid = totalHumid / count;
+
+    const geminiModel = this.configService.get<string>('GEMINI_MODEL');
+    const geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
+
+    if (!geminiModel) {
+      throw new ServiceUnavailableException('Thiếu cấu hình GEMINI_MODEL');
+    }
+
+    if (!geminiApiKey) {
+      throw new ServiceUnavailableException('Thiếu cấu hình GEMINI_API_KEY');
+    }
+
+    const activeRule = await this.prismaService.automation_rules.findFirst({
+      where: {
+        zone_id: zoneId,
+        is_active: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      select: {
+        id: true,
+        logic_config: true,
+      },
+    });
+
+    if (!activeRule) {
+      throw new NotFoundException('Không tìm thấy automation rule đang active cho zone này.');
+    }
+
+    const currentLogicConfig =
+      (activeRule.logic_config as any)?.logic_config ?? activeRule.logic_config;
+
+    if (!Array.isArray(currentLogicConfig)) {
+      throw new BadRequestException('logic_config trong DB không đúng định dạng mảng.');
+    }
+
+    const payloadToAi = {
+      zone_id: zoneId,
+      zone: {
+        id: zone.id,
+        name: zone.name,
+        location_city: zone.location_city,
+        exposure: zone.exposure,
+        device_count: 1,
+        devices: [serialNumber],
+      },
+      automation_rule: {
+        id: activeRule.id,
+        logic_config: currentLogicConfig,
+      },
+      telemetry_summary: {
+        period_days: days,
+        average_temperature: Number(avgTemp.toFixed(2)),
+        average_humidity: Number(avgHumid.toFixed(2)),
+        sample_count: count,
+      },
+    };
+
+    const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+
+    const prompt = [
+      'Bạn là AI Kỹ sư Nông nghiệp cốt lõi của hệ thống OrchidPal.',
+      'Nhiệm vụ: Phân tích dữ liệu môi trường trong Payload và tinh chỉnh lại mảng "logic_config" để bảo vệ hoa Lan.',
+
+      'QUY TẮC BẮT BUỘC (TUÂN THỦ 100%):',
+      '1. BẢO TOÀN THIẾT BỊ: Payload đầu vào có bao nhiêu object trong mảng logic_config, đầu ra BẮT BUỘC phải có chính xác bấy nhiêu object. Tuyệt đối KHÔNG thêm, KHÔNG bớt thiết bị.',
+      '2. BẢO TOÀN CẤU TRÚC: Giữ nguyên các giá trị "action", "metric" và "op" của từng object.',
+      '3. CHỈ ĐIỀU CHỈNH SỐ: Bạn chỉ được phép phân tích và thay đổi các con số ở trường "value" (ngưỡng kích hoạt) và "duration_ms" (thời gian chạy) sao cho phù hợp với thời tiết.',
+      '4. KHÔNG RÁC: Chỉ trả về JSON thuần túy, tuyệt đối KHÔNG có thẻ markdown (```json), KHÔNG comment (//) bên trong JSON.',
+
+      'Định dạng xuất ra bắt buộc:',
+      JSON.stringify(
+        {
+          logic_config: [
+            {
+              if: {
+                metric: 'humidity',
+                op: '<',
+                value: 40,
+              },
+              then: {
+                action: 'pump',
+                duration_ms: 10000,
+              },
+            },
+          ],
+          ai_reason: 'string',
+        },
+        null,
+        2,
+      ),
+      'Dữ liệu đầu vào:',
+      JSON.stringify(payloadToAi),
+    ].join('\n\n');
+
+    let aiData: any;
+
     try {
-      // 1. Get Zone Info and Devices
-      const zone = await this.prismaService.planting_zones.findUnique({
-        where: { id: zoneId },
-        include: { devices: { select: { serial_number: true } } },
+      const response = await genAI.models.generateContent({
+        model: geminiModel,
+        contents: prompt,
       });
 
-      if (!zone) {
-        throw new Error('Zone not found');
+      const responseText = response.text;
+
+      if (!responseText) {
+        throw new ServiceUnavailableException('Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau.');
       }
 
-      if (!zone.devices || zone.devices.length === 0) {
-        this.logger.warn(`No devices found in zone ${zoneId}`);
-        return currentConfig; // No data to analyze
-      }
-
-      // 2. Fetch Telemetry Data
-      const hours = days * 24;
-      let totalTemp = 0;
-      let totalHumid = 0;
-      let count = 0;
-
-      for (const device of zone.devices) {
-        const history = await this.getHistoryTelemetry(
-          device.serial_number,
-          hours,
-        );
-        if (history && history.length > 0) {
-          for (const record of history) {
-            if (record.temperature && record.humidity) {
-              totalTemp += record.temperature;
-              totalHumid += record.humidity;
-              count++;
-            }
-          }
-        }
-      }
-
-      if (count === 0) {
-        return currentConfig; // No telemetry data
-      }
-
-      const avgTemp = totalTemp / count;
-      const avgHumid = totalHumid / count;
-
-      // 3. AI Analysis with Gemini
-      this.logger.log(
-        `AI Analysis for Zone ${zone.name}: AvgTemp=${avgTemp.toFixed(1)}, AvgHumid=${avgHumid.toFixed(1)}`,
-      );
-
-      const prompt = `
-        You are an expert orchid care assistant for a smart garden system.
-        I will provide you with the average environmental conditions of a zone for the last ${days} days and the current hardware configuration.
-        
-        Your task is to analyze if the current configuration is suitable for these conditions, or if a TEMPORARY SEASONAL ADJUSTMENT is needed.
-        
-        Context:
-        - Zone Name: ${zone.name} (Location: ${zone.location_city || 'Unknown'})
-        - Exposure: ${zone.exposure || 'Unknown'}
-        - Average Temperature: ${avgTemp.toFixed(1)}°C
-        - Average Humidity: ${avgHumid.toFixed(1)}%
-        - Current Hardware Config: ${JSON.stringify(currentConfig)}
-        
-        Instructions:
-        1. Access the environmental impact on orchids (assume generic orchid needs if species not specified, e.g. 20-30°C, 50-70% humidity).
-        2. If the conditions are significantly different from ideal (e.g., heatwave, cold snap, dry spell), modify the config to compensate (e.g., increase watering frequency/duration).
-        3. Only modify the values if necessary. If everything is fine, keep it similar to the original.
-        4. Add a "reason" field in the config or nested objects explaining why you changed it, prefixed with "AI adjusted: ".
-        
-        Output Format:
-        Return ONLY valid JSON. The JSON should be the new configuration object. Do not include markdown formatting like \`\`\`json.
-      `;
-
-      try {
-        const result = await this.model.generateContent(prompt);
-        const responseText = result.response.text();
-
-        // Clean up markdown if Gemini includes it
-        const cleanedJson = responseText
-          .replace(/^```json/, '')
-          .replace(/```$/, '')
-          .trim();
-
-        const newConfig = JSON.parse(cleanedJson);
-
-        return {
-          original: currentConfig,
-          suggestion: newConfig,
-          analysis: {
-            period: `${days} days`,
-            average_temperature: avgTemp,
-            average_humidity: avgHumid,
-            zone_name: zone.name,
-            ai_note: 'Seasonal adjustment generated by Gemini AI.',
-          },
-        };
-      } catch (aiError) {
-        this.logger.error(`Gemini AI analysis failed: ${aiError.message}`);
-        // Fallback to original config if AI fails
-        return {
-          original: currentConfig,
-          suggestion: currentConfig,
-          analysis: {
-            period: `${days} days`,
-            error: 'AI service unavailable, returned original config.',
-          },
-        };
-      }
+      aiData = JSON.parse(responseText);
     } catch (error) {
-      this.logger.error(`Error analyzing seasonal config: ${error.message}`);
-      throw error;
+      throw new ServiceUnavailableException(
+        `Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau: ${error?.message || 'Unknown error'}`,
+      );
     }
+
+    const suggestedLogicConfig = aiData?.logic_config;
+
+    if (!Array.isArray(suggestedLogicConfig)) {
+      throw new ServiceUnavailableException(
+        'Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau.',
+      );
+    }
+
+    return {
+      original: {
+        logic_config: currentLogicConfig,
+      },
+      suggestion: {
+        logic_config: suggestedLogicConfig,
+      },
+      analysis: {
+        period: `${days} ngày`,
+        average_temperature: avgTemp,
+        average_humidity: avgHumid,
+        zone_name: zone.name,
+        ai_note: aiData?.ai_reason || 'AI đã điều chỉnh cấu hình theo mùa vụ.',
+      },
+    };
   }
 }

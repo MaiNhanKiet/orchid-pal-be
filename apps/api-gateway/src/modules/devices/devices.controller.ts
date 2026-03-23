@@ -3,7 +3,6 @@ import {
   AssignDeviceToZoneDto,
   ControlDeviceDto,
   CurrentUser,
-  DeviceAssignedZoneEventDto,
   JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
@@ -22,7 +21,6 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
 import {
   ApiActivateDeviceDocs,
@@ -31,19 +29,7 @@ import {
   ApiGetDeviceLogsDocs,
   ApiGetDeviceStatusDocs,
   ApiGetLatestDeviceDocs,
-  ApiTestAutomationQueueDocs,
 } from './devices.swagger';
-
-class TestAutomationQueueDto {
-  @IsUUID()
-  device_id: string;
-
-  @IsUUID()
-  zone_id: string;
-
-  @IsUUID()
-  user_id: string;
-}
 
 @ApiTags('Devices')
 @ApiBearerAuth('access-token')
@@ -115,26 +101,6 @@ export class DevicesController {
         },
       ),
     );
-  }
-
-  @Post('automation/test-queue')
-  @Permissions(Permission.DeviceAssignZone)
-  @ApiTestAutomationQueueDocs()
-  async testAutomationQueue(@Body() body: TestAutomationQueueDto) {
-    const payload: DeviceAssignedZoneEventDto = {
-      device_id: body.device_id,
-      zone_id: body.zone_id,
-      user_id: body.user_id,
-    };
-
-    await firstValueFrom(
-      this.automationClient.emit('device.assigned.zone', payload),
-    );
-
-    return {
-      message: 'Sent event to AUTOMATION queue',
-      payload,
-    };
   }
 
   @Post(':serial_number/control')

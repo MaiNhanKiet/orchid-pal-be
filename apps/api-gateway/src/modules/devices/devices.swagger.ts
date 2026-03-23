@@ -232,42 +232,6 @@ export function ApiAssignDeviceToZoneDocs() {
   );
 }
 
-export function ApiTestAutomationQueueDocs() {
-  return applyDecorators(
-    ApiOperation({
-      summary: 'Test RabbitMQ - gửi event vào AUTOMATION queue',
-      description:
-        'API test để đẩy event `device.assigned.zone` vào RabbitMQ (AUTOMATION queue).\n\n' +
-        'Dùng để kiểm tra kết nối RabbitMQ và Automation Service nhận event.',
-    }),
-    ApiAuthFailures(),
-    ApiResponse({
-      status: 200,
-      description: 'Gửi event vào RabbitMQ thành công.',
-      schema: {
-        example: {
-          message: 'Sent event to AUTOMATION queue',
-          payload: {
-            device_id: '123e4567-e89b-12d3-a456-426614174000',
-            zone_id: '123e4567-e89b-12d3-a456-426614174100',
-            user_id: '123e4567-e89b-12d3-a456-426614174001',
-          },
-        },
-      },
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'Dữ liệu không hợp lệ.',
-      schema: {
-        example: {
-          message: 'Bad Request',
-          errors: ['device_id must be a UUID'],
-        },
-      },
-    }),
-  );
-}
-
 export function ApiControlDeviceDocs() {
   return applyDecorators(
     ApiOperation({
