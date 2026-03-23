@@ -12,6 +12,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Message, MessageSchema } from './schemas/message.telemetry';
 import { Telemetry, TelemetrySchema } from './schemas/telemetry.schema';
 import { TelemetryServiceController } from './telemetry-service.controller';
 import { TelemetryServiceService } from './telemetry-service.service';
@@ -24,6 +25,7 @@ import { TelemetryServiceService } from './telemetry-service.service';
     HttpModule,
     MongooseModule.forFeature([
       { name: Telemetry.name, schema: TelemetrySchema },
+      { name: Message.name, schema: MessageSchema },
     ]),
     RmqModule.register('API_GATEWAY'),
   ],

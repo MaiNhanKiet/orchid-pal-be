@@ -10,9 +10,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/mongoose';
+import { GoogleGenAI } from '@google/genai';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
-import { GoogleGenAI } from '@google/genai';
+import { Message, MessageDocument } from './schemas/message.telemetry';
 import { Telemetry, TelemetryDocument } from './schemas/telemetry.schema';
 
 @Injectable()
@@ -20,11 +21,212 @@ export class TelemetryServiceService {
   constructor(
     @InjectModel(Telemetry.name)
     private readonly telemetryModel: Model<TelemetryDocument>,
+    @InjectModel(Message.name)
+    private readonly messageModel: Model<MessageDocument>,
     @Inject('API_GATEWAY') private readonly rmqClient: ClientProxy,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) { }
+
+  private readonly orchidPalSystemInstruction = `
+    - Giới hạn: Bạn CHỈ trả lời các câu hỏi liên quan đến Hoa Lan, chăm sóc cây, nông nghiệp công nghệ cao và hệ thống OrchidPal.
+
+    - Nếu người dùng hỏi về chủ đề KHÔNG liên quan:
+      + KHÔNG trả lời trực tiếp nội dung đó.
+      + Hãy từ chối một cách LỊCH SỰ, TINH TẾ và THÂN THIỆN.
+      + Sau đó KHÉO LÉO điều hướng lại cuộc trò chuyện về chủ đề Hoa Lan.
+
+    - Cách từ chối:
+      + Không nói "tôi không biết"
+      + Không nói "không liên quan" một cách khô khan
+      + Thay vào đó:
+        * Thừa nhận câu hỏi
+        * Nhẹ nhàng từ chối
+        * Gợi ý quay lại chủ đề lan
+
+    - Ví dụ:
+      Người dùng: "Hôm nay thời tiết thế nào?"
+      → Trả lời:
+      "Mình tập trung hỗ trợ bạn về việc chăm sóc hoa lan và hệ thống OrchidPal 🌱. Nếu bạn cần tư vấn về tình trạng cây hoặc môi trường trồng lan, mình luôn sẵn sàng hỗ trợ nhé!"
+
+      Người dùng: "Viết code giúp tôi"
+      → Trả lời:
+      "Mình chuyên hỗ trợ về hoa lan và hệ thống chăm sóc cây thông minh. Nếu bạn đang gặp vấn đề với cây lan hoặc muốn tối ưu môi trường trồng, mình có thể giúp bạn rất chi tiết 🌿"
+
+      Người dùng: "Kể chuyện cười đi"
+      → Trả lời:
+      "Nghe cũng thú vị đó 😄, nhưng mình được thiết kế để đồng hành cùng bạn trong việc chăm sóc hoa lan. Nếu cây lan của bạn đang gặp vấn đề hoặc cần tư vấn, mình luôn sẵn sàng!"
+  `;
+
+  private sanitizeGeminiJson(text: string): any {
+    const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  }
+
+  private async uploadChatImageToCloudinary(image: {
+    base64: string;
+    mimeType?: string;
+    originalName?: string;
+  }) {
+    const cloudinary = require('cloudinary').v2;
+
+    cloudinary.config({
+      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
+      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+    });
+
+    const uploadResult = await cloudinary.uploader.upload(
+      `data:${image.mimeType || 'image/jpeg'};base64,${image.base64}`,
+      {
+        folder: 'orchidpal/chat',
+        resource_type: 'image',
+        public_id: image.originalName
+          ? `${Date.now()}-${image.originalName.replace(/\.[^/.]+$/, '')}`
+          : undefined,
+        transformation: [
+          { width: 1600, crop: 'limit' },
+          { quality: 'auto:good' },
+        ],
+      },
+    );
+
+    return {
+      type: 'image' as const,
+      url: uploadResult.secure_url,
+      mimeType: image.mimeType || 'image/jpeg',
+    };
+  }
+
+  private async getRecentChatContext(
+    sessionId: string,
+    userId: string,
+    limit = 14,
+  ) {
+    const history = await this.messageModel
+      .find({ sessionId, userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return history.reverse();
+  }
+
+  async orchidChat(payload: {
+    sessionId: string;
+    userId: string;
+    content: string;
+    image?: {
+      base64: string;
+      mimeType?: string;
+      originalName?: string;
+    };
+  }) {
+    const geminiModel = this.configService.get<string>('GEMINI_MODEL');
+    const geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
+
+    if (!geminiModel) {
+      throw new ServiceUnavailableException('Thiếu cấu hình GEMINI_MODEL');
+    }
+
+    if (!geminiApiKey) {
+      throw new ServiceUnavailableException('Thiếu cấu hình GEMINI_API_KEY');
+    }
+
+    const uploadedAttachment = payload.image
+      ? await this.uploadChatImageToCloudinary(payload.image)
+      : null;
+
+    const attachments = uploadedAttachment ? [uploadedAttachment] : [];
+
+    const userMessage = await this.messageModel.create({
+      sessionId: payload.sessionId,
+      userId: payload.userId,
+      role: 'user',
+      content: payload.content,
+      attachments,
+      metadata: { model: geminiModel },
+    });
+
+    const contextHistory = await this.getRecentChatContext(
+      payload.sessionId,
+      payload.userId,
+    );
+
+    const contextText = contextHistory
+      .map((item) => {
+        const imageUrls = (item.attachments || []).map((f) => f.url).join(', ');
+        return `[${item.role}] ${item.content}${imageUrls ? ` | images: ${imageUrls}` : ''}`;
+      })
+      .join('\n');
+
+    const textParts: Array<{ text: string }> = [
+      {
+        text: [
+          this.orchidPalSystemInstruction,
+          'Ngữ cảnh lịch sử hội thoại gần đây:',
+          contextText || '(Không có)',
+          'Tin nhắn hiện tại của người dùng:',
+          payload.content,
+        ].join('\n\n'),
+      },
+    ];
+
+    const imageParts = attachments.map((file) => ({
+      fileData: {
+        fileUri: file.url,
+        mimeType: file.mimeType || 'image/jpeg',
+      },
+    }));
+
+    const genAI = new GoogleGenAI({ apiKey: geminiApiKey });
+
+    let answerText = '';
+    try {
+      const response = await genAI.models.generateContent({
+        model: geminiModel,
+        contents: [
+          {
+            role: 'user',
+            parts: [...textParts, ...imageParts],
+          },
+        ],
+      });
+
+      answerText = response.text || '';
+    } catch (error) {
+      throw new ServiceUnavailableException(
+        `Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau: ${error?.message || 'Unknown error'}`,
+      );
+    }
+
+    if (!answerText) {
+      throw new ServiceUnavailableException(
+        'Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau.',
+      );
+    }
+
+    const modelMessage = await this.messageModel.create({
+      sessionId: payload.sessionId,
+      userId: payload.userId,
+      role: 'model',
+      content: answerText,
+      attachments: [],
+      metadata: {
+        model: geminiModel,
+        tokens: answerText.length,
+      },
+    });
+
+    return {
+      sessionId: payload.sessionId,
+      reply: modelMessage.content,
+      userMessageId: userMessage._id,
+      modelMessageId: modelMessage._id,
+    };
+  }
 
   async saveTelemetryData(serialNumber: string, payload: any) {
     const temperature = payload.temp !== undefined ? Number(payload.temp) : null;
@@ -135,7 +337,9 @@ export class TelemetryServiceService {
     });
 
     if (!activeRule) {
-      throw new NotFoundException('Không tìm thấy automation rule đang active cho zone này.');
+      throw new NotFoundException(
+        'Không tìm thấy automation rule đang active cho zone này.',
+      );
     }
 
     const currentLogicConfig =
@@ -300,7 +504,9 @@ export class TelemetryServiceService {
     });
 
     if (!activeRule) {
-      throw new NotFoundException('Không tìm thấy automation rule đang active cho zone này.');
+      throw new NotFoundException(
+        'Không tìm thấy automation rule đang active cho zone này.',
+      );
     }
 
     const currentLogicConfig =
@@ -380,10 +586,12 @@ export class TelemetryServiceService {
       const responseText = response.text;
 
       if (!responseText) {
-        throw new ServiceUnavailableException('Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau.');
+        throw new ServiceUnavailableException(
+          'Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau.',
+        );
       }
 
-      aiData = JSON.parse(responseText);
+      aiData = this.sanitizeGeminiJson(responseText);
     } catch (error) {
       throw new ServiceUnavailableException(
         `Tính năng AI đang xảy ra lỗi. Vui lòng thử lại sau: ${error?.message || 'Unknown error'}`,

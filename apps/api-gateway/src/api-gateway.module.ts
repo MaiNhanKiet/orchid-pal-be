@@ -49,6 +49,7 @@ import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
 import { UsersController } from './modules/users/users.controller';
+import { ChatController } from './modules/chat/chat.controller';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import { UsersController } from './modules/users/users.controller';
     PaymentController,
     AddressesController,
     DashboardController,
+    ChatController
   ],
   providers: [
     GoogleStrategy,
@@ -164,4 +166,4 @@ import { UsersController } from './modules/users/users.controller';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

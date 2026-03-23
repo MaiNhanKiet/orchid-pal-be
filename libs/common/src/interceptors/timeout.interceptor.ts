@@ -8,11 +8,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable, TimeoutError, throwError } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
-import { BYPASS_INTERCEPTORS } from '../decorators';
+import { BYPASS_INTERCEPTORS, SKIP_TIMEOUT } from '../decorators';
 
 @Injectable()
 export class TimeoutInterceptor implements NestInterceptor {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const bypass = this.reflector.get<boolean>(
@@ -20,6 +20,15 @@ export class TimeoutInterceptor implements NestInterceptor {
       context.getHandler(),
     );
     if (bypass) {
+      return next.handle();
+    }
+
+    const skipTimeout = this.reflector.get<boolean>(
+      SKIP_TIMEOUT,
+      context.getHandler(),
+    );
+
+    if (skipTimeout) {
       return next.handle();
     }
 
