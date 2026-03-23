@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/prisma';
+import { GoogleGenAI } from '@google/genai';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -10,7 +11,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/mongoose';
-import { GoogleGenAI } from '@google/genai';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 import { Message, MessageDocument } from './schemas/message.telemetry';
@@ -27,7 +27,7 @@ export class TelemetryServiceService {
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-  ) { }
+  ) {}
 
   private readonly orchidPalSystemInstruction = `
     - Giới hạn: Bạn CHỈ trả lời các câu hỏi liên quan đến Hoa Lan, chăm sóc cây, nông nghiệp công nghệ cao và hệ thống OrchidPal.
@@ -60,7 +60,10 @@ export class TelemetryServiceService {
   `;
 
   private sanitizeGeminiJson(text: string): any {
-    const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const cleaned = text
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim();
     return JSON.parse(cleaned);
   }
 
@@ -229,7 +232,8 @@ export class TelemetryServiceService {
   }
 
   async saveTelemetryData(serialNumber: string, payload: any) {
-    const temperature = payload.temp !== undefined ? Number(payload.temp) : null;
+    const temperature =
+      payload.temp !== undefined ? Number(payload.temp) : null;
     const humidity = payload.humid !== undefined ? Number(payload.humid) : null;
     const soil_moisture =
       payload.soil !== undefined ? Number(payload.soil) : null;
@@ -309,7 +313,9 @@ export class TelemetryServiceService {
     }
 
     if (count === 0) {
-      throw new BadRequestException('Không có dữ liệu telemetry hợp lệ để phân tích.');
+      throw new BadRequestException(
+        'Không có dữ liệu telemetry hợp lệ để phân tích.',
+      );
     }
 
     const avgTemp = totalTemp / count;
@@ -346,7 +352,9 @@ export class TelemetryServiceService {
       (activeRule.logic_config as any)?.logic_config ?? activeRule.logic_config;
 
     if (!Array.isArray(currentLogicConfig)) {
-      throw new BadRequestException('logic_config trong DB không đúng định dạng mảng.');
+      throw new BadRequestException(
+        'logic_config trong DB không đúng định dạng mảng.',
+      );
     }
 
     const payloadToAi = {
@@ -472,7 +480,9 @@ export class TelemetryServiceService {
     }
 
     if (count === 0) {
-      throw new BadRequestException('Không có dữ liệu telemetry hợp lệ để phân tích.');
+      throw new BadRequestException(
+        'Không có dữ liệu telemetry hợp lệ để phân tích.',
+      );
     }
 
     const avgTemp = totalTemp / count;
@@ -513,7 +523,9 @@ export class TelemetryServiceService {
       (activeRule.logic_config as any)?.logic_config ?? activeRule.logic_config;
 
     if (!Array.isArray(currentLogicConfig)) {
-      throw new BadRequestException('logic_config trong DB không đúng định dạng mảng.');
+      throw new BadRequestException(
+        'logic_config trong DB không đúng định dạng mảng.',
+      );
     }
 
     const payloadToAi = {
