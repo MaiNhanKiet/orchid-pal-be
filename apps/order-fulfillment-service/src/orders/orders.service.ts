@@ -4,7 +4,7 @@ import {
 } from '@app/common/constants/default.constant';
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 import { PrismaService } from '@app/prisma';
-import { OrderStatus } from '@app/common/enums';
+import { OrderStatus, TransactionStatus } from '@app/common/enums';
 import { GhnService } from '../shipments/ghn.service';
 import {
   BadRequestException,
@@ -43,7 +43,11 @@ export class OrdersService {
 
   async getAllOrders() {
     const orders = await this.prisma.orders.findMany({
-      include: { order_items: true, shipments: true },
+      include: {
+        order_items: true,
+        shipments: true,
+        users: { select: { id: true, full_name: true, email: true } },
+      },
     });
     return this.enrichOrdersWithGhnStatus(orders);
   }
@@ -58,7 +62,11 @@ export class OrdersService {
       where: {
         user_id: userId,
       },
-      include: { order_items: true, shipments: true },
+      include: {
+        order_items: true,
+        shipments: true,
+        users: { select: { id: true, full_name: true, email: true } },
+      },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -68,7 +76,11 @@ export class OrdersService {
   async getOrderById(id: string) {
     const order = await this.prisma.orders.findUnique({
       where: { id },
-      include: { order_items: true, shipments: true },
+      include: {
+        order_items: true,
+        shipments: true,
+        users: { select: { id: true, full_name: true, email: true } },
+      },
     });
     if (!order) {
       throw new NotFoundException(`Order not found`);
@@ -130,5 +142,71 @@ export class OrdersService {
     }
     await this.prisma.orders.delete({ where: { id } });
     return { message: 'Order deleted successfully' };
+  }
+
+  async cancelOrder(userId: string, id: string, reason?: string) {
+    const order = await this.prisma.orders.findUnique({
+      where: { id },
+      include: {
+        shipments: { orderBy: { created_at: 'desc' }, take: 1 },
+        transactions: { orderBy: { paid_at: 'desc' }, take: 1 },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng`);
+    }
+
+    if (order.user_id !== userId) {
+      throw new BadRequestException(
+        'Bạn không có quyền thao tác trên đơn hàng này',
+      );
+    }
+
+    const cancellableStatuses = [
+      OrderStatus.PENDING,
+      OrderStatus.PAID,
+      OrderStatus.SHIPPING,
+    ];
+
+    if (!cancellableStatuses.includes(order.status as OrderStatus)) {
+      throw new BadRequestException(
+        `Không thể hủy đơn hàng ở trạng thái hiện tại: ${order.status}`,
+      );
+    }
+
+    const shipment = order.shipments[0];
+    if (shipment?.tracking_code) {
+      const cancelled = await this.ghnService.cancelShippingOrder(
+        shipment.tracking_code,
+      );
+      if (!cancelled) {
+        throw new BadRequestException(
+          'Không thể hủy vận đơn trên hệ thống vận chuyển, vui lòng thử lại sau',
+        );
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.orders.update({
+        where: { id },
+        data: {
+          status: OrderStatus.CANCELLED,
+          note: reason
+            ? `${order.note ? order.note + '\n' : ''}Lý do hủy: ${reason}`
+            : order.note,
+        },
+      });
+
+      const transaction = order.transactions[0];
+      if (transaction && transaction.status === TransactionStatus.SUCCESS) {
+        await tx.transactions.update({
+          where: { id: transaction.id },
+          data: { status: TransactionStatus.REFUNDING },
+        });
+      }
+
+      return updatedOrder;
+    });
   }
 }

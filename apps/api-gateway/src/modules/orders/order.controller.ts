@@ -31,6 +31,7 @@ import {
   ApiUpdateOrderDocs,
   ApiDeleteOrderDocs,
   ApiBulkUpdateOrderStatusDocs,
+  ApiCancelOrderDocs,
 } from './order.swagger';
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
@@ -123,6 +124,21 @@ export class OrdersController {
   async deleteOrder(@Param() id: UuidDto) {
     return await firstValueFrom(
       this.orderFulfillmentClient.send({ cmd: 'delete_order' }, id),
+    );
+  }
+
+  @Post('/:id/cancel')
+  @ApiCancelOrderDocs()
+  async cancelOrder(
+    @CurrentUser() user: JwtPayload,
+    @Param() id: UuidDto,
+    @Body() body: { reason?: string },
+  ) {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send(
+        { cmd: 'cancel_order' },
+        { userId: user.sub, id: id.id, reason: body.reason },
+      ),
     );
   }
 }

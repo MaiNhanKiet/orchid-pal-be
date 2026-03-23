@@ -140,7 +140,7 @@ import { RefundReturnGatewayController } from './modules/refund-return/refund-re
     PaymentController,
     AddressesController,
     DashboardController,
-    ChatController
+    ChatController,
     RefundReturnGatewayController,
   ],
   providers: [
@@ -175,4 +175,4 @@ import { RefundReturnGatewayController } from './modules/refund-return/refund-re
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

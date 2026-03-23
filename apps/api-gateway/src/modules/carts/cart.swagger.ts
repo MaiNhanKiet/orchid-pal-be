@@ -15,6 +15,10 @@ const cartItemExample = {
   quantity: 2,
   is_selected: true,
   created_at: '2024-01-01T00:00:00.000Z',
+};
+
+const cartItemWithProductExample = {
+  ...cartItemExample,
   products: {
     id: '323e4567-e89b-12d3-a456-426614174002',
     sku: 'ORCHID-001',
@@ -35,7 +39,7 @@ export function ApiGetAllCartItemsDocs() {
     ApiResponse({
       status: 200,
       description: 'Lấy tất cả cart items thành công',
-      schema: { example: [cartItemExample] },
+      schema: { example: [cartItemWithProductExample] },
     }),
   );
 }
@@ -56,10 +60,7 @@ export function ApiGetCartItemsByUserDocs() {
       status: 200,
       description: 'Lấy cart items theo user thành công',
       schema: {
-        example: {
-          data: [cartItemExample],
-          meta: { total: 5, page: 1, limit: 10, totalPages: 1 },
-        },
+        example: [cartItemWithProductExample],
       },
     }),
     ApiResponse({
@@ -80,10 +81,7 @@ export function ApiGetCartItemsOfUserDocs() {
       status: 200,
       description: 'Lấy cart items theo user thành công',
       schema: {
-        example: {
-          data: [cartItemExample],
-          meta: { total: 5, page: 1, limit: 10, totalPages: 1 },
-        },
+        example: [cartItemWithProductExample],
       },
     }),
     ApiResponse({
@@ -124,21 +122,7 @@ export function ApiAddItemToCartDocs() {
       status: 201,
       description: 'Thêm item vào giỏ hàng thành công',
       schema: {
-        example: {
-          id: '123e4567-e89b-12d3-a456-426614174000',
-          user_id: '223e4567-e89b-12d3-a456-426614174001',
-          product_id: '323e4567-e89b-12d3-a456-426614174002',
-          quantity: 2,
-          is_selected: true,
-          created_at: '2024-01-01T00:00:00.000Z',
-          products: {
-            id: '323e4567-e89b-12d3-a456-426614174002',
-            sku: 'ORCHID-001',
-            name: 'Hoa lan hồ điệp',
-            price: '250000',
-            image_url: 'https://example.com/image.jpg',
-          },
-        },
+        example: cartItemExample,
       },
     }),
     ApiResponse({
@@ -204,11 +188,11 @@ export function ApiUpdateCartItemDocs() {
       schema: {
         example: {
           id: '123e4567-e89b-12d3-a456-426614174000',
-          userId: '223e4567-e89b-12d3-a456-426614174001',
-          productId: '323e4567-e89b-12d3-a456-426614174002',
+          user_id: '223e4567-e89b-12d3-a456-426614174001',
+          product_id: '323e4567-e89b-12d3-a456-426614174002',
           quantity: 5,
-          isSelected: true,
-          createdAt: '2024-01-01T00:00:00.000Z',
+          is_selected: true,
+          created_at: '2024-01-01T00:00:00.000Z',
         },
       },
     }),

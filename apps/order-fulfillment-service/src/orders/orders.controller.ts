@@ -44,4 +44,12 @@ export class OrdersController {
   deleteOrder(@Payload() id: UuidDto) {
     return this.orderService.deleteOrder(id.id);
   }
+
+  @MessagePattern({ cmd: 'cancel_order' })
+  cancelOrder(
+    @Payload()
+    { userId, id, reason }: { userId: string; id: string; reason?: string },
+  ) {
+    return this.orderService.cancelOrder(userId, id, reason);
+  }
 }
