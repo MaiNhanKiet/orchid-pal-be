@@ -132,16 +132,12 @@ export class RefundReturnService {
     }
 
     // Hủy đơn GHN nếu có tracking_code
+    // Đối với đơn đã COMPLETED, không thể gọi cancelShippingOrder. Đơn lấy chiều ngược lại phải được shop tự tạo thủ công trên hệ thống vận chuyển GHN.
     const shipment = order.shipments[0];
     if (shipment?.tracking_code) {
-      const cancelled = await this.ghnService.cancelShippingOrder(
-        shipment.tracking_code,
+      console.log(
+        `[RefundReturn] Đã duyệt request trả hàng cho đơn ${order.id}. Shop sẽ tự thao tác tạo đơn trên hệ thống GHN để lấy hàng chiều ngược lại.`,
       );
-      if (!cancelled) {
-        console.warn(
-          `[RefundReturn] Không thể hủy đơn GHN ${shipment.tracking_code}, tiếp tục xử lý...`,
-        );
-      }
     }
 
     return this.prisma.$transaction(async (tx) => {

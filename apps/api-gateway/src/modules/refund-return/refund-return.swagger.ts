@@ -42,10 +42,10 @@ export const ApiApproveReturnDocs = () =>
     ApiOperation({
       summary: '[Manager] Approve return request',
       description:
-        'Duyệt yêu cầu trả hàng. Hủy đơn GHN, Order → RETURNING, Transaction → REFUNDING.',
+        'Duyệt yêu cầu trả hàng. Order → RETURNING, Transaction → REFUNDING. Lệnh lấy hàng về kho sẽ do Shop thao tác thủ công với ĐVVC.',
     }),
     ApiParam({ name: 'id', description: 'Return Request ID' }),
-    ApiResponse({ status: 201, description: 'Đã phê duyệt, đơn GHN đã được hủy' }),
+    ApiResponse({ status: 201, description: 'Đã phê duyệt' }),
     ApiResponse({ status: 400, description: 'Return request đã được xử lý' }),
   );
 

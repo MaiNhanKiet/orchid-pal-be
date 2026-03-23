@@ -227,3 +227,30 @@ export function ApiBulkUpdateOrderStatusDocs() {
     }),
   );
 }
+
+export function ApiCancelOrderDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Khách hàng hủy đơn hàng' }),
+    ApiAuthFailures(),
+    ApiParam({
+      name: 'id',
+      description: 'UUID của đơn hàng',
+      type: 'string',
+    }),
+    ApiBody({
+      description: 'Lý do hủy đơn',
+      required: false,
+      schema: {
+        example: { reason: 'Đổi ý không muốn mua nữa' },
+      },
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Hủy đơn hàng thành công',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Không thể hủy vì đơn hàng đã giao hoặc vì lý do hệ thống vận chuyển',
+    }),
+  );
+}
