@@ -5,10 +5,14 @@ import {
 import { UpdateShipmentDto } from '@app/common/dtos/order-fulfillment/update-shipment.dto';
 import { PrismaService } from '@app/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { GhnService } from './ghn.service';
 
 @Injectable()
 export class ShipmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ghnService: GhnService,
+  ) {}
 
   async getAllShipments() {
     return this.prisma.shipments.findMany();
@@ -37,7 +41,16 @@ export class ShipmentsService {
     if (!shipment) {
       throw new NotFoundException(`Shipment not found`);
     }
-    return shipment;
+
+    let ghn_status = null;
+    if (shipment.tracking_code) {
+      ghn_status = await this.ghnService.getOrderStatus(shipment.tracking_code);
+    }
+
+    return {
+      ...shipment,
+      ghn_status,
+    };
   }
 
   async updateShipment(id: string, dto: UpdateShipmentDto) {

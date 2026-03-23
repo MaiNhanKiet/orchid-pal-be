@@ -19,7 +19,7 @@ export class AddressService {
     to_ward_code: string,
   ): Promise<number | null> {
     try {
-      const url = `${process.env.GHN_API_URL}/shipping-order/fee`;
+      const url = "https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee";
       const response = await fetch(url, {
         method: 'POST',
         headers: {

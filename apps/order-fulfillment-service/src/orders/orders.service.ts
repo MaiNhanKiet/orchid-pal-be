@@ -5,6 +5,7 @@ import {
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 import { PrismaService } from '@app/prisma';
 import { OrderStatus } from '@app/common/enums';
+import { GhnService } from '../shipments/ghn.service';
 import {
   BadRequestException,
   Injectable,
@@ -13,12 +14,38 @@ import {
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ghnService: GhnService,
+  ) {}
+
+  private async enrichOrdersWithGhnStatus(orders: any[]) {
+    return Promise.all(
+      orders.map(async (order) => {
+        if (order.shipments && order.shipments.length > 0) {
+          const enrichedShipments = await Promise.all(
+            order.shipments.map(async (shipment) => {
+              let ghn_status = null;
+              if (shipment.tracking_code) {
+                ghn_status = await this.ghnService.getOrderStatus(
+                  shipment.tracking_code,
+                );
+              }
+              return { ...shipment, ghn_status };
+            }),
+          );
+          return { ...order, shipments: enrichedShipments };
+        }
+        return order;
+      }),
+    );
+  }
 
   async getAllOrders() {
-    return this.prisma.orders.findMany({
-      include: { order_items: true },
+    const orders = await this.prisma.orders.findMany({
+      include: { order_items: true, shipments: true },
     });
+    return this.enrichOrdersWithGhnStatus(orders);
   }
 
   async getOrdersByUserId(
@@ -31,22 +58,23 @@ export class OrdersService {
       where: {
         user_id: userId,
       },
-      include: { order_items: true },
+      include: { order_items: true, shipments: true },
       skip: (page - 1) * limit,
       take: limit,
     });
-    return orders;
+    return this.enrichOrdersWithGhnStatus(orders);
   }
 
   async getOrderById(id: string) {
     const order = await this.prisma.orders.findUnique({
       where: { id },
-      include: { order_items: true },
+      include: { order_items: true, shipments: true },
     });
     if (!order) {
       throw new NotFoundException(`Order not found`);
     }
-    return order;
+    const [enrichedOrder] = await this.enrichOrdersWithGhnStatus([order]);
+    return enrichedOrder;
   }
 
   async updateOrder(id: string, dto: UpdateOrderDto) {
