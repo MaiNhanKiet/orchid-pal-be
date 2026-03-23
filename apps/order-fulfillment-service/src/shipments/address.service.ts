@@ -14,6 +14,38 @@ import {
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
+  private async calculateShippingFee(
+    to_district_id: number,
+    to_ward_code: string,
+  ): Promise<number | null> {
+    try {
+      const url = "https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee";
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Token: process.env.GHN_TOKEN,
+          ShopId: process.env.GHN_SHOP_ID,
+        },
+        body: JSON.stringify({
+          to_district_id,
+          to_ward_code,
+          weight: 1000,
+          service_type_id: 2,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.code === 200 && data.data) {
+        return data.data.total;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error calculating shipping fee:', error);
+      return null;
+    }
+  }
+
   async create(userId: string, dto: CreateAddressDto) {
     // Nếu set is_default = true → unset các địa chỉ default khác của user
 
@@ -32,6 +64,15 @@ export class AddressService {
       });
     }
 
+    let shipping_fee = 0;
+    if (dto.ghn_district_id && dto.ghn_ward_code) {
+      shipping_fee =
+        (await this.calculateShippingFee(
+          dto.ghn_district_id,
+          dto.ghn_ward_code,
+        )) || 0;
+    }
+
     const address = await this.prisma.user_addresses.create({
       data: {
         user_id: userId,
@@ -43,6 +84,9 @@ export class AddressService {
         city: dto.city,
         is_default: dto.is_default ?? false,
         type: dto.type,
+        ghn_district_id: dto.ghn_district_id,
+        ghn_ward_code: dto.ghn_ward_code,
+        shipping_fee: shipping_fee,
       },
     });
 
@@ -94,6 +138,28 @@ export class AddressService {
       });
     }
 
+    let shipping_fee = existing.shipping_fee;
+    const newDistrictId =
+      dto.ghn_district_id !== undefined
+        ? dto.ghn_district_id
+        : existing.ghn_district_id;
+    const newWardCode =
+      dto.ghn_ward_code !== undefined
+        ? dto.ghn_ward_code
+        : existing.ghn_ward_code;
+
+    if (
+      newDistrictId &&
+      newWardCode &&
+      (newDistrictId !== existing.ghn_district_id ||
+        newWardCode !== existing.ghn_ward_code)
+    ) {
+      const fee = await this.calculateShippingFee(newDistrictId, newWardCode);
+      if (fee !== null) {
+        shipping_fee = fee;
+      }
+    }
+
     const updated = await this.prisma.user_addresses.update({
       where: { id },
       data: {
@@ -105,6 +171,9 @@ export class AddressService {
         city: dto.city,
         is_default: dto.is_default,
         type: dto.type,
+        ghn_district_id: dto.ghn_district_id,
+        ghn_ward_code: dto.ghn_ward_code,
+        shipping_fee: shipping_fee,
       },
     });
 

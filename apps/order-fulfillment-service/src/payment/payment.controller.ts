@@ -35,8 +35,8 @@ export class PaymentController {
     @Payload()
     { orderCode, cancelReason }: { orderCode: number; cancelReason?: string },
   ) {
-    console.log('Recieved orderCode: ', orderCode);
-    console.log('Recieved cancelReason: ', cancelReason);
+    // console.log('Recieved orderCode: ', orderCode);
+    // console.log('Recieved cancelReason: ', cancelReason);
 
     return this.paymentService.cancelPayment(orderCode, cancelReason);
   }

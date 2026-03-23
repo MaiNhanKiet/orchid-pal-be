@@ -66,6 +66,7 @@ export function ApiCheckOutDocs() {
           qrCode: 'https://api.vietqr.io/image/...',
           amount: 2750000,
           status: 'PENDING',
+          paymentLinkId: 'paylink-001',
         },
       },
     }),

@@ -30,7 +30,7 @@ export class CreateProductDto {
   price: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @IsOptional() // có thể để 0 nếu chưa nhập hàng
   stock_quantity?: number = 0;
 

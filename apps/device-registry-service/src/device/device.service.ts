@@ -14,7 +14,7 @@ import {
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-} from '@app/common/constants/pagination.constant';
+} from '@app/common/constants/default.constant';
 import { PrismaService } from '@app/prisma';
 import {
   BadRequestException,

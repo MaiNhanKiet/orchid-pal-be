@@ -1,4 +1,5 @@
 import { ApiAuthFailures } from '@app/common';
+import { OrderStatus } from '@app/common/enums';
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiBody,
@@ -23,7 +24,7 @@ const orderExample = {
   user_id: '456f7890-e89b-12d3-a456-426614174000',
   order_code: 'ORD20240101001',
   total_amount: '2750000.00',
-  status: 'pending',
+  status: OrderStatus.PENDING,
   shipping_info: {
     address: '123 Nguyen Hue, District 1, HCMC',
     phone: '0987654321',
@@ -32,6 +33,18 @@ const orderExample = {
   note: 'Giao nhanh vào buổi sáng',
   created_at: '2024-01-01T00:00:00.000Z',
   order_items: [orderItemExample],
+  shipments: [
+    {
+      id: '223e4567-e89b-12d3-a456-426614174000',
+      order_id: '123e4567-e89b-12d3-a456-426614174000',
+      carrier_name: 'GHN',
+      tracking_code: 'GHN123456789',
+      shipping_fee: '35000.00',
+      status: 'PENDING',
+      estimated_delivery_at: '2024-01-05T00:00:00.000Z',
+      ghn_status: 'ready_to_pick',
+    },
+  ],
 };
 
 export function ApiGetAllOrdersDocs() {
@@ -127,7 +140,7 @@ export function ApiUpdateOrderDocs() {
       description: 'Thông tin đơn hàng cần cập nhật (các trường đều optional)',
       schema: {
         example: {
-          status: 'completed',
+          status: OrderStatus.COMPLETED,
           shipping_info: {
             address: '456 Tran Hung Dao, District 5, HCMC',
             phone: '0912345678',
@@ -141,7 +154,11 @@ export function ApiUpdateOrderDocs() {
       status: 200,
       description: 'Cập nhật đơn hàng thành công',
       schema: {
-        example: { ...orderExample, status: 'completed', note: 'Đã giao hàng' },
+        example: {
+          ...orderExample,
+          status: OrderStatus.COMPLETED,
+          note: 'Đã giao hàng',
+        },
       },
     }),
     ApiResponse({
@@ -171,6 +188,42 @@ export function ApiDeleteOrderDocs() {
       status: 404,
       description: 'Không tìm thấy đơn hàng',
       schema: { example: { message: 'Order not found' } },
+    }),
+  );
+}
+
+export function ApiBulkUpdateOrderStatusDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Cập nhật trạng thái nhiều đơn hàng cùng lúc' }),
+    ApiAuthFailures(),
+    ApiBody({
+      description: 'Danh sách ID đơn hàng và trạng thái mới',
+      schema: {
+        example: {
+          orderIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+          ],
+          status: OrderStatus.COMPLETED,
+        },
+      },
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Cập nhật trạng thái thành công',
+      schema: {
+        example: {
+          message: 'Đã cập nhật trạng thái thành công cho 2 đơn hàng',
+          count: 2,
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Dữ liệu đầu vào không hợp lệ',
+      schema: {
+        example: { message: 'Bắt buộc phải cung cấp danh sách orderIds' },
+      },
     }),
   );
 }

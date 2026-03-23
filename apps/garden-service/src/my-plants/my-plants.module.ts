@@ -9,4 +9,3 @@ import { MyPlantsService } from './my-plants.service';
   providers: [MyPlantsService],
 })
 export class MyPlantsModule {}
-

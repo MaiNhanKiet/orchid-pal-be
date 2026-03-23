@@ -102,6 +102,7 @@ model orders {
   order_items     order_items[]
   users           users?            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product_reviews product_reviews[]
+  return_requests return_requests[]
   shipments       shipments[]
   transactions    transactions[]
 }
@@ -234,18 +235,21 @@ model transactions {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model user_addresses {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String?  @db.Uuid
-  recipient_name String?  @db.VarChar(100)
-  phone          String?  @db.VarChar(20)
-  street         String?  @db.VarChar(255)
-  ward           String?  @db.VarChar(100)
-  district       String?  @db.VarChar(100)
-  city           String?  @db.VarChar(100)
-  full_address   String?  @default(dbgenerated("(((((((street)::text || ', '::text) || (ward)::text) || ', '::text) || (district)::text) || ', '::text) || (city)::text)"))
-  is_default     Boolean? @default(false)
-  type           String?  @db.VarChar(20)
-  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?  @db.Uuid
+  recipient_name  String?  @db.VarChar(100)
+  phone           String?  @db.VarChar(20)
+  street          String?  @db.VarChar(255)
+  ward            String?  @db.VarChar(100)
+  district        String?  @db.VarChar(100)
+  city            String?  @db.VarChar(100)
+  full_address    String?  @default(dbgenerated("(((((((street)::text || ', '::text) || (ward)::text) || ', '::text) || (district)::text) || ', '::text) || (city)::text)"))
+  is_default      Boolean? @default(false)
+  type            String?  @db.VarChar(20)
+  ghn_district_id Int?
+  ghn_ward_code   String?  @db.VarChar(20)
+  shipping_fee    Int?
+  users           users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model user_roles {
@@ -276,6 +280,7 @@ model users {
   planting_zones    planting_zones[]
   product_reviews   product_reviews[]
   refresh_tokens    refresh_tokens[]
+  return_requests   return_requests[]
   species_wiki      species_wiki[]
   transactions      transactions[]
   user_addresses    user_addresses[]
@@ -293,4 +298,24 @@ model refresh_tokens {
   expires_at   DateTime  @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
   users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_refresh_token")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model return_requests {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id         String    @db.Uuid
+  user_id          String    @db.Uuid
+  reason           String
+  images           Json?
+  refund_bank_info Json?
+  status           String    @default("PENDING") @db.VarChar(20)
+  note             String?
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  resolved_at      DateTime? @db.Timestamp(6)
+  orders           orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction)
+  users            users     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_return_requests_order_id")
+  @@index([status], map: "idx_return_requests_status")
+  @@index([user_id], map: "idx_return_requests_user_id")
 }

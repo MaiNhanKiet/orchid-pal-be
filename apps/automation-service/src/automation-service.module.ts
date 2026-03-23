@@ -15,7 +15,10 @@ import { AutomationServiceController } from './automation-service.controller';
 import { AutomationServiceService } from './automation-service.service';
 import { MongoModule } from '@app/mongo';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AutomationLog, AutomationLogSchema } from './schema/automation-log.schema';
+import {
+  AutomationLog,
+  AutomationLogSchema,
+} from './schema/automation-log.schema';
 
 @Module({
   imports: [
@@ -48,10 +51,10 @@ import { AutomationLog, AutomationLogSchema } from './schema/automation-log.sche
           username: MQTT_BROKER_USERNAME,
           password: MQTT_BROKER_PASSWORD,
         },
-      }
+      },
     ]),
   ],
   controllers: [AutomationServiceController],
   providers: [AutomationServiceService],
 })
-export class AutomationServiceModule { }
+export class AutomationServiceModule {}

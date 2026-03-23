@@ -4,7 +4,9 @@ import {
   MaxLength,
   IsDateString,
   IsNumber,
+  IsEnum,
 } from 'class-validator';
+import { ShipmentStatus } from '@app/common/enums';
 
 export class UpdateShipmentDto {
   @IsOptional()
@@ -22,9 +24,11 @@ export class UpdateShipmentDto {
   shipping_fee?: number;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  status?: string;
+  @IsEnum(ShipmentStatus, {
+    message:
+      'status must be a valid ShipmentStatus (READY, PICKED_UP, DELIVERING, DELIVERED, RETURNED)',
+  })
+  status?: ShipmentStatus;
 
   @IsOptional()
   @IsDateString()
