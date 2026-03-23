@@ -152,8 +152,92 @@ export function ApiUpdateAutomationRulesDocs() {
       description: 'Cập nhật thành công.',
       schema: {
         example: {
-          message: 'Automation rules updated and sent to devices.',
+          message: 'Automation rules updated and sent to device.',
           rule_id: '123e4567-e89b-12d3-a456-426614174000',
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'Zone không đủ điều kiện cập nhật (thiếu plant hoặc thiếu device active).',
+      schema: {
+        example: {
+          statusCode: 400,
+          message: 'Zone chưa có device hoạt động để nhận automation config.',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiRefreshAutomationRulesByZoneDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Refresh Automation Rules theo plant + device hiện tại của zone',
+      description:
+        'Dùng khi người dùng thay cây trong zone. API sẽ tự động sinh lại rule theo species của plant hiện tại và hardware_config của device đang gắn trong zone. ' +
+        'Điều kiện bắt buộc: zone phải có plant và có device active. Nếu thiếu 1 trong 2 sẽ trả lỗi.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Refresh thành công.',
+      schema: {
+        example: {
+          message: 'Đã refresh automation rule theo plant + device hiện tại của zone.',
+          rule_id: '123e4567-e89b-12d3-a456-426614174000',
+          zone_id: '123e4567-e89b-12d3-a456-426614174001',
+          plant_id: '123e4567-e89b-12d3-a456-426614174002',
+          device_id: '123e4567-e89b-12d3-a456-426614174003',
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Thiếu plant hoặc thiếu device active trong zone.',
+      schema: {
+        example: {
+          statusCode: 400,
+          message:
+            'Zone chưa có device hoạt động. Không thể refresh automation rule.',
+        },
+      },
+    }),
+  );
+}
+
+export function ApiAnalyzeSeasonalConfigDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Phân tích cấu hình mùa vụ cho Zone',
+      description:
+        'Gọi đến telemetry-service để phân tích cấu hình phần cứng hiện tại của zone dựa trên dữ liệu telemetry quá khứ. Trả về đánh giá hiệu quả cấu hình trong số ngày chỉ định.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Phân tích thành công. Trả về kết quả đánh giá.',
+      schema: {
+        example: {
+          score: 0.85,
+          message:
+            'Cấu hình hiện tại phù hợp với điều kiện thời tiết 3 ngày qua.',
+          details: {
+            temp: 'Ổn định',
+            humid: 'Thiếu',
+            soil: 'Đủ',
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Dữ liệu đầu vào không hợp lệ.',
+      schema: {
+        example: {
+          message: 'Bad Request',
+          errors: ['zoneId should not be empty'],
         },
       },
     }),

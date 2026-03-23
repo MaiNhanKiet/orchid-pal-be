@@ -10,6 +10,14 @@ export class UpdateAutomationRulesDto {
   })
   zone_id: string;
 
+  @IsUUID()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'ID người dùng thực hiện cập nhật',
+    example: '123e4567-e89b-12d3-a456-426614174999',
+  })
+  user_id: string;
+
   @IsArray()
   @IsNotEmpty()
   @ApiProperty({
@@ -28,3 +36,21 @@ export class UpdateAutomationRulesBodyDto extends PickType(
   UpdateAutomationRulesDto,
   ['logic'] as const,
 ) {}
+
+export class RefreshAutomationRulesByZoneDto {
+  @IsUUID()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'ID của khu vườn cần refresh automation rules',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  zone_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'ID người dùng thực hiện thao tác',
+    example: '123e4567-e89b-12d3-a456-426614174999',
+  })
+  user_id: string;
+}
