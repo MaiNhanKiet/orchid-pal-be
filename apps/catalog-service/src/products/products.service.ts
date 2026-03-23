@@ -153,7 +153,35 @@ export class ProductsService {
   }
 
   async deleteProduct(id: string) {
-    const product = await this.prisma.products.delete({
+    const product = await this.prisma.products.findUnique({
+      where: { id },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+    const [devicesCount, orderItemsCount, reviewsCount] = await Promise.all([
+      this.prisma.devices.count({ where: { product_id: id } }),
+      this.prisma.order_items.count({ where: { product_id: id } }),
+      this.prisma.product_reviews.count({ where: { product_id: id } }),
+    ]);
+
+    if (devicesCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete product: it is still referenced by devices',
+      );
+    }
+    if (orderItemsCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete product: it is still referenced by orders',
+      );
+    }
+    if (reviewsCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete product: it is still referenced by reviews',
+      );
+    }
+
+    await this.prisma.products.delete({
       where: { id },
     });
     return product;
