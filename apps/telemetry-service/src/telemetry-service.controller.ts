@@ -1,3 +1,4 @@
+import { SkipTimeout } from '@app/common';
 import { Controller } from '@nestjs/common';
 import {
   Ctx,
@@ -5,11 +6,12 @@ import {
   MqttContext,
   Payload,
 } from '@nestjs/microservices';
+import { OrchidChatPayloadDto } from './dto/orchid-chat.dto';
 import { TelemetryServiceService } from './telemetry-service.service';
 
 @Controller()
 export class TelemetryServiceController {
-  constructor(private readonly telemetryService: TelemetryServiceService) {}
+  constructor(private readonly telemetryService: TelemetryServiceService) { }
 
   @MessagePattern('device/+/telemetry')
   async handleTelemetryData(@Payload() data: any, @Ctx() context: MqttContext) {
@@ -45,13 +47,15 @@ export class TelemetryServiceController {
 
   @MessagePattern({ cmd: 'analyze_seasonal_config' })
   async analyzeSeasonalConfig(
-    @Payload() payload: { zoneId: string; currentConfig: any; days?: number },
+    @Payload() payload: { zoneId: string; days?: number },
   ) {
     const days = payload.days || 3;
-    return this.telemetryService.analyzeSeasonalConfig(
-      payload.zoneId,
-      payload.currentConfig,
-      days,
-    );
+    return this.telemetryService.geminianalyzeSeasonalConfig(payload.zoneId, days);
+  }
+
+  @MessagePattern({ cmd: 'orchid_chat' })
+  @SkipTimeout()
+  async orchidChat(@Payload() payload: OrchidChatPayloadDto) {
+    return this.telemetryService.orchidChat(payload);
   }
 }

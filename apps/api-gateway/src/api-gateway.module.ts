@@ -49,6 +49,7 @@ import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
 import { TransactionsController } from './modules/transactions/transaction.controller';
 import { UsersController } from './modules/users/users.controller';
+import { ChatController } from './modules/chat/chat.controller';
 import { RefundReturnGatewayController } from './modules/refund-return/refund-return.controller';
 
 @Module({
@@ -139,6 +140,7 @@ import { RefundReturnGatewayController } from './modules/refund-return/refund-re
     PaymentController,
     AddressesController,
     DashboardController,
+    ChatController
     RefundReturnGatewayController,
   ],
   providers: [
@@ -173,4 +175,4 @@ import { RefundReturnGatewayController } from './modules/refund-return/refund-re
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
