@@ -7,17 +7,7 @@ import {
   Public,
   TelemetryEventDto,
 } from '@app/common';
-import { AnalyzeSeasonalConfigDto } from '@app/common/dtos/telemetry/analyze-seasonal-config.dto';
-import {
-  Body,
-  Controller,
-  Get,
-  Inject,
-  Param,
-  Post,
-  Query,
-  Sse,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Param, Query, Sse } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ClientProxy,
@@ -113,20 +103,6 @@ export class TelemetryController {
         {
           serialNumber: params.serialNumber,
           hours: query.hours,
-        },
-      ),
-    );
-  }
-
-  @Post('analyze-seasonal-config')
-  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
-    return firstValueFrom(
-      this.telemetryClient.send(
-        { cmd: 'analyze_seasonal_config' },
-        {
-          zoneId: body.zoneId,
-          currentConfig: body.currentConfig,
-          days: body.days,
         },
       ),
     );

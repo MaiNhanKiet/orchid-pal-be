@@ -1,38 +1,38 @@
 import {
+  CurrentUser,
+  JwtPayload,
+  MICROSERVICES_CLIENTS,
+  PaginationDto,
+  Permissions,
+  UuidDto,
+} from '@app/common';
+import {
+  CreateSpeciesWikiCommandDto,
+  CreateSpeciesWikiDto,
+  UpdateSpeciesWikiCommandDto,
+  UpdateSpeciesWikiDto,
+} from '@app/common/dtos/garden/species-wiki.dto';
+import { Permission } from '@app/common/enums';
+import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
   Post,
   Put,
-  Delete,
   Query,
 } from '@nestjs/common';
-import {
-  MICROSERVICES_CLIENTS,
-  CurrentUser,
-  JwtPayload,
-  Permissions,
-  PaginationDto,
-  UuidDto,
-} from '@app/common';
-import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  CreateSpeciesWikiDto,
-  CreateSpeciesWikiCommandDto,
-  UpdateSpeciesWikiDto,
-  UpdateSpeciesWikiCommandDto,
-} from '@app/common/dtos/garden/species-wiki.dto';
+import { firstValueFrom } from 'rxjs';
 import { ApiGetAllSpeciesDocs, ApiGetSpeciesByIdDocs } from './species.swagger';
 
 @ApiTags('Species')
 @ApiBearerAuth('access-token')
-@Controller('admin/species')
-export class AdminSpeciesController {
+@Controller('expert/species')
+export class ExpertSpeciesController {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
     private readonly gardenClient: ClientProxy,

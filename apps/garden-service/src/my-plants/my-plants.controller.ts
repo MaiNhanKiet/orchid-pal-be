@@ -9,7 +9,7 @@ import { MyPlantsService } from './my-plants.service';
 
 @Controller()
 export class MyPlantsController {
-  constructor(private readonly myPlantsService: MyPlantsService) {}
+  constructor(private readonly myPlantsService: MyPlantsService) { }
 
   @MessagePattern({ cmd: 'create_my_plant' })
   createMyPlant(@Payload() data: CreateMyPlantCommandDto) {
@@ -49,5 +49,12 @@ export class MyPlantsController {
   @MessagePattern({ cmd: 'count_plants_in_zone' })
   countPlantsInZone(@Payload() data: { zone_id: string }) {
     return this.myPlantsService.countPlantsInZone(data.zone_id);
+  }
+
+  @MessagePattern({ cmd: 'remove_plant_from_garden' })
+  removePlantFromGarden(
+    @Payload() data: { plant_id: string; user_id: string },
+  ) {
+    return this.myPlantsService.removePlantFromGarden(data.plant_id, data.user_id);
   }
 }

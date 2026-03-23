@@ -7,7 +7,12 @@ import {
   UpdateAutomationRulesDto,
 } from '@app/common'; // Đảm bảo đường dẫn đúng với project của bạn
 import { PrismaService } from '@app/prisma'; // Đảm bảo đường dẫn đúng với project của bạn
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -29,7 +34,7 @@ export class AutomationServiceService {
     private readonly mqttClient: ClientProxy,
     @InjectModel(AutomationLog.name)
     private readonly automationLogModel: Model<AutomationLogDocument>,
-  ) {}
+  ) { }
 
   async handleDeviceAssignedZone(payload: DeviceAssignedZoneEventDto) {
     const { device_id, zone_id } = payload;
@@ -142,7 +147,14 @@ export class AutomationServiceService {
   }
 
   async updateAutomationRules(payload: UpdateAutomationRulesDto) {
-    const { zone_id, logic } = payload;
+    const { zone_id, user_id, logic } = payload;
+
+    const zonePlantInfo = await firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'get_zone_current_plant_for_rule' },
+        { zone_id, user_id },
+      ),
+    );
 
     // 1. Tắt tất cả các rule cũ trong zone
     await this.prisma.automation_rules.updateMany({
@@ -154,7 +166,7 @@ export class AutomationServiceService {
     const rule = await this.prisma.automation_rules.create({
       data: {
         zone_id,
-        name: `Manual Update — zone ${zone_id}`,
+        name: `Manual Update — ${zonePlantInfo.species_common_name}`,
         is_active: true,
         logic_config: logic,
       },
@@ -171,20 +183,19 @@ export class AutomationServiceService {
     });
 
     if (!device) {
-      this.logger.warn(
-        `No active devices found in zone ${zone_id} to update config.`,
+      throw new BadRequestException(
+        'Zone chưa có device hoạt động để nhận automation config.',
       );
-      return { message: 'Updated rules but no devices received config.' };
     }
 
     // 4. Gửi config xuống thiết bị
     const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
     const mqttPayload = {
       version: 1,
-      species: 'Manual Update',
+      species: zonePlantInfo.species_common_name,
       generated_at: new Date().toISOString(),
       hardware: hardwareConfig,
-      logic: logic,
+      logic,
     };
 
     const topic = `device/${device.serial_number}/config`;
@@ -194,6 +205,92 @@ export class AutomationServiceService {
     return {
       message: 'Automation rules updated and sent to device.',
       rule_id: rule.id,
+    };
+  }
+
+  async refreshAutomationRulesByZone(payload: {
+    zone_id: string;
+    user_id: string;
+  }) {
+    const { zone_id, user_id } = payload;
+
+    const zonePlantInfo = await firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'get_zone_current_plant_for_rule' },
+        { zone_id, user_id },
+      ),
+    );
+
+    const device = await this.prisma.devices.findFirst({
+      where: { zone_id, status: { not: 'INACTIVE' } },
+      select: {
+        id: true,
+        serial_number: true,
+        hardware_config: true,
+      },
+    });
+
+    if (!device) {
+      throw new BadRequestException(
+        'Zone chưa có device hoạt động. Không thể refresh automation rule.',
+      );
+    }
+
+    if (!zonePlantInfo.species_id) {
+      throw new BadRequestException(
+        'Plant trong zone chưa có species hợp lệ. Không thể refresh automation rule.',
+      );
+    }
+
+    const species: SpeciesWiki = await firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'get_species_by_id' },
+        { id: zonePlantInfo.species_id },
+      ),
+    );
+
+    if (!species) {
+      throw new BadRequestException('Không tìm thấy species của plant trong zone.');
+    }
+
+    const hardwareConfig = (device.hardware_config || {}) as HardwareConfig;
+    const logicConfigRules = this.generateRules(species, hardwareConfig);
+
+    await this.prisma.automation_rules.updateMany({
+      where: { zone_id, is_active: true },
+      data: { is_active: false },
+    });
+
+    const rule = await this.prisma.automation_rules.create({
+      data: {
+        zone_id,
+        name: `Auto refresh — ${species.common_name} (zone ${zone_id})`,
+        is_active: true,
+        logic_config: logicConfigRules as object,
+      },
+    });
+
+    const mqttPayload = {
+      version: 1,
+      species: species.common_name,
+      generated_at: new Date().toISOString(),
+      hardware: hardwareConfig,
+      logic: logicConfigRules,
+    };
+
+    const topic = `device/${device.serial_number}/config`;
+    this.mqttClient.emit(topic, mqttPayload);
+
+    this.logger.log(
+      `Refreshed automation_rule ${rule.id} for zone ${zone_id} using plant ${zonePlantInfo.plant_id} and device ${device.id}.`,
+    );
+
+    return {
+      message: 'Đã refresh automation rule theo plant + device hiện tại của zone.',
+      rule_id: rule.id,
+      zone_id,
+      plant_id: zonePlantInfo.plant_id,
+      device_id: device.id,
     };
   }
 

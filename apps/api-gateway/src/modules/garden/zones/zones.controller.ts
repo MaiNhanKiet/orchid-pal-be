@@ -6,11 +6,14 @@ import {
   Permissions,
   UpdateAutomationRulesBodyDto,
   UpdateAutomationRulesDto,
+  UpdateZoneDto,
 } from '@app/common';
+import { AnalyzeSeasonalConfigDto } from '@app/common/dtos/telemetry/analyze-seasonal-config.dto';
 import { Permission } from '@app/common/enums';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -21,10 +24,12 @@ import { ClientProxy } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import {
+  ApiAnalyzeSeasonalConfigDocs,
   ApiCreateZoneDocs,
   ApiGetZoneAutomationRulesDocs,
   ApiGetZoneDetailDocs,
   ApiGetZonesDocs,
+  ApiRefreshAutomationRulesByZoneDocs,
   ApiUpdateAutomationRulesDocs,
 } from './zones.swagger';
 
@@ -36,7 +41,24 @@ export class ZonesController {
     @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
     private readonly gardenClient: ClientProxy,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) {}
+    @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
+    private readonly telemetryClient: ClientProxy,
+  ) { }
+
+  @Post('analyze-seasonal-config')
+  @ApiAnalyzeSeasonalConfigDocs()
+  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
+    return firstValueFrom(
+      this.telemetryClient.send(
+        { cmd: 'analyze_seasonal_config' },
+        {
+          zoneId: body.zoneId,
+          currentConfig: body.currentConfig,
+          days: body.days,
+        },
+      ),
+    );
+  }
 
   @Get()
   @Permissions(Permission.ZoneRead)
@@ -72,12 +94,31 @@ export class ZonesController {
   ) {
     const payload: UpdateAutomationRulesDto = {
       zone_id: id,
+      user_id: user.sub,
       logic: body.logic,
     };
     return firstValueFrom(
       this.automationClient.send({ cmd: 'update_automation_rules' }, payload),
     );
   }
+
+  @Post(':id/automation-rules/refresh')
+  @ApiRefreshAutomationRulesByZoneDocs()
+  refreshAutomationRulesByZone(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return firstValueFrom(
+      this.automationClient.send(
+        { cmd: 'refresh_automation_rules_by_zone' },
+        {
+          zone_id: id,
+          user_id: user.sub,
+        },
+      ),
+    );
+  }
+
   @Get(':id/automation-rules')
   @Permissions(Permission.ZoneRead)
   @ApiGetZoneAutomationRulesDocs()
@@ -105,6 +146,37 @@ export class ZonesController {
         { cmd: 'create_zone' },
         {
           ...createZoneDto,
+          user_id: user.sub,
+        },
+      ),
+    );
+  }
+
+  @Patch(':id')
+  updateZone(
+    @Param('id') id: string,
+    @Body() body: UpdateZoneDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'update_zone' },
+        {
+          zone_id: id,
+          user_id: user.sub,
+          ...body,
+        },
+      ),
+    );
+  }
+
+  @Delete(':id')
+  deleteZone(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return firstValueFrom(
+      this.gardenClient.send(
+        { cmd: 'delete_zone' },
+        {
+          zone_id: id,
           user_id: user.sub,
         },
       ),

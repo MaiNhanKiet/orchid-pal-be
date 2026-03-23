@@ -13,6 +13,7 @@ import { Permission } from '@app/common/enums';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -52,7 +53,7 @@ export class DevicesController {
     @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
     private readonly deviceRegistryClient: ClientProxy,
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
-  ) {}
+  ) { }
 
   @Post('activate')
   @Permissions(Permission.DeviceActivate)
@@ -195,6 +196,22 @@ export class DevicesController {
           device_id: serialNumber,
           page: query.page,
           limit: query.limit,
+        },
+      ),
+    );
+  }
+
+  @Delete(':id/remove-garden')
+  removeDeviceFromGarden(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return firstValueFrom(
+      this.deviceRegistryClient.send(
+        { cmd: 'remove_device_from_garden' },
+        {
+          device_id: id,
+          user_id: user.sub,
         },
       ),
     );

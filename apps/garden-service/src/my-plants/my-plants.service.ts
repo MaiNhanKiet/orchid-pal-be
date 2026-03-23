@@ -13,7 +13,7 @@ import {
 
 @Injectable()
 export class MyPlantsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createMyPlant(data: CreateMyPlantCommandDto) {
     const species = await this.prisma.species_wiki.findUnique({
@@ -175,5 +175,42 @@ export class MyPlantsService {
 
   async countPlantsInZone(zone_id: string) {
     return this.prisma.my_plants.count({ where: { zone_id } });
+  }
+
+  async removePlantFromGarden(plant_id: string, user_id: string) {
+    const plant = await this.prisma.my_plants.findUnique({
+      where: { id: plant_id },
+      select: { id: true, user_id: true, zone_id: true },
+    });
+
+    if (!plant) {
+      throw new NotFoundException('Không tìm thấy cây.');
+    }
+
+    if (plant.user_id !== user_id) {
+      throw new ForbiddenException('Bạn không sở hữu cây này.');
+    }
+
+    if (!plant.zone_id) {
+      throw new BadRequestException('Cây hiện không nằm trong khu vườn nào.');
+    }
+
+    const previousZoneId = plant.zone_id;
+
+    const [updatedPlant] = await this.prisma.$transaction([
+      this.prisma.my_plants.update({
+        where: { id: plant_id },
+        data: { zone_id: null },
+      }),
+      this.prisma.automation_rules.updateMany({
+        where: { zone_id: previousZoneId, is_active: true },
+        data: { is_active: false },
+      }),
+    ]);
+
+    return {
+      message: 'Đã gỡ cây khỏi vườn thành công',
+      plant: updatedPlant,
+    };
   }
 }

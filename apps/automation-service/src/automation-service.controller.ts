@@ -4,6 +4,7 @@ import {
   GetDeviceStatusCommandDto,
   ManualControlEventDto,
   MICROSERVICES_CLIENTS,
+  RefreshAutomationRulesByZoneDto,
   RmqService,
   UpdateAutomationRulesDto,
 } from '@app/common';
@@ -27,7 +28,7 @@ export class AutomationServiceController {
     private readonly rmqService: RmqService,
     @Inject(MICROSERVICES_CLIENTS.DEVICE_REGISTRY_SERVICE)
     private readonly deviceRegistryClient: ClientProxy,
-  ) {}
+  ) { }
 
   @EventPattern('device.assigned.zone')
   async handleDeviceAssigned(
@@ -50,6 +51,13 @@ export class AutomationServiceController {
   @MessagePattern({ cmd: 'update_automation_rules' })
   async updateAutomationRules(@Payload() data: UpdateAutomationRulesDto) {
     return this.automationServiceService.updateAutomationRules(data);
+  }
+
+  @MessagePattern({ cmd: 'refresh_automation_rules_by_zone' })
+  async refreshAutomationRulesByZone(
+    @Payload() data: RefreshAutomationRulesByZoneDto,
+  ) {
+    return this.automationServiceService.refreshAutomationRulesByZone(data);
   }
 
   @EventPattern('device/+/action_log')

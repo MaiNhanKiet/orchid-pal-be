@@ -1,12 +1,12 @@
-import 'dotenv/config';
-import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { RmqService } from '@app/common';
 import {
   MQTT_BROKER_PASSWORD,
   MQTT_BROKER_URL,
   MQTT_BROKER_USERNAME,
 } from '@app/common/constants/env-key.constant';
-import { RmqService } from '@app/common';
+import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import 'dotenv/config';
 import { AutomationServiceModule } from './automation-service.module';
 
 async function bootstrap() {
