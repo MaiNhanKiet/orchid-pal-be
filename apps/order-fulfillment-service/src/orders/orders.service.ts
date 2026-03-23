@@ -47,6 +47,11 @@ export class OrdersService {
         order_items: true,
         shipments: true,
         users: { select: { id: true, full_name: true, email: true } },
+        transactions: {
+          select: { id: true, amount: true, method: true, paid_at: true},
+          orderBy: { paid_at: 'desc' },
+          take: 1,
+        },
       },
     });
     return this.enrichOrdersWithGhnStatus(orders);
@@ -66,6 +71,11 @@ export class OrdersService {
         order_items: true,
         shipments: true,
         users: { select: { id: true, full_name: true, email: true } },
+        transactions: {
+          select: { id: true, amount: true, method: true, paid_at: true },
+          orderBy: { paid_at: 'desc' },
+          take: 1,
+        },
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -80,6 +90,11 @@ export class OrdersService {
         order_items: true,
         shipments: true,
         users: { select: { id: true, full_name: true, email: true } },
+        transactions: {
+          select: { id: true, amount: true, method: true, paid_at: true },
+          orderBy: { paid_at: 'desc' },
+          take: 1,
+        },
       },
     });
     if (!order) {
