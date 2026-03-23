@@ -23,6 +23,16 @@ const transactionExample = {
     data: { checkoutUrl: 'https://payos.example.com/checkout/...' },
   },
   paid_at: '2024-01-01T01:00:00.000Z',
+  users: {
+    id: '456f7890-e89b-12d3-a456-426614174000',
+    full_name: 'Nguyen Van A',
+    email: 'nva@gmail.com',
+  },
+  orders: {
+    order_code: 'ORD-20240101-0001',
+    total_amount: '2750000.00',
+    status: 'PAID',
+  }
 };
 
 export function ApiGetAllTransactionsDocs() {
@@ -188,3 +198,26 @@ export function ApiDeleteTransactionDocs() {
     }),
   );
 }
+
+export function ApiGetTransactionOverviewDocs() {
+  return applyDecorators(
+    ApiOperation({ summary: 'Lấy số liệu tổng quan về giao dịch' }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Lấy số liệu tổng quan thành công',
+      schema: {
+        example: {
+          grossRevenue: 10000000,
+          netRevenue: 8000000,
+          pendingCod: 2000000,
+          averageRevenuePerTransaction: 500000,
+          averageNetRevenuePerTransaction: 400000,
+          payOSRevenue: 6000000,
+          codRevenue: 4000000,
+        },
+      },
+    }),
+  );
+}
+

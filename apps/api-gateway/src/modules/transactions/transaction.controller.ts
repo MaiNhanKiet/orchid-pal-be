@@ -53,6 +53,14 @@ export class TransactionsController {
     );
   }
 
+  @Get('/overview')
+  // @Permissions(Permission.TransactionView)
+  async getTransactionOverview() {
+    return await firstValueFrom(
+      this.orderFulfillmentClient.send({ cmd: 'get_transaction_overview' }, {}),
+    );
+  }
+
   @Get('/:id')
   @ApiGetTransactionByIdDocs()
   // @Permissions(Permission.TransactionView)

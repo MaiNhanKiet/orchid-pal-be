@@ -42,4 +42,9 @@ export class TransactionsController {
   deleteTransaction(@Payload() id: UuidDto) {
     return this.transactionsService.deleteTransaction(id.id);
   }
+
+  @MessagePattern({ cmd: 'get_transaction_overview' })
+  getTransactionOverview() {
+    return this.transactionsService.getTransactionOverview();
+  }
 }
