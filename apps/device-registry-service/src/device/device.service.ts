@@ -34,7 +34,7 @@ export class DeviceService implements OnModuleInit {
     @Inject('AUTOMATION') private readonly automationClient: ClientProxy,
     @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
     private readonly gardenClient: ClientProxy,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     await this.automationClient.connect();
@@ -477,11 +477,21 @@ export class DeviceService implements OnModuleInit {
       throw new BadRequestException('Serial number đã tồn tại');
     }
 
+    const product = await this.prisma.products.findUnique({
+      where: { id: data.product_id },
+      select: { specs_config: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
     const device = await this.prisma.devices.create({
       data: {
         serial_number: data.serial_number,
         secret_key: data.secret_key,
         product_id: data.product_id,
+        hardware_config: product.specs_config,
       },
     });
 
@@ -598,7 +608,9 @@ export class DeviceService implements OnModuleInit {
     }
 
     if (!device.zone_id) {
-      throw new BadRequestException('Thiết bị hiện không nằm trong khu vườn nào.');
+      throw new BadRequestException(
+        'Thiết bị hiện không nằm trong khu vườn nào.',
+      );
     }
 
     const previousZoneId = device.zone_id;

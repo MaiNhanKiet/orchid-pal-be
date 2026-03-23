@@ -112,7 +112,6 @@ export class ProductsService {
       serial_number: `${product.sku}-${String(latestIndex + i + 1).padStart(3, '0')}`,
       secret_key: secretKey,
       product_id: productId,
-      hardware_config: product.specs_config,
     }));
 
     // Gọi create_device song song
