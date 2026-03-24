@@ -15,8 +15,6 @@ export class PaymentController {
 
   @MessagePattern({ cmd: 'handle_webhook' })
   handleWehook(@Payload() { body }: { body: Webhook }) {
-    console.log('Webhook body: ', body);
-
     return this.paymentService.handleWebhook(body);
   }
 
