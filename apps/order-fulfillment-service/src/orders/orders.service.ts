@@ -48,7 +48,7 @@ export class OrdersService {
         shipments: true,
         users: { select: { id: true, full_name: true, email: true } },
         transactions: {
-          select: { id: true, amount: true, method: true, paid_at: true},
+          select: { id: true, amount: true, method: true, paid_at: true },
           orderBy: { paid_at: 'desc' },
           take: 1,
         },
@@ -122,6 +122,7 @@ export class OrdersService {
   }
 
   async bulkUpdateOrderStatus(orderIds: string[], status: string) {
+    console.log('Bulk updating orders', { orderIds, status });
     if (!orderIds || orderIds.length === 0) {
       throw new BadRequestException(
         'Bắt buộc phải cung cấp danh sách orderIds',
@@ -135,7 +136,7 @@ export class OrdersService {
 
     const result = await this.prisma.orders.updateMany({
       where: {
-        id: {
+        order_code: {
           in: orderIds,
         },
       },
