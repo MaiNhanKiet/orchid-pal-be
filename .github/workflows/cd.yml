@@ -5,18 +5,21 @@ on:
     branches: [growpal]
   workflow_dispatch:
 
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     name: Build & deploy on VPS
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: growpal
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Render .env.docker
         env:
           API_GATEWAY_PORT: ${{ secrets.API_GATEWAY_PORT }}
           IDENTITY_SERVICE_PORT: ${{ secrets.IDENTITY_SERVICE_PORT }}
@@ -57,39 +60,20 @@ jobs:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: >-
-            API_GATEWAY_PORT,IDENTITY_SERVICE_PORT,ECOMMERCE_SERVICE_PORT,BALCONY_SERVICE_PORT,IOT_ENGINE_SERVICE_PORT,
-            IDENTITY_SERVICE_HOST,ECOMMERCE_SERVICE_HOST,BALCONY_SERVICE_HOST,IOT_ENGINE_SERVICE_HOST,
-            RABBITMQ_USER,RABBITMQ_PASS,RABBITMQ_HOST,RABBITMQ_PORT,RABBITMQ_VHOST,
-            DATABASE_URL,REDIS_URL,MONGODB_URI,MQTT_BROKER_URL,MQTT_BROKER_USERNAME,MQTT_BROKER_PASSWORD,
-            JWT_ACCESS_TOKEN_SECRET,JWT_REFRESH_TOKEN_SECRET,JWT_ACCESS_TOKEN_EXPIRATION,JWT_REFRESH_TOKEN_EXPIRATION,
-            GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,FRONTEND_URL,DEFAULT_USER_ROLE,
-            PAYOS_CLIENT_ID,PAYOS_API_KEY,PAYOS_CHECKSUM_KEY,
-            AI_PLATFORM_URL,AI_PLATFORM_KEY,GEMINI_MODEL,GEMINI_API_KEY,
-            CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET
-          script: |
-            set -eu
-            cd "${{ secrets.DEPLOY_PATH }}"
+        run: |
+          set -eu
+          chmod +x scripts/render-env-docker.sh
+          ./scripts/render-env-docker.sh > .env.docker
+          echo ".env.docker generated"
 
-            echo ">>> Pull latest code"
-            git fetch origin growpal
-            git reset --hard origin/growpal
+      - name: Docker build
+        run: docker compose build
 
-            echo ">>> Render .env.docker from GitHub Environment secrets"
-            chmod +x scripts/render-env-docker.sh
-            ./scripts/render-env-docker.sh > .env.docker
+      - name: Docker up
+        run: docker compose up -d --remove-orphans
 
-            echo ">>> Build images on VPS"
-            docker compose build
+      - name: Prune dangling images
+        run: docker image prune -f
 
-            echo ">>> Start / update containers"
-            docker compose up -d --remove-orphans
-
-            echo ">>> Prune dangling images"
-            docker image prune -f
-
-            echo ">>> Done"
+      - name: Show status
+        run: docker compose ps
