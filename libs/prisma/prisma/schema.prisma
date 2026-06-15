@@ -8,13 +8,13 @@ datasource db {
 }
 
 model automation_rules {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  zone_id        String?         @db.Uuid
-  name           String?         @db.VarChar(100)
-  is_active      Boolean?        @default(true)
-  logic_config   Json
-  created_at     DateTime?       @default(now()) @db.Timestamp(6)
-  planting_zones planting_zones? @relation(fields: [zone_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  zone_id      String?        @db.Uuid
+  name         String?        @db.VarChar(100)
+  is_active    Boolean?       @default(true)
+  logic_config Json
+  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  balcony_zones balcony_zones? @relation(fields: [zone_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model cart_items {
@@ -48,7 +48,7 @@ model devices {
   other_devices    devices[]       @relation("devicesTodevices")
   users            users?          @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   products         products?       @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  planting_zones   planting_zones? @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  balcony_zones    balcony_zones?  @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model firmware_versions {
@@ -63,18 +63,19 @@ model firmware_versions {
 }
 
 model my_plants {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String?         @db.Uuid
-  zone_id        String?         @db.Uuid
-  nickname       String?         @db.VarChar(100)
-  species_id     String?         @db.Uuid
-  planted_at     DateTime?       @db.Date
-  health_status  String?         @default("GOOD") @db.VarChar(20)
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?        @db.Uuid
+  zone_id        String?        @db.Uuid
+  nickname       String?        @db.VarChar(100)
+  species_id     String?        @db.Uuid
+  planted_at     DateTime?      @db.Date
+  health_status  String?        @default("GOOD") @db.VarChar(20)
   image_url      String?
-  created_at     DateTime?       @default(now()) @db.Timestamp(6)
-  species_wiki   species_wiki?   @relation(fields: [species_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  planting_zones planting_zones? @relation(fields: [zone_id], references: [id], onUpdate: NoAction)
+  container_type String?        @db.VarChar(50)
+  created_at     DateTime?      @default(now()) @db.Timestamp(6)
+  plant_wiki     plant_wiki?    @relation(fields: [species_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  balcony_zones  balcony_zones? @relation(fields: [zone_id], references: [id], onUpdate: NoAction)
 }
 
 model order_items {
@@ -84,7 +85,7 @@ model order_items {
   product_name_snapshot String?   @db.VarChar(200)
   quantity              Int
   unit_price            Decimal   @db.Decimal(15, 2)
-  total_price           Decimal?  @default(dbgenerated("((quantity)::numeric * unit_price)")) @db.Decimal(15, 2)
+  total_price           Decimal?  @db.Decimal(15, 2)
   orders                orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products              products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -102,7 +103,6 @@ model orders {
   order_items     order_items[]
   users           users?            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product_reviews product_reviews[]
-  return_requests return_requests[]
   shipments       shipments[]
   transactions    transactions[]
 }
@@ -114,18 +114,19 @@ model permissions {
   role_permissions role_permissions[]
 }
 
-model planting_zones {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String?            @db.Uuid
-  name             String             @db.VarChar(100)
-  exposure         String?            @db.VarChar(50)
-  location_city    String?            @db.VarChar(100)
-  image_url        String?
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  automation_rules automation_rules[]
-  devices          devices[]
-  my_plants        my_plants[]
-  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model balcony_zones {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?            @db.Uuid
+  name                String             @db.VarChar(100)
+  sunlight_intensity  String?            @db.VarChar(50)
+  has_roof            Boolean?           @default(false)
+  location_city       String?            @db.VarChar(100)
+  image_url           String?
+  created_at          DateTime?          @default(now()) @db.Timestamp(6)
+  automation_rules    automation_rules[]
+  devices             devices[]
+  my_plants           my_plants[]
+  users               users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -179,34 +180,24 @@ model roles {
   user_roles       user_roles[]
 }
 
-model shipment_logs {
-  id          Int        @id @default(autoincrement())
-  shipment_id String?    @db.Uuid
-  status      String?    @db.VarChar(20)
-  location    String?    @db.VarChar(200)
-  note        String?
-  created_at  DateTime?  @default(now()) @db.Timestamp(6)
-  shipments   shipments? @relation(fields: [shipment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model shipments {
-  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id              String?         @db.Uuid
-  carrier_name          String?         @db.VarChar(50)
-  tracking_code         String?         @db.VarChar(100)
-  shipping_fee          Decimal?        @db.Decimal(15, 2)
-  status                String?         @db.VarChar(20)
-  estimated_delivery_at DateTime?       @db.Timestamp(6)
-  created_at            DateTime?       @default(now()) @db.Timestamp(6)
-  shipment_logs         shipment_logs[]
-  orders                orders?         @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id              String?   @db.Uuid
+  carrier_name          String?   @db.VarChar(50)
+  tracking_code         String?   @db.VarChar(100)
+  shipping_fee          Decimal?  @db.Decimal(15, 2)
+  status                String?   @db.VarChar(20)
+  estimated_delivery_at DateTime? @db.Timestamp(6)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  orders                orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model species_wiki {
+model plant_wiki {
   id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   common_name      String      @db.VarChar(100)
   scientific_name  String?     @db.VarChar(100)
+  plant_category   String?     @db.VarChar(50)
   ideal_temp_min   Float?
   ideal_temp_max   Float?
   ideal_humid_min  Float?
@@ -243,7 +234,7 @@ model user_addresses {
   ward            String?  @db.VarChar(100)
   district        String?  @db.VarChar(100)
   city            String?  @db.VarChar(100)
-  full_address    String?  @default(dbgenerated("(((((((street)::text || ', '::text) || (ward)::text) || ', '::text) || (district)::text) || ', '::text) || (city)::text)"))
+  full_address    String?
   is_default      Boolean? @default(false)
   type            String?  @db.VarChar(20)
   ghn_district_id Int?
@@ -277,11 +268,10 @@ model users {
   firmware_versions firmware_versions[]
   my_plants         my_plants[]
   orders            orders[]
-  planting_zones    planting_zones[]
+  balcony_zones     balcony_zones[]
   product_reviews   product_reviews[]
   refresh_tokens    refresh_tokens[]
-  return_requests   return_requests[]
-  species_wiki      species_wiki[]
+  plant_wiki        plant_wiki[]
   transactions      transactions[]
   user_addresses    user_addresses[]
   user_roles        user_roles[]
@@ -298,24 +288,4 @@ model refresh_tokens {
   expires_at   DateTime  @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
   users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_refresh_token")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model return_requests {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id         String    @db.Uuid
-  user_id          String    @db.Uuid
-  reason           String
-  images           Json?
-  refund_bank_info Json?
-  status           String    @default("PENDING") @db.VarChar(20)
-  note             String?
-  created_at       DateTime? @default(now()) @db.Timestamp(6)
-  resolved_at      DateTime? @db.Timestamp(6)
-  orders           orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction)
-  users            users     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
-
-  @@index([order_id], map: "idx_return_requests_order_id")
-  @@index([status], map: "idx_return_requests_status")
-  @@index([user_id], map: "idx_return_requests_user_id")
 }

@@ -15,6 +15,7 @@ import {
   Permissions,
   Public,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Permission } from '@app/common/enums';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -26,40 +27,31 @@ import {
   ApiAssignRoleDocs,
 } from './user.swagger';
 
-@ApiTags('Users')
+@ApiTags('02 - Users')
 @ApiBearerAuth('access-token')
 @Controller('users')
 @Public()
 export class UsersController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
-    private readonly iamClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   @Get()
   @Permissions(Permission.UserView)
   @ApiGetUsersDocs()
   getUsers(@Query() paginationDto: PaginationDto) {
-    return firstValueFrom(
-      this.iamClient.send({ cmd: 'get_users' }, paginationDto),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'get_users', paginationDto);
   }
 
   @Patch(':id/ban')
   @Permissions(Permission.UserBlock)
   @ApiBanUserDocs()
   banUser(@Param() uuidDto: UuidDto) {
-    return firstValueFrom(
-      this.iamClient.send({ cmd: 'ban_user' }, { id: uuidDto.id }),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'ban_user', { id: uuidDto.id });
   }
 
   @Post('assign-role')
   @Permissions(Permission.UserUpdate)
   @ApiAssignRoleDocs()
   assignRole(@Body() assignRoleDto: AssignRoleDto) {
-    return firstValueFrom(
-      this.iamClient.send({ cmd: 'assign_role' }, assignRoleDto),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'assign_role', assignRoleDto);
   }
 }

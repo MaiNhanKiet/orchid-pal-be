@@ -7,6 +7,7 @@ import {
   Public,
   TelemetryEventDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Controller, Get, Inject, Param, Query, Sse } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -33,14 +34,13 @@ import {
   ApiStreamTelemetryDocs,
 } from './telemetry.swagger';
 
-@ApiTags('Telemetry')
+@ApiTags('15 - Telemetry')
 @ApiBearerAuth('access-token')
 @Controller('telemetry')
 export class TelemetryController {
 
   constructor(
-    @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
-    private readonly telemetryClient: ClientProxy,
+    private readonly grpcRpc: GrpcRpcService,
     private eventEmitter: EventEmitter2,
   ) { }
 
@@ -82,12 +82,7 @@ export class TelemetryController {
   @Get(':serialNumber/latest')
   @ApiGetLatestTelemetryDocs()
   getLatestTelemetry(@Param() params: GetLatestTelemetryDto) {
-    return firstValueFrom(
-      this.telemetryClient.send(
-        { cmd: 'get_latest_telemetry' },
-        { serialNumber: params.serialNumber },
-      ),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE, 'get_latest_telemetry', { serialNumber: params.serialNumber });
   }
 
   @Get(':serialNumber/history')
@@ -96,15 +91,10 @@ export class TelemetryController {
     @Param() params: GetHistoryTelemetryDto,
     @Query() query: GetHistoryTelemetryQueryDto,
   ) {
-    return firstValueFrom(
-      this.telemetryClient.send(
-        { cmd: 'get_history_telemetry' },
-        {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE, 'get_history_telemetry', {
           serialNumber: params.serialNumber,
           hours: query.hours,
-        },
-      ),
-    );
+        });
   }
 
 }

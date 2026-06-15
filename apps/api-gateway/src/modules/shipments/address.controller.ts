@@ -19,6 +19,7 @@ import {
   Permissions,
   UuidDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
@@ -35,14 +36,11 @@ import {
   ApiSetDefaultAddressDocs,
 } from './address.swagger';
 
-@ApiTags('Addresses')
+@ApiTags('09 - Shipments')
 @ApiBearerAuth('access-token')
-@Controller('addresses')
+@Controller('address')
 export class AddressesController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly orderFulfillmentClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   // POST /addresses - Tạo địa chỉ mới
   @Post()
@@ -51,11 +49,10 @@ export class AddressesController {
   async createAddress(@CurrentUser() user: JwtPayload, @Body() dto) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'create_address' },
-        { userId, dto }, // Payload đúng format microservice mong đợi
-      ),
+    return await this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE,
+      'create_address',
+      { userId, dto },
     );
   }
 
@@ -66,12 +63,7 @@ export class AddressesController {
   async getAllAddresses(@CurrentUser() user: JwtPayload) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_all_addresses' },
-        { userId },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_addresses', { userId });
   }
 
   // GET /addresses/:id - Lấy chi tiết địa chỉ
@@ -81,12 +73,7 @@ export class AddressesController {
   async getAddressById(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_address_by_id' },
-        { userId, id },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_address_by_id', { userId, id });
   }
 
   // PATCH /addresses/:id - Cập nhật địa chỉ
@@ -100,12 +87,7 @@ export class AddressesController {
   ) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'update_address' },
-        { userId, id, dto },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_address', { userId, id, dto });
   }
 
   // DELETE /addresses/:id - Xóa địa chỉ
@@ -115,16 +97,11 @@ export class AddressesController {
   async deleteAddress(@CurrentUser() user: JwtPayload, @Param() id: UuidDto) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'delete_address' },
-        { userId, id },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'delete_address', { userId, id });
   }
 
   // PATCH /addresses/:id/set-default - Đặt làm địa chỉ mặc định
-  @Patch('/:id/set-default')
+  @Patch('/:id/default')
   @ApiSetDefaultAddressDocs()
   // @Permissions(Permission.AddressUpdate)
   async setDefaultAddress(
@@ -133,22 +110,8 @@ export class AddressesController {
   ) {
     const userId: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'set_default_address' },
-        { userId, id },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'set_default_address', { userId, id });
   }
 
-  // GET /addresses/default - Lấy địa chỉ mặc định của user
-  // @Get('default')
-  // @Permissions(Permission.AddressView)
-  // async getDefaultAddress(@Req() req: any) {
-  //   const userId = req.user.sub;
-
-  //   return await firstValueFrom(
-  //     this.orderFulfillmentClient.send({ cmd: 'get_default_address' }, { userId }),
-  //   );
-  // }
+  // GET /address/default — chưa implement backend handler
 }

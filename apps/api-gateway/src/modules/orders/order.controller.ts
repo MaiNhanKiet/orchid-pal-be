@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Inject,
   Param,
   Post,
   Put,
@@ -11,17 +10,12 @@ import {
 } from '@nestjs/common';
 import {
   CurrentUser,
-  IdDto,
   JwtPayload,
   MICROSERVICES_CLIENTS,
   PaginationDto,
-  Permissions,
   UuidDto,
 } from '@app/common';
-import { Permission } from '@app/common/enums';
-import { Public } from '@app/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { GrpcRpcService } from '@app/grpc';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   ApiGetAllOrdersDocs,
@@ -33,35 +27,26 @@ import {
   ApiBulkUpdateOrderStatusDocs,
   ApiCancelOrderDocs,
 } from './order.swagger';
-import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { UpdateOrderDto } from '@app/common/dtos/order-fulfillment/update-order.dto';
 
-@ApiTags('Orders')
+@ApiTags('06 - Orders')
 @ApiBearerAuth('access-token')
 @Controller('orders')
-@Public()
 export class OrdersController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly orderFulfillmentClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   @Get('')
   // @Permissions(Permission.OrderViewAll)
   @ApiGetAllOrdersDocs()
   async getAllOrders() {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_all_orders' }, {}),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_orders', {});
   }
 
   @Get('/:id')
   // @Permissions(Permission.OrderView)
   @ApiGetOrderByIdDocs()
   async getOrderById(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_order_by_id' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_order_by_id', id);
   }
 
   @Get('/user/:id')
@@ -71,12 +56,7 @@ export class OrdersController {
     @Param() userId: UuidDto,
     @Query() pagination: PaginationDto,
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_orders_by_user_id' },
-        { userId, pagination },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_orders_by_user_id', { userId, pagination });
   }
 
   @Get('/user')
@@ -87,11 +67,19 @@ export class OrdersController {
     @Query() pagination: PaginationDto,
   ) {
     const userId: UuidDto = { id: user.sub };
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_orders_by_user_id' },
-        { userId, pagination },
-      ),
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_orders_by_user_id', { userId, pagination });
+  }
+
+  @Put('/:id/status')
+  @ApiUpdateOrderDocs()
+  async updateOrderStatus(
+    @Param() id: UuidDto,
+    @Body() body: { status: string },
+  ) {
+    return await this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE,
+      'update_order_status',
+      { id, status: body.status },
     );
   }
 
@@ -99,9 +87,7 @@ export class OrdersController {
   @ApiUpdateOrderDocs()
   // @Permissions(Permission.OrderUpdate)
   async updateOrder(@Param() id: UuidDto, @Body() dto: UpdateOrderDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'update_order' }, { id, dto }),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_order', { id, dto });
   }
 
   @Put('/bulk/status')
@@ -110,21 +96,14 @@ export class OrdersController {
   async bulkUpdateOrderStatus(
     @Body() body: { orderIds: string[]; status: string },
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'bulk_update_order_status' },
-        body,
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'bulk_update_order_status', body);
   }
 
   @Delete('/:id')
   @ApiDeleteOrderDocs()
   // @Permissions(Permission.OrderDelete)
   async deleteOrder(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'delete_order' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'delete_order', id);
   }
 
   @Post('/:id/cancel')
@@ -134,11 +113,6 @@ export class OrdersController {
     @Param() id: UuidDto,
     @Body() body: { reason?: string },
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'cancel_order' },
-        { userId: user.sub, id: id.id, reason: body.reason },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'cancel_order', { userId: user.sub, id: id.id, reason: body.reason });
   }
 }

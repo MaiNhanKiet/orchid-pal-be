@@ -1,4 +1,4 @@
-export interface SpeciesWiki {
+export interface PlantWiki {
   id: string;
   common_name: string;
   ideal_temp_min: number | null;
@@ -6,6 +6,9 @@ export interface SpeciesWiki {
   ideal_humid_min: number | null;
   ideal_humid_max: number | null;
 }
+
+/** @deprecated Use PlantWiki */
+export type SpeciesWiki = PlantWiki;
 
 export interface HardwareConfig {
   sensors?: {

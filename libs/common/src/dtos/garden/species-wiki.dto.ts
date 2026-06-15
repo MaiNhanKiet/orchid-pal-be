@@ -28,6 +28,15 @@ export class CreateSpeciesWikiDto {
   scientific_name?: string;
 
   @ApiPropertyOptional({
+    example: 'Herbs',
+    description: 'Loại cây (Herbs, Flowers, Veggies, ...)',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  plant_category?: string;
+
+  @ApiPropertyOptional({
     example: 20.0,
     description: 'Nhiệt độ tối thiểu lý tưởng (°C)',
   })
@@ -69,7 +78,7 @@ export class CreateSpeciesWikiDto {
 
   @ApiPropertyOptional({
     example: 'https://example.com/phalaenopsis.jpg',
-    description: 'Ảnh minh họa loài lan',
+    description: 'Ảnh minh họa loài cây',
   })
   @IsString()
   @IsOptional()
@@ -100,6 +109,15 @@ export class UpdateSpeciesWikiDto {
   @IsOptional()
   @MaxLength(100)
   scientific_name?: string;
+
+  @ApiPropertyOptional({
+    example: 'Flowers',
+    description: 'Loại cây (Herbs, Flowers, Veggies, ...)',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  plant_category?: string;
 
   @ApiPropertyOptional({
     example: 20.0,

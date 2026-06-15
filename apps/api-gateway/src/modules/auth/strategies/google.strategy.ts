@@ -2,17 +2,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-google-oauth20';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { MICROSERVICES_CLIENTS } from '@app/common/constants/microservice.constant';
-import { ClientProxy } from '@nestjs/microservices';
+import { GrpcRpcService } from '@app/grpc';
 import { Request } from 'express';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
     private readonly configService: ConfigService,
-    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
-    private readonly iamClient: ClientProxy,
+    private readonly grpcRpc: GrpcRpcService,
   ) {
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID')!,
@@ -43,9 +41,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       ipAddress,
     };
 
-    const result = await firstValueFrom(
-      this.iamClient.send({ cmd: 'google_login' }, socialUser),
-    );
+    const result = await this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'google_login', socialUser);
     return result;
   }
 }

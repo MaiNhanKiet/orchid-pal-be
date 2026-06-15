@@ -21,14 +21,16 @@
     "prisma:pull": "prisma db pull --schema=./libs/prisma/prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=./libs/prisma/prisma/schema.prisma",
     "sync:permissions": "ts-node -r tsconfig-paths/register scripts/sync-permissions.ts",
-    "start:all": "concurrently \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev api-gateway\"",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IAM,NOTIFICATION,CATALOG,GARDEN,DEVICE,AUTOMATION,TELEMETRY,ORDER-FULFILLMENT\" -c \"cyan,green,yellow,blue,purple,magenta,red,red,gray\" \"npm run start:dev api-gateway\" \"npm run start:dev iam-service\" \"npm run start:dev notification-service\" \"npm run start:dev catalog-service\" \"npm run start:dev garden-service\" \"npm run start:dev device-registry-service\" \"npm run start:dev automation-service\" \"npm run start:dev telemetry-service\" \"npm run start:dev order-fulfillment-service\""
+    "start:all": "concurrently \"npm run start:dev identity-service\" \"npm run start:dev api-gateway\"",
+    "dev": "concurrently -k -p \"[{name}]\" -n \"GATEWAY,IDENTITY,ECOMMERCE,BALCONY,IOT\" -c \"cyan,green,yellow,blue,magenta\" \"npm run start:dev api-gateway\" \"npm run start:dev identity-service\" \"npm run start:dev ecommerce-service\" \"npm run start:dev balcony-service\" \"npm run start:dev iot-engine-service\""
   },
   "dependencies": {
     "@bull-board/api": "^6.16.4",
     "@bull-board/express": "^6.16.4",
     "@bull-board/nestjs": "^6.16.4",
     "@google/genai": "^1.46.0",
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
@@ -42,7 +44,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.5",
     "@payos/node": "^2.0.4",
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^6.19.3",
     "@types/nodemailer": "^7.0.11",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^0.10.9",
@@ -84,7 +86,7 @@
     "globals": "^16.0.0",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
-    "prisma": "^6.19.2",
+    "prisma": "^6.19.3",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -119,7 +121,8 @@
       "^@app/mongo(|/.*)$": "<rootDir>/libs/mongo/src/$1",
       "^@app/prisma(|/.*)$": "<rootDir>/libs/prisma/src/$1",
       "^@app/redis(|/.*)$": "<rootDir>/libs/redis/src/$1",
-      "^@app/util(|/.*)$": "<rootDir>/libs/util/src/$1"
+      "^@app/util(|/.*)$": "<rootDir>/libs/util/src/$1",
+      "^@app/grpc(|/.*)$": "<rootDir>/libs/grpc/src/$1"
     }
   }
 }

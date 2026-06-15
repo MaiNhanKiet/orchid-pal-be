@@ -18,6 +18,7 @@ import {
   Permissions,
   UuidDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
@@ -34,40 +35,31 @@ import {
 } from './transaction.swagger';
 import { UpdateTransactionDto } from '@app/common/dtos/order-fulfillment/update-transaction.dto';
 
-@ApiTags('Transactions')
+@ApiTags('08 - Transactions')
 @ApiBearerAuth('access-token')
 @Controller('transactions')
 // @Public()
 export class TransactionsController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly orderFulfillmentClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   @Get('')
   @ApiGetAllTransactionsDocs()
   // @Permissions(Permission.TransactionView)
   async getAllTransactions() {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_all_transactions' }, {}),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_transactions', {});
   }
 
   @Get('/overview')
   // @Permissions(Permission.TransactionView)
   async getTransactionOverview() {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_transaction_overview' }, {}),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_transaction_overview', {});
   }
 
   @Get('/:id')
   @ApiGetTransactionByIdDocs()
   // @Permissions(Permission.TransactionView)
   async getTransactionById(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'get_transaction_by_id' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_transaction_by_id', id);
   }
 
   @Get('/user/:id')
@@ -77,12 +69,7 @@ export class TransactionsController {
     @Param() id: UuidDto,
     @Query() pagination: PaginationDto,
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_transactions_by_user_id' },
-        { id, pagination },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_transactions_by_user_id', { id, pagination });
   }
 
   @Get('/user')
@@ -95,24 +82,14 @@ export class TransactionsController {
     const id = {
       id: user.sub,
     } as UuidDto;
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_transactions_by_user_id' },
-        { id, pagination },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_transactions_by_user_id', { id, pagination });
   }
 
   @ApiGetTransactionsByOrderIdDocs()
   @Get('/order/:id')
   // @Permissions(Permission.TransactionView)
   async getTransactionsByOrderId(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_transactions_by_order_id' },
-        id,
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_transactions_by_order_id', id);
   }
 
   @Put('/:id')
@@ -122,20 +99,13 @@ export class TransactionsController {
     @Param() id: UuidDto,
     @Body() dto: UpdateTransactionDto,
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'update_transaction' },
-        { id, dto },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_transaction', { id, dto });
   }
 
   @Delete('/:id')
   @ApiDeleteTransactionDocs()
   // @Permissions(Permission.TransactionDelete)
   async deleteTransaction(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'delete_transaction' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'delete_transaction', id);
   }
 }

@@ -42,4 +42,12 @@ export class RedisService implements OnModuleDestroy {
   async expire(key: string, ttl: number): Promise<void> {
     await this.redisClient.expire(key, ttl);
   }
+
+  async publish(channel: string, payload: unknown): Promise<void> {
+    await this.redisClient.publish(channel, JSON.stringify(payload));
+  }
+
+  createSubscriber(): Redis {
+    return this.redisClient.duplicate();
+  }
 }

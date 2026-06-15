@@ -17,6 +17,7 @@ import {
   Permissions,
   UuidDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Public } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -36,23 +37,18 @@ import {
   ApiClearCartDocs,
 } from './cart.swagger';
 
-@ApiTags('Carts')
+@ApiTags('05 - Carts')
 @ApiBearerAuth('access-token')
 @Controller('carts')
 // @Public()
 export class CartsController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
-    private readonly catalogClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   @Get()
   // @Permissions(Permission.CartView)
   @ApiGetAllCartItemsDocs()
   getAllCartItems() {
-    return firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_cart_items' }, {}),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_cart_items', {});
   }
 
   @Get('/user/:id')
@@ -64,12 +60,7 @@ export class CartsController {
   ) {
     console.log('UserId: ', userId);
     console.log('Pagination: ', pagination);
-    return firstValueFrom(
-      this.catalogClient.send(
-        { cmd: 'get_cart_items_by_user_id' },
-        { userId, pagination },
-      ),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_cart_items_by_user_id', { userId, pagination });
   }
 
   @Get('/user')
@@ -80,12 +71,7 @@ export class CartsController {
     @Query() pagination: PaginationDto,
   ) {
     const userId: UuidDto = { id: user.sub };
-    return firstValueFrom(
-      this.catalogClient.send(
-        { cmd: 'get_cart_items_by_user_id' },
-        { userId, pagination },
-      ),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_cart_items_by_user_id', { userId, pagination });
   }
 
   @Post()
@@ -96,9 +82,7 @@ export class CartsController {
     @Body() data: CreateCartItemDto,
   ) {
     data.userId = user.sub;
-    return firstValueFrom(
-      this.catalogClient.send({ cmd: 'add_item_to_cart' }, data),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'add_item_to_cart', data);
   }
 
   @Delete('/clear')
@@ -106,16 +90,14 @@ export class CartsController {
   @ApiClearCartDocs()
   clearCart(@CurrentUser() user: JwtPayload) {
     const id: UuidDto = { id: user.sub };
-    return firstValueFrom(this.catalogClient.send({ cmd: 'clear_cart' }, id));
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'clear_cart', id);
   }
 
   @Delete('/:id')
   // @Permissions(Permission.CartDelete)
   @ApiRemoveItemFromCartDocs()
   removeItemFromCart(@Param() id: UuidDto) {
-    return firstValueFrom(
-      this.catalogClient.send({ cmd: 'remove_item_from_cart' }, id),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'remove_item_from_cart', id);
   }
 
   @Put('/:id')
@@ -125,14 +107,9 @@ export class CartsController {
     @Param() cartItemId: UuidDto,
     @Body() payload: UpdateCartItemDto,
   ) {
-    return firstValueFrom(
-      this.catalogClient.send(
-        { cmd: 'update_cart_item' },
-        {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_cart_item', {
           cartItemId,
           payload,
-        },
-      ),
-    );
+        });
   }
 }

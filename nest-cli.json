@@ -23,31 +23,46 @@
             "options": {
               "classValidatorShim": true,
               "introspectComments": true,
-              "dtoFileNameSuffix": [
-                ".dto.ts",
-                ".entity.ts"
-              ]
+              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
             }
           }
         ]
       }
     },
-    "automation-service": {
+    "identity-service": {
       "type": "application",
-      "root": "apps/automation-service",
+      "root": "apps/identity-service",
       "entryFile": "main",
-      "sourceRoot": "apps/automation-service/src",
+      "sourceRoot": "apps/identity-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/automation-service/tsconfig.app.json"
+        "tsConfigPath": "apps/identity-service/tsconfig.app.json"
       }
     },
-    "catalog-service": {
+    "ecommerce-service": {
       "type": "application",
-      "root": "apps/catalog-service",
+      "root": "apps/ecommerce-service",
       "entryFile": "main",
-      "sourceRoot": "apps/catalog-service/src",
+      "sourceRoot": "apps/ecommerce-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/catalog-service/tsconfig.app.json"
+        "tsConfigPath": "apps/ecommerce-service/tsconfig.app.json"
+      }
+    },
+    "balcony-service": {
+      "type": "application",
+      "root": "apps/balcony-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/balcony-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/balcony-service/tsconfig.app.json"
+      }
+    },
+    "iot-engine-service": {
+      "type": "application",
+      "root": "apps/iot-engine-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/iot-engine-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/iot-engine-service/tsconfig.app.json"
       }
     },
     "common": {
@@ -63,40 +78,10 @@
             "options": {
               "classValidatorShim": true,
               "introspectComments": true,
-              "dtoFileNameSuffix": [
-                ".dto.ts",
-                ".entity.ts"
-              ]
+              "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
             }
           }
         ]
-      }
-    },
-    "device-registry-service": {
-      "type": "application",
-      "root": "apps/device-registry-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/device-registry-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/device-registry-service/tsconfig.app.json"
-      }
-    },
-    "garden-service": {
-      "type": "application",
-      "root": "apps/garden-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/garden-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/garden-service/tsconfig.app.json"
-      }
-    },
-    "iam-service": {
-      "type": "application",
-      "root": "apps/iam-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/iam-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/iam-service/tsconfig.app.json"
       }
     },
     "mongo": {
@@ -106,24 +91,6 @@
       "sourceRoot": "libs/mongo/src",
       "compilerOptions": {
         "tsConfigPath": "libs/mongo/tsconfig.lib.json"
-      }
-    },
-    "notification-service": {
-      "type": "application",
-      "root": "apps/notification-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/notification-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/notification-service/tsconfig.app.json"
-      }
-    },
-    "order-fulfillment-service": {
-      "type": "application",
-      "root": "apps/order-fulfillment-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/order-fulfillment-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/order-fulfillment-service/tsconfig.app.json"
       }
     },
     "prisma": {
@@ -144,15 +111,6 @@
         "tsConfigPath": "libs/redis/tsconfig.lib.json"
       }
     },
-    "telemetry-service": {
-      "type": "application",
-      "root": "apps/telemetry-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/telemetry-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/telemetry-service/tsconfig.app.json"
-      }
-    },
     "util": {
       "type": "library",
       "root": "libs/util",
@@ -160,6 +118,15 @@
       "sourceRoot": "libs/util/src",
       "compilerOptions": {
         "tsConfigPath": "libs/util/tsconfig.lib.json"
+      }
+    },
+    "grpc": {
+      "type": "library",
+      "root": "libs/grpc",
+      "entryFile": "index",
+      "sourceRoot": "libs/grpc/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/grpc/tsconfig.lib.json"
       }
     }
   }

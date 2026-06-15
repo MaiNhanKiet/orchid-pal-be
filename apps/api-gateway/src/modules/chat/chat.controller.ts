@@ -4,6 +4,7 @@ import {
     MICROSERVICES_CLIENTS,
     SkipTimeout,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import {
     BadRequestException,
     Body,
@@ -20,14 +21,11 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { ApiOrchidChatDocs } from './chat.swagger';
 
-@ApiTags('Chat')
+@ApiTags('16 - Chat')
 @ApiBearerAuth('access-token')
 @Controller('chat')
 export class ChatController {
-    constructor(
-        @Inject(MICROSERVICES_CLIENTS.TELEMETRY_SERVICE)
-        private readonly telemetryClient: ClientProxy,
-    ) { }
+    constructor(private readonly grpcRpc: GrpcRpcService) { }
 
     @Post('sessions/:sessionId/messages')
     @ApiOrchidChatDocs()
@@ -63,10 +61,7 @@ export class ChatController {
             ? image.buffer.toString('base64')
             : undefined;
 
-        return firstValueFrom(
-            this.telemetryClient.send(
-                { cmd: 'orchid_chat' },
-                {
+        return this.grpcRpc.send(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE, 'orchid_chat', {
                     sessionId: sessionId.trim(),
                     content: body.content.trim(),
                     userId: user.sub,
@@ -77,8 +72,6 @@ export class ChatController {
                             originalName: image.originalname,
                         }
                         : undefined,
-                },
-            ),
-        );
+                });
     }
 }

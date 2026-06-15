@@ -24,7 +24,7 @@ export class GetPlantsByZoneDto {
 export class CreateMyPlantDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174111',
-    description: 'ID loài lan trong species_wiki mà người dùng chọn',
+    description: 'ID loài cây trong plant_wiki mà người dùng chọn',
   })
   @IsUUID()
   @IsNotEmpty()
@@ -47,6 +47,15 @@ export class CreateMyPlantDto {
   @IsDateString()
   @IsOptional()
   planted_at?: string;
+
+  @ApiPropertyOptional({
+    example: 'Plastic',
+    description: 'Loại chậu/chứa (Hanging, Plastic, Foam, ...)',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  container_type?: string;
 
   @ApiPropertyOptional({
     example: 'https://example.com/my-orchid.jpg',

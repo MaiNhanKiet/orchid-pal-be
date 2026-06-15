@@ -16,6 +16,7 @@ import {
   Permissions,
   UuidDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Permission } from '@app/common/enums';
 import { Public } from '@app/common';
 import {
@@ -35,24 +36,19 @@ import {
   ApiAddDevicesToProductDocs,
 } from './product.swagger';
 
-@ApiTags('Products')
+@ApiTags('04 - Products')
 @ApiBearerAuth('access-token')
 @Controller('products')
 // @Public()
 export class ProductsController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.CATALOG_SERVICE)
-    private readonly catalogClient: ClientProxy,
-  ) {}
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
 
   @Get('')
   // @Permissions(Permission.ProductView)
   @ApiGetAllProductsDocs()
   @Public()
   async getAllProducts(@Query() pagination: PaginationDto) {
-    return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_all_products' }, pagination),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_products', pagination);
   }
 
   @Get('/:id')
@@ -60,36 +56,28 @@ export class ProductsController {
   @ApiGetProductByIdDocs()
   @Public()
   async getProductById(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'get_product_by_id' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_product_by_id', id);
   }
 
   @Post('')
   // @Permissions(Permission.ProductCreate)
   @ApiCreateProductDocs()
   async createProduct(@Body() data: CreateProductDto) {
-    return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'create_product' }, data),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'create_product', data);
   }
 
   @Put('/:id')
   // @Permissions(Permission.ProductUpdate)
   @ApiUpdateProductDocs()
   async updateProduct(@Param() id: UuidDto, @Body() data: UpdateProductDto) {
-    return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'update_product' }, { id, data }),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_product', { id, data });
   }
 
   @Delete('/:id')
   // @Permissions(Permission.ProductDelete)
   @ApiDeleteProductDocs()
   async deleteProduct(@Param() id: UuidDto) {
-    return await firstValueFrom(
-      this.catalogClient.send({ cmd: 'delete_product' }, id),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'delete_product', id);
   }
 
   @Post('/:id/devices')
@@ -99,11 +87,6 @@ export class ProductsController {
     @Param() { id }: UuidDto,
     @Body() dto: AddDevicesToProductDto,
   ) {
-    return await firstValueFrom(
-      this.catalogClient.send(
-        { cmd: 'add_devices_to_product' },
-        { productId: id, secretKey: dto.secretKey, quantity: dto.quantity },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'add_devices_to_product', { productId: id, secretKey: dto.secretKey, quantity: dto.quantity });
   }
 }

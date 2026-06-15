@@ -6,6 +6,7 @@ import {
   MICROSERVICES_CLIENTS,
   UuidDto,
 } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { Public } from '@app/common';
 import {
   ClientProxy,
@@ -35,14 +36,13 @@ import {
 import { CheckoutDto } from '@app/common/dtos/payment/checkout.dto';
 import { BypassInterceptors } from '@app/common/decorators/bypass-interceptors.decorator';
 
-@ApiTags('Payment')
+@ApiTags('07 - Payment')
 @ApiBearerAuth('access-token')
 @Controller('payment')
 // @Public()
 export class PaymentController {
   constructor(
-    @Inject(MICROSERVICES_CLIENTS.ORDER_FULFILLMENT_SERVICE)
-    private readonly orderFulfillmentClient: ClientProxy,
+    private readonly grpcRpc: GrpcRpcService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -50,9 +50,7 @@ export class PaymentController {
   @Public()
   @ApiHandlePayOSWebhookDocs()
   async handlePayOS(@Body() body: any) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send({ cmd: 'handle_webhook' }, { body }),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'handle_webhook', { body });
   }
 
   @Post('/check-out')
@@ -64,12 +62,7 @@ export class PaymentController {
   ) {
     const id: UuidDto = { id: user.sub };
 
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'check_out' },
-        { id, checkOutDto },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'check_out', { id, checkOutDto });
   }
 
   @Post('/cancel-payment')
@@ -79,12 +72,7 @@ export class PaymentController {
     @Body()
     { orderCode, cancelReason }: { orderCode: string; cancelReason: string },
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'cancel_payment' },
-        { orderCode, cancelReason },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'cancel_payment', { orderCode, cancelReason });
   }
 
   @Post('/get-payment-information')
@@ -94,12 +82,7 @@ export class PaymentController {
     @Param()
     { paymentLinkId }: { paymentLinkId: string },
   ) {
-    return await firstValueFrom(
-      this.orderFulfillmentClient.send(
-        { cmd: 'get_payment_information' },
-        { paymentLinkId },
-      ),
-    );
+    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_payment_information', { paymentLinkId });
   }
 
   @EventPattern('payment_status_updated') // NÊN DÙNG EventPattern thay vì MessagePattern cho các luồng thông báo 1 chiều

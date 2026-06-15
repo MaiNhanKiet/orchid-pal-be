@@ -4,13 +4,14 @@ import {
   IsOptional,
   IsUUID,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateZoneDto {
+export class CreateBalconyZoneDto {
   @ApiProperty({
-    example: 'Vườn lan nhà tôi',
-    description: 'Tên vườn',
+    example: 'Ban công phía Nam',
+    description: 'Tên khu ban công',
   })
   @IsString()
   @IsNotEmpty()
@@ -19,7 +20,7 @@ export class CreateZoneDto {
 
   @ApiProperty({
     example: 'Hà Nội',
-    description: 'Thành phố nơi đặt vườn',
+    description: 'Thành phố nơi đặt ban công',
   })
   @IsString()
   @IsNotEmpty()
@@ -29,37 +30,51 @@ export class CreateZoneDto {
   @ApiPropertyOptional({
     example: 'FULL_SUN',
     description:
-      'Mức độ tiếp xúc ánh sáng (FULL_SUN, PARTIAL_SHADE, FULL_SHADE)',
+      'Cường độ ánh sáng (FULL_SUN, PARTIAL_SHADE, FULL_SHADE)',
   })
   @IsString()
   @IsOptional()
   @MaxLength(50)
-  exposure?: string;
+  sunlight_intensity?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/garden-image.jpg',
-    description: 'URL hình ảnh vườn',
+    example: false,
+    description: 'Ban công có mái che hay không',
+  })
+  @IsBoolean()
+  @IsOptional()
+  has_roof?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/balcony-image.jpg',
+    description: 'URL hình ảnh ban công',
   })
   @IsString()
   @IsOptional()
   image_url?: string;
 }
 
-export class CreateZoneCommandDto extends CreateZoneDto {
+/** @deprecated Use CreateBalconyZoneDto */
+export class CreateZoneDto extends CreateBalconyZoneDto {}
+
+export class CreateBalconyZoneCommandDto extends CreateBalconyZoneDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
     description:
-      'ID của người dùng sở hữu vườn (lấy từ JWT, không phải client gửi)',
+      'ID của người dùng sở hữu ban công (lấy từ JWT, không phải client gửi)',
   })
   @IsUUID()
   @IsNotEmpty()
   user_id: string;
 }
 
-export class UpdateZoneDto {
+/** @deprecated Use CreateBalconyZoneCommandDto */
+export class CreateZoneCommandDto extends CreateBalconyZoneCommandDto {}
+
+export class UpdateBalconyZoneDto {
   @ApiPropertyOptional({
-    example: 'Vườn lan nhà tôi - Cập nhật',
-    description: 'Tên vườn mới',
+    example: 'Ban công phía Nam - Cập nhật',
+    description: 'Tên ban công mới',
   })
   @IsString()
   @MaxLength(100)
@@ -77,23 +92,34 @@ export class UpdateZoneDto {
 
   @ApiPropertyOptional({
     example: 'PARTIAL_SHADE',
-    description: 'Mức độ tiếp xúc ánh sáng',
+    description: 'Cường độ ánh sáng',
   })
   @IsString()
   @MaxLength(50)
   @IsOptional()
-  exposure?: string;
+  sunlight_intensity?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/garden-image-updated.jpg',
-    description: 'URL hình ảnh vườn mới',
+    example: true,
+    description: 'Ban công có mái che hay không',
+  })
+  @IsBoolean()
+  @IsOptional()
+  has_roof?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/balcony-image-updated.jpg',
+    description: 'URL hình ảnh ban công mới',
   })
   @IsString()
   @IsOptional()
   image_url?: string;
 }
 
-export class UpdateZoneCommandDto {
+/** @deprecated Use UpdateBalconyZoneDto */
+export class UpdateZoneDto extends UpdateBalconyZoneDto {}
+
+export class UpdateBalconyZoneCommandDto {
   @IsUUID()
   @IsNotEmpty()
   id: string;
@@ -111,9 +137,16 @@ export class UpdateZoneCommandDto {
   @IsString()
   @MaxLength(50)
   @IsOptional()
-  exposure?: string;
+  sunlight_intensity?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  has_roof?: boolean;
 
   @IsString()
   @IsOptional()
   image_url?: string;
 }
+
+/** @deprecated Use UpdateBalconyZoneCommandDto */
+export class UpdateZoneCommandDto extends UpdateBalconyZoneCommandDto {}

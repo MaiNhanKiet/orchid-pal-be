@@ -1,9 +1,9 @@
 import { MICROSERVICES_CLIENTS, Public, RequestWithUser } from '@app/common';
+import { GrpcRpcService } from '@app/grpc';
 import { RedisService } from '@app/redis';
 import {
   Controller,
   Get,
-  Inject,
   Post,
   Req,
   Res,
@@ -11,10 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { firstValueFrom } from 'rxjs';
 import {
   ApiGoogleAuthCallbackDocs,
   ApiGoogleAuthDocs,
@@ -23,13 +21,12 @@ import {
 } from './auth.swagger';
 import { GoogleOauthGuard } from './guards/google.guard';
 
-@ApiTags('Auth')
+@ApiTags('01 - Auth')
 @Controller('auth')
 @Public()
 export class AuthController {
   constructor(
-    @Inject(MICROSERVICES_CLIENTS.IAM_SERVICE)
-    private readonly iamClient: ClientProxy,
+    private readonly grpcRpc: GrpcRpcService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {}
@@ -98,16 +95,14 @@ export class AuthController {
       throw new UnauthorizedException('Refresh token not found in cookies');
     }
 
-    const result = await firstValueFrom(
-      this.iamClient.send(
-        { cmd: 'refresh_token' },
-        {
+    const result = await this.grpcRpc.send<{
+      accessToken: string;
+      refreshToken: string;
+    }>(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'refresh_token', {
           oldRefreshToken,
           deviceAgent: req.headers['x-forwarded-for'],
           ipAddress: req.ip,
-        },
-      ),
-    );
+        });
 
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
@@ -129,9 +124,7 @@ export class AuthController {
     const refreshToken = req.cookies['refresh_token'];
 
     if (refreshToken) {
-      await firstValueFrom(
-        this.iamClient.send({ cmd: 'logout' }, { refreshToken }),
-      );
+      await this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'logout', { refreshToken });
     }
 
     res.clearCookie('refresh_token', {

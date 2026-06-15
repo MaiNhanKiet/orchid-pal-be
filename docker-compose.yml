@@ -94,30 +94,23 @@ services:
     networks:
       - orchid-network
 
-# Volumes
 volumes:
   mosquitto_data:
   mosquitto_log:
-
   postgres_data:
     driver: local
     name: orchid-pal-postgres-data
-
   rabbitmq_data:
     driver: local
     name: orchid-pal-rabbitmq-data
-
   rabbitmq_log:
     driver: local
     name: orchid-pal-rabbitmq-log
-
   redis_data:
-
   mongodb_data:
     driver: local
     name: orchid-pal-mongodb-data
 
-# Network
 networks:
   orchid-network:
     driver: bridge

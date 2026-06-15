@@ -9,33 +9,51 @@ import {
   UpdateMyPlantDto,
 } from '@app/common';
 import { Permission } from '@app/common/enums';
+import { GrpcRpcService } from '@app/grpc';
 import {
   Body,
   Controller,
   Delete,
   Get,
-  Inject,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { firstValueFrom } from 'rxjs';
 import {
   ApiCreateMyPlantDocs,
   ApiUpdateMyPlantDocs,
 } from './my-plants.swagger';
 
-@ApiTags('My Plants')
+@ApiTags('13 - My Plants')
 @ApiBearerAuth('access-token')
 @Controller('my-plants')
 export class MyPlantsController {
-  constructor(
-    @Inject(MICROSERVICES_CLIENTS.GARDEN_SERVICE)
-    private readonly gardenClient: ClientProxy,
-  ) { }
+  constructor(private readonly grpcRpc: GrpcRpcService) {}
+
+  @Get()
+  getMyPlants(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: PaginationDto,
+  ) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.BALCONY_SERVICE, 'get_my_plants', {
+      user_id: user.sub,
+      ...query,
+    });
+  }
+
+  @Get(':id')
+  getMyPlantDetail(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.BALCONY_SERVICE,
+      'get_my_plant_detail',
+      {
+        user_id: user.sub,
+        plant_id: id,
+      },
+    );
+  }
 
   @Post()
   @Permissions(Permission.MyPlantCreate)
@@ -44,97 +62,56 @@ export class MyPlantsController {
     @Body() createMyPlantDto: CreateMyPlantDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'create_my_plant' },
-        {
-          ...createMyPlantDto,
-          user_id: user.sub,
-        },
-      ),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.BALCONY_SERVICE, 'create_my_plant', {
+      ...createMyPlantDto,
+      user_id: user.sub,
+    });
   }
 
-  @Patch(':id')
-  // @Permissions(Permission.MyPlantUpdate)
+  @Put(':id')
   @ApiUpdateMyPlantDocs()
   updateMyPlant(
     @Param('id') id: string,
     @Body() updateMyPlantDto: UpdateMyPlantDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'update_my_plant' },
-        {
-          plant_id: id,
-          user_id: user.sub,
-          ...updateMyPlantDto,
-        },
-      ),
-    );
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.BALCONY_SERVICE, 'update_my_plant', {
+      plant_id: id,
+      user_id: user.sub,
+      ...updateMyPlantDto,
+    });
   }
 
-  @Post('assign-zone')
+  @Post(':id/assign')
   @Permissions(Permission.MyPlantCreate)
   assignPlantToZone(
-    @Body() body: AssignPlantToZoneDto,
+    @Param('id') id: string,
+    @Body() body: Omit<AssignPlantToZoneDto, 'plant_id'>,
     @CurrentUser() user: JwtPayload,
   ) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'assign_plant_to_zone' },
-        {
-          ...body,
-          user_id: user.sub,
-        },
-      ),
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.BALCONY_SERVICE,
+      'assign_plant_to_zone',
+      {
+        plant_id: id,
+        zone_id: body.zone_id,
+        user_id: user.sub,
+      },
     );
   }
 
-  @Get()
-  // @Permissions(Permission.MyPlantRead)
-  get_my_plants(
-    @CurrentUser() user: JwtPayload,
-    @Query() query: PaginationDto,
-  ) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'get_my_plants' },
-        {
-          user_id: user.sub,
-          ...query,
-        },
-      ),
-    );
-  }
-
-  @Get(':id')
-  getMyPlantDetail(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'get_my_plant_detail' },
-        {
-          user_id: user.sub,
-          plant_id: id,
-        },
-      ),
-    );
-  }
-
-  @Delete(':id/remove-garden')
-  removePlantFromGarden(
+  @Delete(':id')
+  removePlant(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return firstValueFrom(
-      this.gardenClient.send(
-        { cmd: 'remove_plant_from_garden' },
-        {
-          plant_id: id,
-          user_id: user.sub,
-        },
-      ),
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.BALCONY_SERVICE,
+      'remove_plant_from_garden',
+      {
+        plant_id: id,
+        user_id: user.sub,
+      },
     );
   }
 }

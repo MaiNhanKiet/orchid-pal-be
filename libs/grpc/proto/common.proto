@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package common;
+
+message InvokeRequest {
+  string cmd = 1;
+  string payload = 2;
+}
+
+message InvokeResponse {
+  string payload = 1;
+}

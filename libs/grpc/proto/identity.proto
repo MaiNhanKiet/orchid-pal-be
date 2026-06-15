@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package identity;
+
+import "common.proto";
+
+service IdentityService {
+  rpc Invoke (common.InvokeRequest) returns (common.InvokeResponse);
+}

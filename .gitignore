@@ -45,3 +45,5 @@ lcov.info
 /storybook-static-build
 
 /scripts/*
+
+/docs
