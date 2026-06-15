@@ -47,5 +47,6 @@ lcov.info
 
 /scripts/*
 !/scripts/*.js
+!/scripts/*.sh
 
 /docs
