@@ -88,7 +88,11 @@ import { ChatController } from './modules/chat/chat.controller';
     ChatController,
   ],
   providers: [
-    GoogleStrategy,
+    ...(process.env.GOOGLE_CLIENT_ID?.trim() &&
+    process.env.GOOGLE_CLIENT_SECRET?.trim() &&
+    process.env.GOOGLE_CALLBACK_URL?.trim()
+      ? [GoogleStrategy]
+      : []),
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

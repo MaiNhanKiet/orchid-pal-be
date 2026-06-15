@@ -29,7 +29,7 @@ export class RmqModule {
                 throw new Error('Missing RabbitMQ configuration in .env file');
               }
 
-              const uri = `amqp://${user}:${pass}@${host}:${port}/${encodeURIComponent(
+              const uri = `amqp://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${encodeURIComponent(
                 vhost,
               )}`;
 

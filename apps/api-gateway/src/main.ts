@@ -9,7 +9,40 @@ import {
   SWAGGER_UI_OPTIONS,
 } from './swagger/swagger.config';
 
+function logStartupEnv() {
+  const required = [
+    'API_GATEWAY_PORT',
+    'JWT_ACCESS_TOKEN_SECRET',
+    'JWT_REFRESH_TOKEN_SECRET',
+    'REDIS_URL',
+    'RABBITMQ_HOST',
+    'RABBITMQ_USER',
+    'RABBITMQ_PASS',
+    'IDENTITY_SERVICE_HOST',
+    'ECOMMERCE_SERVICE_HOST',
+    'BALCONY_SERVICE_HOST',
+    'IOT_ENGINE_SERVICE_HOST',
+  ];
+  const missing = required.filter((key) => !process.env[key]?.trim());
+  if (missing.length) {
+    console.warn(`[API Gateway] Missing env: ${missing.join(', ')}`);
+  }
+  console.log(`[API Gateway] API_GATEWAY_PORT=${API_GATEWAY_PORT}`);
+}
+
 async function bootstrap() {
+  logStartupEnv();
+
+  const port = Number(API_GATEWAY_PORT);
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) {
+    throw new Error(`Invalid API_GATEWAY_PORT: "${API_GATEWAY_PORT}"`);
+  }
+  if (port === 3000) {
+    console.warn(
+      '[API Gateway] Port 3000 thường bị orchidpal-web chiếm — nên dùng 4000',
+    );
+  }
+
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
 
@@ -27,14 +60,38 @@ async function bootstrap() {
     origin: '*',
   });
 
-  await app.startAllMicroservices();
-  await app.listen(API_GATEWAY_PORT);
+  // Bind HTTP trước — tránh restart loop khi RabbitMQ chậm; port conflict log rõ hơn
+  try {
+    await app.listen(port);
+    console.log(
+      `[API Gateway]: HTTP Server & Swagger running on port ${port}`,
+    );
+    console.log(`[API Gateway]: Swagger UI → http://localhost:${port}/docs`);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'EADDRINUSE') {
+      console.error(
+        `[API Gateway] Port ${port} đã bị chiếm — đổi API_GATEWAY_PORT (vd. 4000)`,
+      );
+    }
+    throw error;
+  }
+
+  try {
+    await app.startAllMicroservices();
+    console.log('[API Gateway]: RabbitMQ listener on API_GATEWAY_QUEUE');
+  } catch (error) {
+    console.error(
+      '[API Gateway] RabbitMQ consumer failed — HTTP vẫn chạy, kiểm tra RABBITMQ_*:',
+      error,
+    );
+  }
 
   console.log(
-    `[API Gateway]: HTTP Server & Swagger running on port ${API_GATEWAY_PORT}`,
+    '[API Gateway]: gRPC clients → identity, ecommerce, balcony, iot-engine',
   );
-  console.log(`[API Gateway]: Swagger UI → http://localhost:${API_GATEWAY_PORT}/docs`);
-  console.log(`[API Gateway]: RabbitMQ listener on API_GATEWAY_QUEUE`);
-  console.log(`[API Gateway]: gRPC clients → identity, ecommerce, balcony, iot-engine`);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('[API Gateway] Bootstrap failed:', error);
+  process.exit(1);
+});

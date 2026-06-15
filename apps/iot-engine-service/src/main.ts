@@ -48,4 +48,7 @@ async function bootstrap() {
     `[IoT Engine Service]: MQTT listening to Broker at ${MQTT_BROKER_URL}`,
   );
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('[IoT Engine Service] Bootstrap failed:', error);
+  process.exit(1);
+});

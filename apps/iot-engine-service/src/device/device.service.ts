@@ -37,7 +37,15 @@ export class DeviceService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.automationClient.connect();
+    try {
+      await this.automationClient.connect();
+      console.log('[DeviceService] RabbitMQ AUTOMATION client connected');
+    } catch (error) {
+      console.error(
+        '[DeviceService] RabbitMQ AUTOMATION connect failed — retry on use:',
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   async activateDevice(data: ActivateDeviceCommandDto) {

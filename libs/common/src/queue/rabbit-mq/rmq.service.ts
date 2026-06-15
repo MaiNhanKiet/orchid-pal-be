@@ -17,7 +17,7 @@ export class RmqService {
       throw new Error('Missing RabbitMQ configuration in .env file');
     }
 
-    return `amqp://${user}:${pass}@${host}:${port}/${encodeURIComponent(
+    return `amqp://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${encodeURIComponent(
       vhost,
     )}`;
   }

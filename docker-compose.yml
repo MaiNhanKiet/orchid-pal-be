@@ -41,7 +41,7 @@ services:
       migrate:
         condition: service_completed_successfully
     expose:
-      - "${IDENTITY_SERVICE_PORT:-3001}"
+      - "${IDENTITY_SERVICE_PORT:-4002}"
 
   ecommerce-service:
     <<: *app-common
@@ -51,7 +51,7 @@ services:
       migrate:
         condition: service_completed_successfully
     expose:
-      - "${ECOMMERCE_SERVICE_PORT:-3002}"
+      - "${ECOMMERCE_SERVICE_PORT:-4003}"
 
   balcony-service:
     <<: *app-common
@@ -61,7 +61,7 @@ services:
       migrate:
         condition: service_completed_successfully
     expose:
-      - "${BALCONY_SERVICE_PORT:-3003}"
+      - "${BALCONY_SERVICE_PORT:-4001}"
 
   iot-engine-service:
     <<: *app-common
@@ -71,7 +71,7 @@ services:
       migrate:
         condition: service_completed_successfully
     expose:
-      - "${IOT_ENGINE_SERVICE_PORT:-3004}"
+      - "${IOT_ENGINE_SERVICE_PORT:-4004}"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # API Gateway (HTTP + Swagger)
@@ -82,7 +82,8 @@ services:
     container_name: growpal-api-gateway
     command: ["node", "dist/apps/api-gateway/main.js"]
     ports:
-      - "${API_GATEWAY_PORT:-3000}:${API_GATEWAY_PORT:-3000}"
+      # Không dùng 3000 — orchidpal-web FE thường chiếm port đó trên VPS
+      - "${API_GATEWAY_PORT:-4000}:${API_GATEWAY_PORT:-4000}"
     depends_on:
       identity-service:
         condition: service_started

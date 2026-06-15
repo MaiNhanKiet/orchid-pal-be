@@ -59,7 +59,7 @@ interface OrderSuccessEmailEvent {
 
 @Injectable()
 export class PaymentService {
-  private readonly payos: PayOS;
+  private readonly payos: PayOS | null = null;
   private readonly transporter: Transporter;
   private readonly mailFrom: string;
 
@@ -76,11 +76,17 @@ export class PaymentService {
     const apiKey = PAYOS_API_KEY;
     const checksumKey = PAYOS_CHECKSUM_KEY;
 
-    this.payos = new PayOS({
-      clientId,
-      apiKey,
-      checksumKey,
-    });
+    if (clientId && apiKey && checksumKey) {
+      this.payos = new PayOS({
+        clientId,
+        apiKey,
+        checksumKey,
+      });
+    } else {
+      console.warn(
+        '[PaymentService] PayOS credentials missing — payment link APIs disabled',
+      );
+    }
 
     const host = this.configService.get<string>('SMTP_HOST');
     const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
@@ -101,7 +107,15 @@ export class PaymentService {
     });
   }
 
+  private requirePayos(): PayOS {
+    if (!this.payos) {
+      throw new BadRequestException('PayOS is not configured');
+    }
+    return this.payos;
+  }
+
   async createPaymentLink(data: PayOSPaymentLinkRequest) {
+    const payos = this.requirePayos();
     const paymentLinkData = {
       orderCode: data.orderCode,
       amount: data.amount,
@@ -113,15 +127,14 @@ export class PaymentService {
       buyerPhone: data.buyerPhone,
     };
 
-    const response = await this.payos.paymentRequests.create(paymentLinkData);
+    const response = await payos.paymentRequests.create(paymentLinkData);
 
     return response;
   }
 
   async verifyWebhook(body: Webhook): Promise<boolean> {
+    if (!this.payos) return false;
     try {
-      // PayOS webhook verification dựa trên checksum trong body
-      // SDK sẽ throw error nếu không hợp lệ
       await this.payos.webhooks.verify(body);
       return true;
     } catch {
@@ -130,6 +143,7 @@ export class PaymentService {
   }
 
   async getPaymentInformation(paymentLinkId: string) {
+    if (!this.payos) return null;
     try {
       const response = await this.payos.paymentRequests.get(paymentLinkId);
       return response;
@@ -143,6 +157,7 @@ export class PaymentService {
     orderCode: number,
     cancelReason?: string,
   ): Promise<boolean> {
+    if (!this.payos) return false;
     try {
       const response = await this.payos.paymentRequests.cancel(
         orderCode,
@@ -742,7 +757,7 @@ export class PaymentService {
       });
 
       // 2. Có thể gọi cancel link bên PayOS để vô hiệu hóa mã QR cũ
-      if (transaction.gateway_trans_id) {
+      if (transaction.gateway_trans_id && this.payos) {
         try {
           await this.payos.paymentRequests.cancel(
             Number(transaction.gateway_trans_id),

@@ -18,4 +18,7 @@ async function bootstrap() {
     `[Ecommerce Service]: gRPC running on port ${ECOMMERCE_SERVICE_PORT}`,
   );
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('[Ecommerce Service] Bootstrap failed:', error);
+  process.exit(1);
+});

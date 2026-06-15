@@ -1,8 +1,8 @@
-export const API_GATEWAY_PORT = process.env.API_GATEWAY_PORT;
-export const IDENTITY_SERVICE_PORT = process.env.IDENTITY_SERVICE_PORT;
-export const ECOMMERCE_SERVICE_PORT = process.env.ECOMMERCE_SERVICE_PORT;
-export const BALCONY_SERVICE_PORT = process.env.BALCONY_SERVICE_PORT;
-export const IOT_ENGINE_SERVICE_PORT = process.env.IOT_ENGINE_SERVICE_PORT;
+export const API_GATEWAY_PORT = process.env.API_GATEWAY_PORT || '4000';
+export const IDENTITY_SERVICE_PORT = process.env.IDENTITY_SERVICE_PORT || '4002';
+export const ECOMMERCE_SERVICE_PORT = process.env.ECOMMERCE_SERVICE_PORT || '4003';
+export const BALCONY_SERVICE_PORT = process.env.BALCONY_SERVICE_PORT || '4001';
+export const IOT_ENGINE_SERVICE_PORT = process.env.IOT_ENGINE_SERVICE_PORT || '4004';
 export const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID;
 export const PAYOS_API_KEY = process.env.PAYOS_API_KEY;
 export const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
