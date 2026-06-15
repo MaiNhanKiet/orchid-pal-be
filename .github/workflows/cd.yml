@@ -130,11 +130,16 @@ jobs:
       - name: Docker build
         run: docker build -t growpal-be:latest .
 
+      - name: Stop old stack (free ports)
+        run: docker compose --env-file .env.docker down --remove-orphans || true
+
       - name: Docker up
-        run: docker compose up -d --no-build --remove-orphans
+        run: docker compose --env-file .env.docker up -d --no-build --remove-orphans
 
       - name: Prune dangling images
         run: docker image prune -f
 
       - name: Show status
-        run: docker compose ps
+        run: |
+          docker compose --env-file .env.docker ps
+          docker compose --env-file .env.docker logs --tail=30 api-gateway || true

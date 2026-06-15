@@ -82,7 +82,7 @@ services:
     container_name: growpal-api-gateway
     command: ["node", "dist/apps/api-gateway/main.js"]
     ports:
-      - "${API_GATEWAY_PORT:-3000}:3000"
+      - "${API_GATEWAY_PORT:-3000}:${API_GATEWAY_PORT:-3000}"
     depends_on:
       identity-service:
         condition: service_started
@@ -93,7 +93,7 @@ services:
       iot-engine-service:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/docs"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${API_GATEWAY_PORT:-3000}/docs || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
