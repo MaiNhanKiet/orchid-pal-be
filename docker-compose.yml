@@ -1,117 +1,106 @@
-version: '3.8'
+# Backend only — Postgres, Redis, RabbitMQ, MongoDB, MQTT chạy ngoài Docker (cấu hình qua .env.docker)
+
+name: growpal
+
+x-app-common: &app-common
+  image: growpal-be:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env.docker
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  networks:
+    - orchid-network
 
 services:
-  # 1. Mosquitto MQTT Broker
-  mosquitto:
-    image: eclipse-mosquitto:latest
-    container_name: mosquitto_broker
-    restart: always
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
-    entrypoint: >
-      sh -c "
-        mkdir -p /mosquitto/config;
-        echo 'listener 1883 0.0.0.0' > /mosquitto/config/mosquitto.conf;
-        echo 'protocol mqtt' >> /mosquitto/config/mosquitto.conf;
-        echo 'listener 9001 0.0.0.0' >> /mosquitto/config/mosquitto.conf;
-        echo 'protocol websockets' >> /mosquitto/config/mosquitto.conf;
-        echo 'allow_anonymous false' >> /mosquitto/config/mosquitto.conf;
-        echo 'password_file /mosquitto/config/passwd' >> /mosquitto/config/mosquitto.conf;
-        touch /mosquitto/config/passwd;
-        mosquitto_passwd -b /mosquitto/config/passwd admin 123456;
-        exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
-      "
-    networks:
-      - orchid-network
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Database migration (one-shot, dùng DATABASE_URL từ .env.docker)
+  # ═══════════════════════════════════════════════════════════════════════════
 
-  # 2. PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: orchid-pal-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: kietmn
-      POSTGRES_DB: postgres
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - orchid-network
+  migrate:
+    <<: *app-common
+    container_name: growpal-migrate
+    restart: "no"
+    command:
+      - npx
+      - prisma
+      - migrate
+      - deploy
+      - --schema=./libs/prisma/prisma/schema.prisma
 
-  # 3. RabbitMQ Message Broker
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: orchid-pal-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: kietmn
-      RABBITMQ_DEFAULT_PASS: 123123
-      RABBITMQ_DEFAULT_VHOST: /
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - rabbitmq_log:/var/log/rabbitmq
-    networks:
-      - orchid-network
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Microservices (gRPC; RabbitMQ/MQTT/DB qua env)
+  # ═══════════════════════════════════════════════════════════════════════════
 
-  # 4. Redis Cache
-  redis:
-    image: redis:7
-    container_name: orchid-pal-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    environment:
-      REDIS_PASSWORD: kietmn
-    command: >
-      sh -c " redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes "
-    networks:
-      - orchid-network
+  identity-service:
+    <<: *app-common
+    container_name: growpal-identity
+    command: ["node", "dist/apps/identity-service/main.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "${IDENTITY_SERVICE_PORT:-3001}"
 
-  # 5. MongoDB Database
-  mongodb:
-    image: mongo:7
-    container_name: orchid-pal-mongodb
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: kietmn
-      MONGO_INITDB_ROOT_PASSWORD: 123123
-      MONGO_INITDB_DATABASE: orchidpal
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - orchid-network
+  ecommerce-service:
+    <<: *app-common
+    container_name: growpal-ecommerce
+    command: ["node", "dist/apps/ecommerce-service/main.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "${ECOMMERCE_SERVICE_PORT:-3002}"
 
-volumes:
-  mosquitto_data:
-  mosquitto_log:
-  postgres_data:
-    driver: local
-    name: orchid-pal-postgres-data
-  rabbitmq_data:
-    driver: local
-    name: orchid-pal-rabbitmq-data
-  rabbitmq_log:
-    driver: local
-    name: orchid-pal-rabbitmq-log
-  redis_data:
-  mongodb_data:
-    driver: local
-    name: orchid-pal-mongodb-data
+  balcony-service:
+    <<: *app-common
+    container_name: growpal-balcony
+    command: ["node", "dist/apps/balcony-service/main.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "${BALCONY_SERVICE_PORT:-3003}"
+
+  iot-engine-service:
+    <<: *app-common
+    container_name: growpal-iot-engine
+    command: ["node", "dist/apps/iot-engine-service/main.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "${IOT_ENGINE_SERVICE_PORT:-3004}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # API Gateway (HTTP + Swagger)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  api-gateway:
+    <<: *app-common
+    container_name: growpal-api-gateway
+    command: ["node", "dist/apps/api-gateway/main.js"]
+    ports:
+      - "${API_GATEWAY_PORT:-3000}:3000"
+    depends_on:
+      identity-service:
+        condition: service_started
+      ecommerce-service:
+        condition: service_started
+      balcony-service:
+        condition: service_started
+      iot-engine-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/docs"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
 networks:
   orchid-network:
     driver: bridge
-    name: orchid-pal-network

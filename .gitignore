@@ -17,6 +17,7 @@ lerna-debug.log*
 
 # Optional: Environment variables
 .env
+.env.docker
 .env.local
 .env.development
 .env.test
@@ -45,5 +46,6 @@ lcov.info
 /storybook-static-build
 
 /scripts/*
+!/scripts/*.js
 
 /docs
