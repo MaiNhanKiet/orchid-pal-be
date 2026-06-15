@@ -14,10 +14,22 @@ jobs:
     name: Build & deploy on VPS
     runs-on: self-hosted
     environment: growpal
+    # Runner user thường không có $HOME ghi được → BuildKit/buildx lỗi "permission denied"
+    env:
+      HOME: ${{ github.workspace }}/.ci-home
+      DOCKER_CONFIG: ${{ github.workspace }}/.docker-config
+      XDG_CACHE_HOME: ${{ github.workspace }}/.cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare runner dirs
+        run: |
+          mkdir -p "$HOME" "$DOCKER_CONFIG" "$XDG_CACHE_HOME"
+          echo "HOME=$HOME"
+          docker version
+          docker compose version
 
       - name: Render .env.docker
         env:
@@ -116,7 +128,7 @@ jobs:
           echo ".env.docker generated ($(wc -l < .env.docker) lines)"
 
       - name: Docker build
-        run: docker compose build
+        run: docker compose build --progress=plain
 
       - name: Docker up
         run: docker compose up -d --remove-orphans

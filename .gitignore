@@ -18,6 +18,9 @@ lerna-debug.log*
 # Optional: Environment variables
 .env
 .env.docker
+.ci-home/
+.docker-config/
+.cache/
 .env.local
 .env.development
 .env.test
