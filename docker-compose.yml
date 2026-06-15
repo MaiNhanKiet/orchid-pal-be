@@ -1,12 +1,10 @@
-# Backend only — Postgres, Redis, RabbitMQ, MongoDB, MQTT chạy ngoài Docker (cấu hình qua .env.docker)
+# Backend only — infra (Postgres, Redis, RabbitMQ, MongoDB, MQTT) ngoài Docker (.env.docker)
+# Build image trước: docker build -t growpal-be:latest .
 
 name: growpal
 
 x-app-common: &app-common
   image: growpal-be:latest
-  build:
-    context: .
-    dockerfile: Dockerfile
   env_file:
     - .env.docker
   restart: unless-stopped
