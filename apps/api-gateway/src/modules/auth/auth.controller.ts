@@ -20,6 +20,7 @@ import {
   ApiRefreshTokenDocs,
 } from './auth.swagger';
 import { GoogleOauthGuard } from './guards/google.guard';
+import { buildWebAuthSuccessRedirect } from './resolve-frontend-redirect';
 
 @ApiTags('01 - Auth')
 @Controller('auth')
@@ -31,10 +32,16 @@ export class AuthController {
     private readonly redisService: RedisService,
   ) {}
 
+  @Get('google/login')
+  @UseGuards(GoogleOauthGuard)
+  @ApiGoogleAuthDocs('login')
+  async googleLogin() {}
+
+  /** @deprecated Use GET /auth/google/login */
   @Get('google')
   @UseGuards(GoogleOauthGuard)
-  @ApiGoogleAuthDocs()
-  async googleAuth() {}
+  @ApiGoogleAuthDocs('login')
+  async googleAuthLegacy() {}
 
   @Get('google/callback')
   @UseGuards(GoogleOauthGuard)
@@ -45,7 +52,7 @@ export class AuthController {
     const rawState = req.query.state as string;
 
     let platform = 'web';
-    let appRedirect: string;
+    let appRedirect: string | undefined;
 
     if (rawState) {
       try {
@@ -64,23 +71,29 @@ export class AuthController {
     }
 
     if (platform === 'mobile') {
+      if (!appRedirect) {
+        throw new UnauthorizedException('Missing mobile app redirect');
+      }
       const redirect = new URL(appRedirect);
       redirect.searchParams.set('token', accessToken);
       redirect.searchParams.set('refreshToken', refreshToken);
       return res.redirect(redirect.toString());
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: isProduction,
       sameSite: 'lax',
-      // path: '/auth/refresh',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    return res.redirect(`${frontendUrl}?token=${accessToken}`);
+    return res.redirect(
+      buildWebAuthSuccessRedirect(frontendUrl, appRedirect, accessToken),
+    );
   }
 
   @Post('refresh')
@@ -99,16 +112,15 @@ export class AuthController {
       accessToken: string;
       refreshToken: string;
     }>(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'refresh_token', {
-          oldRefreshToken,
-          deviceAgent: req.headers['x-forwarded-for'],
-          ipAddress: req.ip,
-        });
+      oldRefreshToken,
+      deviceAgent: req.headers['x-forwarded-for'],
+      ipAddress: req.ip,
+    });
 
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: true,
-      // path: '/auth/refresh',
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -124,14 +136,16 @@ export class AuthController {
     const refreshToken = req.cookies['refresh_token'];
 
     if (refreshToken) {
-      await this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'logout', { refreshToken });
+      await this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'logout', {
+        refreshToken,
+      });
     }
 
     res.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/auth/refresh',
+      path: '/',
     });
 
     return {

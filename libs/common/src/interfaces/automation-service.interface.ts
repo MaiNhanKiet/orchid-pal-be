@@ -24,3 +24,25 @@ export interface HardwareConfig {
     relay_4?: string | null;
   };
 }
+
+/** NestJS DB/API logic shape for pump threshold rules. */
+export interface PumpThresholdLogic {
+  moisture_min?: number;
+  water_duration_ms?: number;
+  cooldown_ms?: number;
+  enabled?: boolean;
+}
+
+/** ESP32 firmware logic rule shape (also accepted when updating rules via API). */
+export interface FirmwareLogicRuleInput {
+  if: {
+    metric: string;
+    op: string;
+    value: number;
+  };
+  then: {
+    action: string;
+    duration_ms: number;
+    cooldown_ms: number;
+  };
+}

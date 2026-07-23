@@ -7,7 +7,6 @@ import {
   IsBoolean,
   IsObject,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -29,18 +28,22 @@ export class CreateProductDto {
   @IsPositive()
   price: number;
 
-  @IsNumber()
-  @Min(0)
-  @IsOptional() // có thể để 0 nếu chưa nhập hàng
-  stock_quantity?: number = 0;
-
   @IsObject()
   @IsOptional()
-  specs_config?: Record<string, any>;
+  features_json?: Record<string, unknown>;
+
+  /** FE admin form alias — stored as features_json */
+  @IsObject()
+  @IsOptional()
+  specs_config?: Record<string, unknown>;
 
   @IsString()
   @IsOptional()
   image_url?: string;
+
+  @IsString()
+  @IsOptional()
+  buy_link?: string;
 
   @IsBoolean()
   @IsOptional()
@@ -64,22 +67,25 @@ export class UpdateProductDto {
 
   @IsNumber({ allowInfinity: false, maxDecimalPlaces: 2 })
   @IsPositive()
-  @Min(1) // tùy chọn: giữ ràng buộc giá tối thiểu nếu cần
   @IsOptional()
   price?: number;
 
-  @IsNumber()
-  @IsPositive()
-  @IsOptional()
-  stock_quantity?: number;
-
   @IsObject()
   @IsOptional()
-  specs_config?: Record<string, any>;
+  features_json?: Record<string, unknown>;
+
+  /** FE admin form alias — stored as features_json */
+  @IsObject()
+  @IsOptional()
+  specs_config?: Record<string, unknown>;
 
   @IsString()
   @IsOptional()
   image_url?: string;
+
+  @IsString()
+  @IsOptional()
+  buy_link?: string;
 
   @IsBoolean()
   @IsOptional()

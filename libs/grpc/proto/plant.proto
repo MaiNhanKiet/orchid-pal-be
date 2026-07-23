@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package plant;
+
+import "common.proto";
+
+service PlantService {
+  rpc Invoke (common.InvokeRequest) returns (common.InvokeResponse);
+}

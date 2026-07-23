@@ -1,9 +1,14 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-export function ApiGoogleAuthDocs() {
+export function ApiGoogleAuthDocs(mode: 'login' | 'legacy' = 'legacy') {
   return applyDecorators(
-    ApiOperation({ summary: 'Đăng nhập bằng Google OAuth 2.0' }),
+    ApiOperation({
+      summary:
+        mode === 'login'
+          ? 'Sign in with Google (creates account if new)'
+          : 'Đăng nhập bằng Google OAuth 2.0',
+    }),
     ApiResponse({
       status: 302,
       description: 'Chuyển hướng đến trang xác thực Google.',

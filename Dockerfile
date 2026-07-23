@@ -1,48 +1,62 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
+#
+# Multi-stage production image for NestJS monorepo apps:
+#   api-gateway | identity-service | plant-service
+#
+# Build:
+#   docker build --build-arg APP_NAME=api-gateway -t orchidpal-api-gateway:latest .
+#
+# Secrets must be injected at runtime (Compose/Arcane environment), never as ARG/ENV.
 
-# ── Stage 1: install dependencies ──────────────────────────────────────────────
-FROM node:22-alpine AS deps
+ARG NODE_VERSION=22-alpine
+
+# ── dependencies ─────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# ── Stage 2: build all NestJS apps + Prisma client ───────────────────────────
-FROM node:22-alpine AS build
+# ── build ────────────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
+
+ARG APP_NAME
+RUN test -n "$APP_NAME" || (echo "APP_NAME build-arg is required" && exit 1)
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json package-lock.json nest-cli.json tsconfig.json tsconfig.build.json ./
+COPY apps ./apps
+COPY libs ./libs
 
+# Prisma client (native engines) needed at runtime for all apps using PrismaModule
 RUN npx prisma generate --schema=./libs/prisma/prisma/schema.prisma
 
-RUN npm run build:all
+RUN npx nest build "${APP_NAME}"
 
-# ── Stage 3: production runtime ────────────────────────────────────────────────
-FROM node:22-alpine AS production
+# Keep prod node_modules + generated Prisma engines
+RUN npm prune --omit=dev && npm cache clean --force
+
+# ── runtime ──────────────────────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
 
+ARG APP_NAME
+RUN test -n "$APP_NAME" || (echo "APP_NAME build-arg is required" && exit 1)
+
 ENV NODE_ENV=production
+ENV APP_NAME=${APP_NAME}
 
-RUN apk add --no-cache wget tini
+RUN addgroup -S nestjs && adduser -S nestjs -G nestjs
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+COPY --from=builder --chown=nestjs:nestjs /app/package.json ./package.json
+COPY --from=builder --chown=nestjs:nestjs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nestjs /app/dist ./dist
+# gRPC proto paths are resolved from process.cwd()/libs/grpc/proto
+COPY --from=builder --chown=nestjs:nestjs /app/libs/grpc/proto ./libs/grpc/proto
+COPY --from=builder --chown=nestjs:nestjs /app/libs/prisma/prisma ./libs/prisma/prisma
 
-# Generated Prisma client (devDependency prisma CLI not included in prod)
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
+USER nestjs
 
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/libs/grpc/proto ./libs/grpc/proto
-COPY --from=build /app/libs/prisma/prisma ./libs/prisma/prisma
-
-# Prisma CLI for one-shot migrate service (docker compose)
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
-
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
-CMD ["node", "dist/apps/api-gateway/main.js"]
+# Exec form via shell so $APP_NAME expands and Node receives SIGTERM
+CMD ["sh", "-c", "exec node dist/apps/${APP_NAME}/main"]

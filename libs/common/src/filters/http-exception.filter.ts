@@ -1,13 +1,19 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
+import {
+  AUTH_ERROR_CODES,
+  extractAuthErrorCode,
+  getAuthErrorRedirectUrl,
+  normalizeAuthErrorMessage,
+} from '../constants/auth.constants';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -22,7 +28,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: any = 'Internal server error';
 
-    // Tránh lỗi khi headers đã được gửi khi hủy Google OAuth
     if (response.headersSent) {
       this.logger.warn(
         'Headers already sent, skipping exception filter response.',
@@ -30,48 +35,68 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
-    // 1. Xử lý lỗi HTTP thông thường
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const responseBody = exception.getResponse();
 
-      // lỗi hủy Google OAuth
       if (
         status === HttpStatus.UNAUTHORIZED &&
-        (responseBody as any).message === 'GOOGLE_AUTH_CANCELLED'
+        normalizeAuthErrorMessage(
+          (responseBody as { message?: unknown }).message,
+        ) === AUTH_ERROR_CODES.GOOGLE_AUTH_CANCELLED
       ) {
         const frontendUrl = this.configService.get<string>('FRONTEND_URL');
         return response.redirect(`${frontendUrl}/login?status=cancelled`);
       }
 
-      message =
-        typeof responseBody === 'object' && 'message' in responseBody
-          ? (responseBody as any).message
-          : responseBody;
-    }
+      const httpMessage =
+        extractAuthErrorCode(exception) ||
+        normalizeAuthErrorMessage(
+          typeof responseBody === 'object' &&
+            responseBody !== null &&
+            'message' in responseBody
+            ? (responseBody as { message?: unknown }).message
+            : responseBody,
+        );
 
-    // 2. Xử lý lỗi từ Microservice (RPC)
-    else if (this.isRpcError(exception)) {
-      const errorObj = exception as any;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      if (frontendUrl && request.url.includes('/auth/google/callback')) {
+        const redirectUrl = getAuthErrorRedirectUrl(frontendUrl, httpMessage);
+        if (redirectUrl) {
+          return response.redirect(redirectUrl);
+        }
+      }
 
-      // Lấy object thật bên trong nếu có
+      message = httpMessage || responseBody;
+    } else if (this.isRpcError(exception)) {
+      const errorObj = exception as {
+        error?: { statusCode?: number; status?: number; message?: unknown };
+        statusCode?: number;
+        status?: number;
+        message?: unknown;
+      };
+
       const realError = errorObj.error || errorObj;
-
-      // Lấy status từ object thật bên trong
       status = Number(realError.statusCode || realError.status);
-      message = realError.message || 'Microservice Error';
-    }
+      message =
+        extractAuthErrorCode(exception) ||
+        normalizeAuthErrorMessage(realError.message) ||
+        'Microservice Error';
 
-    // 3. Lỗi DB (Prisma)
-    else if (this.isNotFoundError(exception)) {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      if (frontendUrl && request.url.includes('/auth/google/callback')) {
+        const redirectUrl = getAuthErrorRedirectUrl(frontendUrl, message);
+        if (redirectUrl) {
+          return response.redirect(redirectUrl);
+        }
+      }
+    } else if (this.isNotFoundError(exception)) {
       status = HttpStatus.NOT_FOUND;
       message = 'Resource not found';
     } else {
-      // Log lỗi 500 thực sự để debug
       this.logger.error(exception);
     }
 
-    // Kiểm tra an toàn lần cuối
     if (isNaN(status) || typeof status !== 'number') {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
@@ -87,10 +112,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private isRpcError(exception: any): boolean {
     if (!exception || typeof exception !== 'object') return false;
 
-    // Check nếu là lỗi phẳng
     const isFlatError = 'status' in exception || 'statusCode' in exception;
-
-    // Check nếu là lỗi lồng nhau
     const isNestedError =
       'error' in exception &&
       typeof exception.error === 'object' &&

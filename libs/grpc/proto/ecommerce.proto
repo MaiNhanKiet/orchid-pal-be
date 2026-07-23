@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package ecommerce;
-
-import "common.proto";
-
-service EcommerceService {
-  rpc Invoke (common.InvokeRequest) returns (common.InvokeResponse);
-}

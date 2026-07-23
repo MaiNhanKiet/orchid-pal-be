@@ -24,22 +24,19 @@ import { PassportModule } from '@nestjs/passport';
 import { AutomationController } from './modules/automation/automation.controller';
 import { AuthController } from './modules/auth/auth.controller';
 import { GoogleStrategy } from './modules/auth/strategies/google.strategy';
-import { CartsController } from './modules/carts/cart.controller';
-import { DashboardController } from './modules/dashboard/dashboard.controller';
-import { DevicesController } from './modules/devices/devices.controller';
-import { MyPlantsController } from './modules/garden/my-plants/my-plants.controller';
-import { PlantWikiController } from './modules/garden/species/plant-wiki.controller';
-import { ZonesController } from './modules/garden/zones/zones.controller';
-import { OrdersController } from './modules/orders/order.controller';
-import { PaymentController } from './modules/payment/payment.controller';
+import { DevicesModule } from './modules/devices/devices.module';
+import { ExpertConsultationModule } from './expert-consultation/expert-consultation.module';
+import { AiCareModule } from './ai-care/ai-care.module';
+import { FeedbackModule } from './feedback/feedback.module';
+import { AdminModule } from './admin/admin.module';
+import { AuditModule } from './audit/audit.module';
+import { ExpertController } from './modules/expert/expert.controller';
+import { PlantsController } from './modules/plants/plants.controller';
 import { ProductsController } from './modules/products/product.controller';
 import { RbacController } from './modules/rbac/rbac.controller';
-import { AddressesController } from './modules/shipments/address.controller';
-import { ShipmentsController } from './modules/shipments/shipment.controller';
 import { TelemetryController } from './modules/telemetry/telemetry.controller';
-import { TransactionsController } from './modules/transactions/transaction.controller';
 import { UsersController } from './modules/users/users.controller';
-import { ChatController } from './modules/chat/chat.controller';
+import { UsersProfileController } from './modules/users/users-profile.controller';
 
 @Module({
   imports: [
@@ -50,42 +47,32 @@ import { ChatController } from './modules/chat/chat.controller';
     RedisModule,
     BullConfigModule,
     BullModule.registerQueue({ name: QueueName.IamCronQueue }),
-    BullModule.registerQueue({ name: QueueName.PaymentTimeoutQueue }),
     BullBoardModule.forRoot({
       route: '/admin/queues',
       adapter: ExpressAdapter,
     }),
-    BullBoardModule.forFeature(
-      {
-        name: QueueName.IamCronQueue,
-        adapter: BullMQAdapter,
-      },
-      {
-        name: QueueName.PaymentTimeoutQueue,
-        adapter: BullMQAdapter,
-      },
-    ),
+    BullBoardModule.forFeature({
+      name: QueueName.IamCronQueue,
+      adapter: BullMQAdapter,
+    }),
     EventEmitterModule.forRoot(),
+    ExpertConsultationModule,
+    DevicesModule,
+    AiCareModule,
+    FeedbackModule,
+    AdminModule,
+    AuditModule,
   ],
   controllers: [
     AuthController,
     UsersController,
+    UsersProfileController,
     RbacController,
     ProductsController,
-    CartsController,
-    PlantWikiController,
-    ZonesController,
-    MyPlantsController,
-    AutomationController,
-    DevicesController,
+    PlantsController,
     TelemetryController,
-    OrdersController,
-    ShipmentsController,
-    TransactionsController,
-    PaymentController,
-    AddressesController,
-    DashboardController,
-    ChatController,
+    AutomationController,
+    ExpertController,
   ],
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID?.trim() &&
@@ -93,34 +80,13 @@ import { ChatController } from './modules/chat/chat.controller';
     process.env.GOOGLE_CALLBACK_URL?.trim()
       ? [GoogleStrategy]
       : []),
-    {
-      provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
-    },
-    {
-      provide: APP_PIPE,
-      useClass: CustomValidationPipe,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: PermissionRbacGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TimeoutInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_PIPE, useClass: CustomValidationPipe },
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: PermissionRbacGuard },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
   ],
 })
 export class AppModule {}

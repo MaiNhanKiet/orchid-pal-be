@@ -99,4 +99,12 @@ export enum Permission {
 
   UnlockRoom = 'room.unlock',
   LockRoom = 'room.lock',
+
+  /** Domain permissions for current GrowPal APIs */
+  FeedbackView = 'feedback.view',
+  ChatManage = 'chat.manage',
+  ExpertConsult = 'expert.consult',
+  ExpertBlogWrite = 'expert.blog.write',
+  ExpertBlogReview = 'expert.blog.review',
+  NotificationRead = 'notification.read',
 }

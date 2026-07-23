@@ -1,8 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '@app/prisma';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { GoogleLoginDto } from '@app/common';
+import { PrismaService } from '@app/prisma';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
+
+type UserWithRoles = NonNullable<Awaited<ReturnType<AuthService['findUserByEmail']>>>;
 
 @Injectable()
 export class AuthService {
@@ -12,59 +15,104 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async handleGoogleLogin({
+  async handleGoogleLogin(dto: GoogleLoginDto) {
+    let user = await this.findUserByEmail(dto.email);
+
+    if (!user) {
+      try {
+        user = await this.createGoogleUser(dto);
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          // Race: another request created the user — continue as login.
+          user = await this.findUserByEmail(dto.email);
+          if (!user) throw error;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    const syncedUser = await this.syncAvatarIfNeeded(user, dto.picture);
+    return this.issueAuthTokens(syncedUser, dto.deviceAgent, dto.ipAddress);
+  }
+
+  private async findUserByEmail(email: string) {
+    return this.prisma.users.findUnique({
+      where: { email },
+      include: {
+        user_roles: {
+          include: { roles: true },
+        },
+      },
+    });
+  }
+
+  private async syncAvatarIfNeeded(
+    user: NonNullable<UserWithRoles>,
+    picture?: string,
+  ) {
+    if (!picture || user.avatar_url === picture) {
+      return user;
+    }
+
+    return this.prisma.users.update({
+      where: { id: user.id },
+      data: { avatar_url: picture },
+      include: {
+        user_roles: {
+          include: { roles: true },
+        },
+      },
+    });
+  }
+
+  private async createGoogleUser({
     email,
     firstName,
     lastName,
     picture,
-    deviceAgent,
-    ipAddress,
   }: GoogleLoginDto) {
-    // 1. Kiểm tra user đã tồn tại trong DB chưa
-    let user = await this.prisma.users.findUnique({
-      where: { email: email },
-      include: {
+    const defaultRoleName =
+      this.configService.get<string>('DEFAULT_USER_ROLE')!;
+    const defaultRole = await this.prisma.roles.findUnique({
+      where: { name: defaultRoleName.toLocaleUpperCase() },
+    });
+
+    if (!defaultRole) {
+      throw new Error(`Default role '${defaultRoleName}' not found in DB`);
+    }
+
+    return this.prisma.users.create({
+      data: {
+        email,
+        full_name: lastName ? `${firstName} ${lastName}` : firstName,
+        avatar_url: picture,
+        password_hash: '',
+        phone: '',
         user_roles: {
-          include: {
-            roles: true,
+          create: {
+            role_id: defaultRole.id,
           },
         },
       },
+      include: {
+        user_roles: {
+          include: { roles: true },
+        },
+      },
     });
+  }
 
-    // 2. Nếu chưa có thì tạo mới user với role mặc định
+  private async issueAuthTokens(
+    user: NonNullable<UserWithRoles>,
+    deviceAgent?: string,
+    ipAddress?: string,
+  ) {
     const defaultRoleName =
       this.configService.get<string>('DEFAULT_USER_ROLE')!;
-    if (!user) {
-      const defaultRole = await this.prisma.roles.findUnique({
-        where: { name: defaultRoleName.toLocaleUpperCase() },
-      });
-
-      if (!defaultRole)
-        throw new Error(`Default role '${defaultRoleName}' not found in DB`);
-
-      user = await this.prisma.users.create({
-        data: {
-          email: email,
-          full_name: lastName ? `${firstName} ${lastName}` : firstName,
-          avatar_url: picture,
-          password_hash: '',
-          phone: '',
-          user_roles: {
-            create: {
-              role_id: defaultRole.id,
-            },
-          },
-        },
-        include: {
-          user_roles: {
-            include: { roles: true },
-          },
-        },
-      });
-    }
-
-    // 3. Tạo JWT Access Token và Refresh Token
     const roleNames = user.user_roles.map((ur) => ur.roles.name);
     const finalRoles = roleNames.length > 0 ? roleNames : [defaultRoleName];
 
@@ -72,6 +120,8 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: finalRoles,
+      full_name: user.full_name ?? undefined,
+      avatar_url: user.avatar_url ?? undefined,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -85,16 +135,12 @@ export class AuthService {
       }),
     ]);
 
-    // 4. Xóa rf nếu vượt quá 5
-    // Giới hạn mỗi user chỉ có 5 rf token active cùng lúc
-    // Lưu token vào DB
     const expiresAt = new Date(
       Date.now() +
         Number(this.configService.get<number>('JWT_REFRESH_TOKEN_EXPIRATION')),
     );
 
     await this.prisma.$transaction(async (tx) => {
-      // xóa các token cũ cùng deviceAgent và ipAddress
       await tx.refresh_tokens.deleteMany({
         where: {
           user_id: user.id,
@@ -103,7 +149,6 @@ export class AuthService {
         },
       });
 
-      // 2. Lấy danh sách các token hiện tại của user (chưa bị thu hồi và chưa hết hạn)
       const activeTokens = await tx.refresh_tokens.findMany({
         where: {
           user_id: user.id,
@@ -114,7 +159,6 @@ export class AuthService {
         select: { id: true },
       });
 
-      // quá 4 thì xóa token cũ nhất
       if (activeTokens.length >= 5) {
         const tokensToDeleteCount = activeTokens.length - 4;
         const idsToDelete = activeTokens
@@ -128,7 +172,6 @@ export class AuthService {
         }
       }
 
-      // Lưu rf token mới vào DB
       await tx.refresh_tokens.create({
         data: {
           user_id: user.id,
@@ -156,18 +199,16 @@ export class AuthService {
     deviceAgent: string;
     ipAddress: string;
   }) {
-    // kiểm tra JWT hợp lệ
     try {
       await this.jwtService.verifyAsync(oldRefreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       });
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(
         'Refresh token is invalid or has expired',
       );
     }
 
-    // kiểm tra rf token có trong DB không
     const storedToken = await this.prisma.refresh_tokens.findUnique({
       where: { token: oldRefreshToken },
       include: { users: true },
@@ -177,7 +218,6 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token does not exist');
     }
 
-    // kiểm tra rf token đã hết hạn chưa
     if (storedToken.expires_at < new Date()) {
       await this.prisma.refresh_tokens.delete({
         where: { id: storedToken.id },
@@ -185,7 +225,6 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token has expired');
     }
 
-    // kiểm tra user còn tồn tại không
     const userId = storedToken.user_id;
     const user = await this.prisma.users.findUnique({
       where: { id: userId },
@@ -203,11 +242,12 @@ export class AuthService {
     const roleNames = user.user_roles.map((ur) => ur.roles.name);
     const finalRoles = roleNames.length > 0 ? roleNames : [defaultRoleName];
 
-    // Tạo mới Access Token và Refresh Token
     const payload = {
       sub: user.id,
       email: user.email,
-      roles: finalRoles,
+      role: finalRoles,
+      full_name: user.full_name ?? undefined,
+      avatar_url: user.avatar_url ?? undefined,
     };
 
     const [newAccessToken, newRefreshToken] = await Promise.all([
@@ -221,7 +261,6 @@ export class AuthService {
       }),
     ]);
 
-    // lưu rf token mới vào DB và xóa rf token cũ
     const expiresAt = new Date(
       Date.now() +
         Number(this.configService.get<number>('JWT_REFRESH_TOKEN_EXPIRATION')),
@@ -241,8 +280,6 @@ export class AuthService {
         },
       });
     });
-
-    console.log(newAccessToken, newRefreshToken);
 
     return {
       accessToken: newAccessToken,

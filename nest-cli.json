@@ -38,31 +38,13 @@
         "tsConfigPath": "apps/identity-service/tsconfig.app.json"
       }
     },
-    "ecommerce-service": {
+    "plant-service": {
       "type": "application",
-      "root": "apps/ecommerce-service",
+      "root": "apps/plant-service",
       "entryFile": "main",
-      "sourceRoot": "apps/ecommerce-service/src",
+      "sourceRoot": "apps/plant-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/ecommerce-service/tsconfig.app.json"
-      }
-    },
-    "balcony-service": {
-      "type": "application",
-      "root": "apps/balcony-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/balcony-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/balcony-service/tsconfig.app.json"
-      }
-    },
-    "iot-engine-service": {
-      "type": "application",
-      "root": "apps/iot-engine-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/iot-engine-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/iot-engine-service/tsconfig.app.json"
+        "tsConfigPath": "apps/plant-service/tsconfig.app.json"
       }
     },
     "common": {

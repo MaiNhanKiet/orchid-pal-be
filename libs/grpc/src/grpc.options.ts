@@ -5,16 +5,12 @@ export const GRPC_PROTO_ROOT = join(process.cwd(), 'libs/grpc/proto');
 
 export const GRPC_PACKAGES = {
   IDENTITY: 'identity',
-  ECOMMERCE: 'ecommerce',
-  BALCONY: 'balcony',
-  IOT: 'iot',
+  PLANT: 'plant',
 } as const;
 
 export const GRPC_SERVICE_NAMES = {
   IDENTITY: 'IdentityService',
-  ECOMMERCE: 'EcommerceService',
-  BALCONY: 'BalconyService',
-  IOT: 'IotEngineService',
+  PLANT: 'PlantService',
 } as const;
 
 export function getGrpcProtoPath(filename: string): string {

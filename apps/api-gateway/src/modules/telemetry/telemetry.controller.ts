@@ -4,14 +4,15 @@ import {
   GetHistoryTelemetryQueryDto,
   GetLatestTelemetryDto,
   MICROSERVICES_CLIENTS,
+  Permissions,
   Public,
   TelemetryEventDto,
 } from '@app/common';
+import { Permission } from '@app/common/enums';
 import { GrpcRpcService } from '@app/grpc';
-import { Controller, Get, Inject, Param, Query, Sse } from '@nestjs/common';
+import { Controller, Get, Param, Query, Sse } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  ClientProxy,
   Ctx,
   EventPattern,
   Payload,
@@ -19,7 +20,6 @@ import {
 } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
-  firstValueFrom,
   fromEvent,
   interval,
   map,
@@ -30,19 +30,17 @@ import {
 import {
   ApiGetHistoryTelemetryDocs,
   ApiGetLatestTelemetryDocs,
-  ApiOrchidChatDocs,
   ApiStreamTelemetryDocs,
 } from './telemetry.swagger';
 
-@ApiTags('15 - Telemetry')
+@ApiTags('07 - Telemetry')
 @ApiBearerAuth('access-token')
 @Controller('telemetry')
 export class TelemetryController {
-
   constructor(
     private readonly grpcRpc: GrpcRpcService,
     private eventEmitter: EventEmitter2,
-  ) { }
+  ) {}
 
   @EventPattern('telemetry_created_event')
   handleNewTelemetry(
@@ -80,21 +78,24 @@ export class TelemetryController {
   }
 
   @Get(':serialNumber/latest')
+  @Permissions(Permission.DeviceView)
   @ApiGetLatestTelemetryDocs()
   getLatestTelemetry(@Param() params: GetLatestTelemetryDto) {
-    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE, 'get_latest_telemetry', { serialNumber: params.serialNumber });
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'get_latest_telemetry', {
+      serialNumber: params.serialNumber,
+    });
   }
 
   @Get(':serialNumber/history')
+  @Permissions(Permission.DeviceView)
   @ApiGetHistoryTelemetryDocs()
   getHistoryTelemetry(
     @Param() params: GetHistoryTelemetryDto,
     @Query() query: GetHistoryTelemetryQueryDto,
   ) {
-    return this.grpcRpc.send(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE, 'get_history_telemetry', {
-          serialNumber: params.serialNumber,
-          hours: query.hours,
-        });
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'get_history_telemetry', {
+      serialNumber: params.serialNumber,
+      hours: query.hours,
+    });
   }
-
 }

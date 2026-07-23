@@ -26,8 +26,9 @@ export function ApiGetAllProductsDocs() {
               name: 'Bộ điều khiển tưới tự động cho lan',
               description: 'Bộ điều khiển IoT chuyên dụng...',
               price: 1250000,
-              stock_quantity: 50,
-              image_url: 'https://cdn.example.com/images/lan-controller.jpg',
+              features_json: { kit_type: 'standard', relays: 4 },
+              buy_link: 'https://m.me/growpal.shop',
+              image_url: 'https://cdn.example.com/images/growpal-kit.jpg',
               is_published: true,
               created_at: '2024-01-01T00:00:00.000Z',
             },
@@ -215,60 +216,25 @@ export function ApiDeleteProductDocs() {
 }
 
 export function ApiAddDevicesToProductDocs() {
+  return ApiProvisionDevicesDocs();
+}
+
+export function ApiProvisionDevicesDocs() {
   return applyDecorators(
-    ApiOperation({ summary: 'Thêm thiết bị vào sản phẩm' }),
-    ApiAuthFailures(),
-    ApiParam({
-      name: 'id',
-      description: 'UUID của sản phẩm',
-      type: 'string',
-      example: '123e4567-e89b-12d3-a456-426614174000',
+    ApiOperation({
+      summary: 'Admin - Provision batch thiết bị Kit',
+      description: 'Tạo hàng loạt serial number cho kho thiết bị.',
     }),
+    ApiAuthFailures(),
     ApiBody({
-      description: 'Cung cấp secretKey dùng chung và số lượng thiết bị cần tạo',
       schema: {
         example: {
           secretKey: 'shared-secret-key-123',
-          quantity: 2,
+          quantity: 5,
+          skuPrefix: 'GROWPAL-KIT',
         },
       },
     }),
-    ApiResponse({
-      status: 201,
-      description: 'Thêm thiết bị vào sản phẩm thành công',
-      schema: {
-        example: {
-          product_id: '123e4567-e89b-12d3-a456-426614174000',
-          created: 2,
-          stock_quantity: 52,
-          devices: [
-            {
-              id: '6f2132a7-8f5f-46da-8ed6-89af8ef4da01',
-              serial_number: 'LAN-CTRL-001-001',
-              secret_key: 'shared-secret-key-123',
-              product_id: '123e4567-e89b-12d3-a456-426614174000',
-              status: 'INACTIVE',
-            },
-            {
-              id: '4cb6c91f-cc1d-4cb6-9f1b-6f4f6bfe8d8a',
-              serial_number: 'LAN-CTRL-001-002',
-              secret_key: 'shared-secret-key-123',
-              product_id: '123e4567-e89b-12d3-a456-426614174000',
-              status: 'INACTIVE',
-            },
-          ],
-        },
-      },
-    }),
-    ApiResponse({
-      status: 400,
-      description: 'UUID không hợp lệ hoặc dữ liệu đầu vào không hợp lệ',
-      schema: { example: { message: 'Invalid input data' } },
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'Không tìm thấy sản phẩm',
-      schema: { example: { message: 'Product not found' } },
-    }),
+    ApiResponse({ status: 201, description: 'Provision thành công' }),
   );
 }

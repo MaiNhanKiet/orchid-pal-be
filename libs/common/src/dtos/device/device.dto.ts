@@ -7,24 +7,33 @@ import {
   IsArray,
   ArrayMinSize,
   IsNumber,
+  IsInt,
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../pagination.dto';
 
 export class ActivateDeviceDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'ID thiết bị (từ QR code, tham số `id`)',
+  })
+  @IsUUID()
+  @IsOptional()
+  device_id?: string;
+
+  @ApiPropertyOptional({
     example: 'SN-1234567890',
-    description: 'Số serial của thiết bị (từ QR code)',
+    description: 'Số serial của thiết bị (legacy hoặc nhập tay)',
   })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
-  serial_number: string;
+  serial_number?: string;
 
   @ApiProperty({
     example: 'secret-key-abc123xyz',
-    description: 'Secret key của thiết bị (từ QR code)',
+    description: 'Secret key của thiết bị (từ QR code, tham số `key`)',
   })
   @IsString()
   @IsNotEmpty()
@@ -34,9 +43,13 @@ export class ActivateDeviceDto {
 
 export class ActivateDeviceCommandDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
-  serial_number: string;
+  serial_number?: string;
+
+  @IsUUID()
+  @IsOptional()
+  device_id?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -55,14 +68,34 @@ export class GetDeviceStatusCommandDto {
   serial_number: string;
 }
 
-export class AssignDeviceToZoneDto {
+export class AssignDeviceToPlantDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'ID của vườn (zone) muốn gán thiết bị vào',
+    description: 'ID cây muốn gắn Kit (1 Kit = 1 cây)',
   })
   @IsUUID()
   @IsNotEmpty()
-  zone_id: string;
+  plant_id: string;
+}
+
+export class AssignDeviceToUserDto {
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174001',
+    description: 'ID người dùng sẽ được gán Kit',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
+}
+
+export class AssignDeviceToUserCommandDto {
+  @IsUUID()
+  @IsNotEmpty()
+  device_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
 }
 
 export class ControlDeviceDto {
@@ -76,11 +109,20 @@ export class ControlDeviceDto {
 
   @ApiProperty({
     example: 'ON',
-    description: "Hành động điều khiển relay ('ON' | 'OFF')",
+    description: "Relay control action ('ON' | 'OFF')",
   })
   @IsString()
   @IsNotEmpty()
   action: 'ON' | 'OFF';
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Relay port (1-4). Used when role name does not match hardware.',
+  })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  relay_port?: number;
 }
 
 export class ManualControlDeviceCommandDto {
@@ -96,9 +138,18 @@ export class ManualControlDeviceCommandDto {
   @IsString()
   @IsNotEmpty()
   action: 'ON' | 'OFF';
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  relay_port?: number;
+
+  @IsUUID()
+  @IsOptional()
+  user_id?: string;
 }
 
-export class AssignDeviceToZoneCommandDto {
+export class AssignDeviceToPlantCommandDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -106,7 +157,7 @@ export class AssignDeviceToZoneCommandDto {
 
   @IsUUID()
   @IsNotEmpty()
-  zone_id: string;
+  plant_id: string;
 
   @IsUUID()
   @IsNotEmpty()
@@ -131,14 +182,6 @@ export class CreateDeviceDto {
   @IsNotEmpty()
   @MaxLength(100)
   secret_key: string;
-
-  @ApiPropertyOptional({
-    example: 'product-uuid',
-    description: 'ID sản phẩm (model thiết bị) nếu có',
-  })
-  @IsUUID()
-  @IsOptional()
-  product_id?: string;
 }
 
 export class UpdateDeviceDto {
@@ -183,6 +226,32 @@ export class UpdateDeviceDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsString()
+  @IsOptional()
+  current_firmware?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/.../kit-qr/device-uuid.png',
+    description: 'URL ảnh QR kích hoạt trên Cloudinary',
+  })
+  @IsString()
+  @IsOptional()
+  qr_image_url?: string;
+}
+
+export class DeviceActivationQrResponseDto {
+  @ApiProperty()
+  device_id: string;
+
+  @ApiProperty()
+  serial_number: string;
+
+  @ApiProperty()
+  activation_payload: string;
+
+  @ApiProperty()
+  qr_image_url: string;
 }
 
 export class QueryDevicesDto extends PaginationDto {
@@ -212,20 +281,12 @@ export class QueryDevicesDto extends PaginationDto {
   owner_id?: string;
 
   @ApiPropertyOptional({
-    example: 'zone-uuid',
-    description: 'Lọc theo zone_id',
+    example: 'plant-uuid',
+    description: 'Lọc theo plant_id',
   })
   @IsUUID()
   @IsOptional()
-  zone_id?: string;
-
-  @ApiPropertyOptional({
-    example: 'product-uuid',
-    description: 'Lọc theo product_id',
-  })
-  @IsUUID()
-  @IsOptional()
-  product_id?: string;
+  plant_id?: string;
 
   @ApiPropertyOptional({
     example: 'created_at',
@@ -245,23 +306,17 @@ export class QueryDevicesDto extends PaginationDto {
   sortOrder?: 'asc' | 'desc';
 }
 
-export class AddDevicesToProductDto {
-  @ApiProperty({
-    example: 'shared-secret-key-123',
-    description: 'Secret key dùng chung cho tất cả các thiết bị được tạo ra',
-    type: String,
-  })
+export class ProvisionDevicesDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   secretKey: string;
 
-  @ApiProperty({
-    example: 5,
-    description: 'Số lượng thiết bị cần tạo',
-    type: Number,
-  })
   @IsNumber()
   @Min(1)
   quantity: number;
+
+  @IsString()
+  @IsNotEmpty()
+  skuPrefix: string;
 }

@@ -1,5 +1,6 @@
 import { API_GATEWAY_PORT, RmqService } from '@app/common';
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import 'dotenv/config';
@@ -19,9 +20,7 @@ function logStartupEnv() {
     'RABBITMQ_USER',
     'RABBITMQ_PASS',
     'IDENTITY_SERVICE_HOST',
-    'ECOMMERCE_SERVICE_HOST',
-    'BALCONY_SERVICE_HOST',
-    'IOT_ENGINE_SERVICE_HOST',
+    'PLANT_SERVICE_HOST',
   ];
   const missing = required.filter((key) => !process.env[key]?.trim());
   if (missing.length) {
@@ -44,15 +43,13 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.use(cookieParser());
 
   const rmqService = app.get<RmqService>(RmqService);
   app.connectMicroservice(rmqService.getOptions('API_GATEWAY', false));
 
-  const document = SwaggerModule.createDocument(
-    app,
-    buildSwaggerDocument(),
-  );
+  const document = SwaggerModule.createDocument(app, buildSwaggerDocument());
 
   SwaggerModule.setup('docs', app, document, SWAGGER_UI_OPTIONS);
 
@@ -62,10 +59,8 @@ async function bootstrap() {
 
   // Bind HTTP trước — tránh restart loop khi RabbitMQ chậm; port conflict log rõ hơn
   try {
-    await app.listen(port);
-    console.log(
-      `[API Gateway]: HTTP Server & Swagger running on port ${port}`,
-    );
+    await app.listen(port, '0.0.0.0');
+    console.log(`[API Gateway]: HTTP Server & Swagger running on 0.0.0.0:${port}`);
     console.log(`[API Gateway]: Swagger UI → http://localhost:${port}/docs`);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException)?.code;
@@ -87,9 +82,7 @@ async function bootstrap() {
     );
   }
 
-  console.log(
-    '[API Gateway]: gRPC clients → identity, ecommerce, balcony, iot-engine',
-  );
+  console.log('[API Gateway]: gRPC clients → identity, plant-service');
 }
 bootstrap().catch((error) => {
   console.error('[API Gateway] Bootstrap failed:', error);

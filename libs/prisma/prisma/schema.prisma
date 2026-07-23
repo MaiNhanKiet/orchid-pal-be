@@ -7,168 +7,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model automation_rules {
-  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  zone_id      String?        @db.Uuid
-  name         String?        @db.VarChar(100)
-  is_active    Boolean?       @default(true)
-  logic_config Json
-  created_at   DateTime?      @default(now()) @db.Timestamp(6)
-  balcony_zones balcony_zones? @relation(fields: [zone_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model users {
+  id                     String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                  String                 @unique @db.VarChar(255)
+  password_hash          String                 @db.VarChar(255)
+  full_name              String?                @db.VarChar(100)
+  phone                  String?                @db.VarChar(20)
+  avatar_url             String?
+  preferences            Json?                  @default("{}")
+  is_active              Boolean?               @default(true)
+  created_at             DateTime?              @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?              @default(now()) @db.Timestamp(6)
+  ai_chat_sessions       ai_chat_sessions[]
+  audit_logs             audit_logs[]
+  devices                devices[]
+  expert_blogs           expert_blogs[]         @relation("expert_blog_author")
+  reviewed_blogs         expert_blogs[]         @relation("expert_blog_reviewer")
+  archived_conversations expert_conversations[] @relation("archived_conversations")
+  expert_conversations   expert_conversations[] @relation("customer_conversations")
+  expert_as_expert       expert_conversations[] @relation("expert_conversations")
+  expert_messages        expert_messages[]
+  expert_profile         expert_profiles?
+  feedbacks              feedbacks[]
+  my_plants              my_plants[]
+  notifications          notifications[]
+  refresh_tokens         refresh_tokens[]
+  user_roles             user_roles[]
 }
 
-model cart_items {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id     String?   @db.Uuid
-  product_id  String?   @db.Uuid
-  quantity    Int?      @default(1)
-  is_selected Boolean?  @default(true)
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
-  products    products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([user_id, product_id])
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model devices {
-  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  serial_number    String          @unique @db.VarChar(100)
-  secret_key       String          @db.VarChar(100)
-  product_id       String?         @db.Uuid
-  owner_id         String?         @db.Uuid
-  zone_id          String?         @db.Uuid
-  linked_master_id String?         @db.Uuid
-  status           String?         @default("INACTIVE") @db.VarChar(20)
-  current_firmware String?         @db.VarChar(20)
-  last_online_at   DateTime?       @db.Timestamp(6)
-  created_at       DateTime?       @default(now()) @db.Timestamp(6)
-  hardware_config  Json?
-  devices          devices?        @relation("devicesTodevices", fields: [linked_master_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  other_devices    devices[]       @relation("devicesTodevices")
-  users            users?          @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  products         products?       @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  balcony_zones    balcony_zones?  @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model firmware_versions {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  version            String    @db.VarChar(20)
-  file_url           String
-  target_product_sku String?   @db.VarChar(50)
-  is_mandatory       Boolean?  @default(false)
-  created_by         String?   @db.Uuid
-  created_at         DateTime? @default(now()) @db.Timestamp(6)
-  users              users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model my_plants {
-  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String?        @db.Uuid
-  zone_id        String?        @db.Uuid
-  nickname       String?        @db.VarChar(100)
-  species_id     String?        @db.Uuid
-  planted_at     DateTime?      @db.Date
-  health_status  String?        @default("GOOD") @db.VarChar(20)
-  image_url      String?
-  container_type String?        @db.VarChar(50)
-  created_at     DateTime?      @default(now()) @db.Timestamp(6)
-  plant_wiki     plant_wiki?    @relation(fields: [species_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  balcony_zones  balcony_zones? @relation(fields: [zone_id], references: [id], onUpdate: NoAction)
-}
-
-model order_items {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id              String?   @db.Uuid
-  product_id            String?   @db.Uuid
-  product_name_snapshot String?   @db.VarChar(200)
-  quantity              Int
-  unit_price            Decimal   @db.Decimal(15, 2)
-  total_price           Decimal?  @db.Decimal(15, 2)
-  orders                orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  products              products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model orders {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String?           @db.Uuid
-  order_code      String            @unique @db.VarChar(20)
-  total_amount    Decimal           @db.Decimal(15, 2)
-  status          String?           @db.VarChar(20)
-  shipping_info   Json?
-  note            String?
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  order_items     order_items[]
-  users           users?            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  product_reviews product_reviews[]
-  shipments       shipments[]
-  transactions    transactions[]
-}
-
-model permissions {
-  id               Int                @id @default(autoincrement())
-  slug             String             @unique @db.VarChar(100)
-  description      String?
-  role_permissions role_permissions[]
-}
-
-model balcony_zones {
-  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String?            @db.Uuid
-  name                String             @db.VarChar(100)
-  sunlight_intensity  String?            @db.VarChar(50)
-  has_roof            Boolean?           @default(false)
-  location_city       String?            @db.VarChar(100)
-  image_url           String?
-  created_at          DateTime?          @default(now()) @db.Timestamp(6)
-  automation_rules    automation_rules[]
-  devices             devices[]
-  my_plants           my_plants[]
-  users               users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model product_reviews {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  product_id String?   @db.Uuid
-  user_id    String?   @db.Uuid
-  order_id   String?   @db.Uuid
-  rating     Int?
-  comment    String?
-  images     Json?
-  is_hidden  Boolean?  @default(false)
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  orders     orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  products   products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model products {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sku             String            @unique @db.VarChar(50)
-  name            String            @db.VarChar(200)
-  description     String?
-  price           Decimal           @db.Decimal(15, 2)
-  stock_quantity  Int?              @default(0)
-  specs_config    Json?
-  image_url       String?
-  is_published    Boolean?          @default(true)
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  cart_items      cart_items[]
-  devices         devices[]
-  order_items     order_items[]
-  product_reviews product_reviews[]
-}
-
-model role_permissions {
-  role_id       Int
-  permission_id Int
-  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([role_id, permission_id])
+model expert_profiles {
+  user_id          String    @id @db.Uuid
+  specialty        String?   @db.VarChar(200)
+  bio              String?
+  location         String?   @db.VarChar(100)
+  tags             Json?     @default("[]")
+  experience_years Int?
+  is_available     Boolean?  @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model roles {
@@ -180,67 +57,20 @@ model roles {
   user_roles       user_roles[]
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model shipments {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id              String?   @db.Uuid
-  carrier_name          String?   @db.VarChar(50)
-  tracking_code         String?   @db.VarChar(100)
-  shipping_fee          Decimal?  @db.Decimal(15, 2)
-  status                String?   @db.VarChar(20)
-  estimated_delivery_at DateTime? @db.Timestamp(6)
-  created_at            DateTime? @default(now()) @db.Timestamp(6)
-  orders                orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model permissions {
+  id               Int                @id @default(autoincrement())
+  slug             String             @unique @db.VarChar(100)
+  description      String?
+  role_permissions role_permissions[]
 }
 
-model plant_wiki {
-  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  common_name      String      @db.VarChar(100)
-  scientific_name  String?     @db.VarChar(100)
-  plant_category   String?     @db.VarChar(50)
-  ideal_temp_min   Float?
-  ideal_temp_max   Float?
-  ideal_humid_min  Float?
-  ideal_humid_max  Float?
-  care_instruction String?
-  image_url        String?
-  author_id        String?     @db.Uuid
-  my_plants        my_plants[]
-  users            users?      @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model transactions {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id         String?   @db.Uuid
-  user_id          String?   @db.Uuid
-  amount           Decimal?  @db.Decimal(15, 2)
-  method           String?   @db.VarChar(50)
-  status           String?   @db.VarChar(20)
-  gateway_trans_id String?   @db.VarChar(100)
-  gateway_log      Json?
-  paid_at          DateTime? @db.Timestamp(6)
-  orders           orders?   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users            users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model user_addresses {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String?  @db.Uuid
-  recipient_name  String?  @db.VarChar(100)
-  phone           String?  @db.VarChar(20)
-  street          String?  @db.VarChar(255)
-  ward            String?  @db.VarChar(100)
-  district        String?  @db.VarChar(100)
-  city            String?  @db.VarChar(100)
-  full_address    String?
-  is_default      Boolean? @default(false)
-  type            String?  @db.VarChar(20)
-  ghn_district_id Int?
-  ghn_ward_code   String?  @db.VarChar(20)
-  shipping_fee    Int?
-  users           users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@id([role_id, permission_id])
 }
 
 model user_roles {
@@ -252,40 +82,247 @@ model user_roles {
   @@id([user_id, role_id])
 }
 
-model users {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email             String              @unique @db.VarChar(255)
-  password_hash     String              @db.VarChar(255)
-  full_name         String?             @db.VarChar(100)
-  phone             String?             @db.VarChar(20)
-  avatar_url        String?
-  preferences       Json?               @default("{}")
-  is_active         Boolean?            @default(true)
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  updated_at        DateTime?           @default(now()) @db.Timestamp(6)
-  cart_items        cart_items[]
-  devices           devices[]
-  firmware_versions firmware_versions[]
-  my_plants         my_plants[]
-  orders            orders[]
-  balcony_zones     balcony_zones[]
-  product_reviews   product_reviews[]
-  refresh_tokens    refresh_tokens[]
-  plant_wiki        plant_wiki[]
-  transactions      transactions[]
-  user_addresses    user_addresses[]
-  user_roles        user_roles[]
-}
-
 model refresh_tokens {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   token        String    @unique
-  user_id      String    @db.Uuid
+  user_id      String?   @db.Uuid
   device_agent String?
   ip_address   String?   @db.VarChar(45)
   is_revoked   Boolean?  @default(false)
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   expires_at   DateTime  @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
-  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_refresh_token")
+  users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model products {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku           String    @unique @db.VarChar(50)
+  name          String    @db.VarChar(200)
+  description   String?
+  price         Decimal   @db.Decimal(15, 2)
+  image_url     String?
+  is_published  Boolean?  @default(true)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  buy_link      String?
+  features_json Json?
+}
+
+model my_plants {
+  id                      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String?                @db.Uuid
+  nickname                String                 @db.VarChar(100)
+  planted_at              DateTime?              @db.Date
+  created_at              DateTime?              @default(now()) @db.Timestamp(6)
+  ai_space_analysis       Json?
+  ai_suggested_thresholds Json?
+  location_city           String?                @db.VarChar(100)
+  setup_image_url         String?
+  species_name            String?                @db.VarChar(100)
+  updated_at              DateTime?              @default(now()) @db.Timestamp(6)
+  ai_chat_sessions        ai_chat_sessions[]
+  devices                 devices?
+  expert_conversations    expert_conversations[]
+  users                   users?                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ai_chat_sessions {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String             @db.Uuid
+  topic            String?            @default("New Conversation") @db.VarChar(200)
+  related_plant_id String?            @db.Uuid
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  ai_chat_messages ai_chat_messages[]
+  my_plants        my_plants?         @relation(fields: [related_plant_id], references: [id], onUpdate: NoAction)
+  users            users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, updated_at(sort: Desc)], map: "idx_ai_chat_sessions_user_updated")
+}
+
+model ai_chat_messages {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id       String           @db.Uuid
+  role             String           @db.VarChar(20)
+  content          String?
+  image_url        String?
+  created_at       DateTime?        @default(now()) @db.Timestamp(6)
+  ai_chat_sessions ai_chat_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([session_id, created_at], map: "idx_ai_chat_messages_session_created")
+}
+
+model devices {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  serial_number    String             @unique @db.VarChar(100)
+  secret_key       String             @db.VarChar(100)
+  owner_id         String?            @db.Uuid
+  status           String?            @default("INACTIVE") @db.VarChar(20)
+  current_firmware String?            @db.VarChar(20)
+  last_online_at   DateTime?          @db.Timestamp(6)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  activated_at     DateTime?          @db.Timestamp(6)
+  plant_id         String?            @unique @db.Uuid
+  qr_image_url     String?
+  automation_rules automation_rules[]
+  device_relays    device_relays[]
+  users            users?             @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  my_plants        my_plants?         @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model device_relays {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  device_id     String?   @db.Uuid
+  relay_port    Int
+  name          String?   @db.VarChar(50)
+  current_state Boolean?  @default(false)
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+  devices       devices?  @relation(fields: [device_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([device_id, relay_port])
+}
+
+model automation_rules {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String?   @db.VarChar(100)
+  is_active    Boolean?  @default(true)
+  logic_config Json
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  device_id    String?   @db.Uuid
+  relay_port   Int
+  rule_type    String?   @db.VarChar(20)
+  devices      devices?  @relation(fields: [device_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model firmware_versions {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version       String    @db.VarChar(20)
+  file_url      String
+  is_mandatory  Boolean?  @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  release_notes String?
+}
+
+model expert_blogs {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_id        String?   @db.Uuid
+  title            String    @db.VarChar(255)
+  slug             String    @unique @db.VarChar(255)
+  summary          String?
+  content          String
+  cover_image_url  String?
+  tags             Json?     @default("[]")
+  views_count      Int?      @default(0)
+  is_published     Boolean?  @default(false)
+  published_at     DateTime? @db.Timestamp(6)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  status           String    @default("DRAFT") @db.VarChar(20)
+  reviewed_by      String?   @db.Uuid
+  reviewed_at      DateTime? @db.Timestamp(6)
+  rejection_reason String?
+  users            users?    @relation("expert_blog_author", fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reviewer         users?    @relation("expert_blog_reviewer", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+
+  @@index([slug], map: "idx_blogs_slug")
+  @@index([status, created_at(sort: Desc)], map: "idx_expert_blogs_status_created")
+}
+
+model feedbacks {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category   String    @db.VarChar(50)
+  name       String?   @db.VarChar(120)
+  email      String    @db.VarChar(255)
+  message    String
+  source     String?   @default("landing") @db.VarChar(50)
+  user_id    String?   @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_feedbacks_created_at")
+}
+
+model audit_logs {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  username       String?  @db.VarChar(255)
+  full_name      String?  @db.VarChar(120)
+  role           String?  @db.VarChar(200)
+  module         String?  @db.VarChar(100)
+  entity         String?  @db.VarChar(100)
+  entity_id      String?  @db.VarChar(100)
+  action         String   @db.VarChar(100)
+  description    String?
+  old_data       Json?
+  new_data       Json?
+  ip_address     String?  @db.VarChar(45)
+  user_agent     String?  @db.VarChar(500)
+  request_method String?  @db.VarChar(10)
+  endpoint       String?  @db.VarChar(500)
+  status         String   @default("SUCCESS") @db.VarChar(20)
+  response_code  Int?
+  duration_ms    Int?
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  actor_email    String?  @db.VarChar(255)
+  resource       String?  @db.VarChar(100)
+  resource_id    String?  @db.VarChar(100)
+  metadata       Json?
+  users          users?   @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_audit_logs_user_id")
+  @@index([module], map: "idx_audit_logs_module")
+  @@index([action], map: "idx_audit_logs_action")
+  @@index([entity], map: "idx_audit_logs_entity")
+  @@index([status], map: "idx_audit_logs_status")
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created_at")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_audit_logs_user_created")
+}
+
+model expert_conversations {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id      String?           @db.Uuid
+  expert_id        String?           @db.Uuid
+  related_plant_id String?           @db.Uuid
+  topic            String?           @db.VarChar(200)
+  status           String?           @default("OPEN") @db.VarChar(20)
+  created_at       DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?         @default(now()) @db.Timestamp(6)
+  archived_at      DateTime?         @db.Timestamp(6)
+  archived_by      String?           @db.Uuid
+  archiver         users?            @relation("archived_conversations", fields: [archived_by], references: [id], onUpdate: NoAction)
+  customer         users?            @relation("customer_conversations", fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  expert           users?            @relation("expert_conversations", fields: [expert_id], references: [id], onUpdate: NoAction)
+  my_plants        my_plants?        @relation(fields: [related_plant_id], references: [id], onUpdate: NoAction)
+  expert_messages  expert_messages[]
+}
+
+model expert_messages {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id      String?               @db.Uuid
+  sender_id            String?               @db.Uuid
+  content              String?
+  image_urls           Json?
+  is_read              Boolean?              @default(false)
+  created_at           DateTime?             @default(now()) @db.Timestamp(6)
+  client_message_id    String?               @db.VarChar(64)
+  is_deleted           Boolean?              @default(false)
+  updated_at           DateTime?             @db.Timestamp(6)
+  edited_at            DateTime?             @db.Timestamp(6)
+  deleted_at           DateTime?             @db.Timestamp(6)
+  expert_conversations expert_conversations? @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                users?                @relation(fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model notifications {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  type       String    @db.VarChar(50)
+  title      String    @db.VarChar(200)
+  body       String?
+  data       Json?
+  is_read    Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, is_read, created_at(sort: Desc)], map: "idx_notifications_user_read")
 }

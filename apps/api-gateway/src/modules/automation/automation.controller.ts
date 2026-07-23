@@ -3,69 +3,81 @@ import {
   JwtPayload,
   MICROSERVICES_CLIENTS,
   Permissions,
+  RefreshAutomationByPlantDto,
   UpdateAutomationRulesBodyDto,
   UpdateAutomationRulesDto,
 } from '@app/common';
-import { AnalyzeSeasonalConfigDto } from '@app/common/dtos/telemetry/analyze-seasonal-config.dto';
 import { Permission } from '@app/common/enums';
 import { GrpcRpcService } from '@app/grpc';
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
-  ApiAnalyzeSeasonalConfigDocs,
-  ApiGetZoneAutomationRulesDocs,
+  ApiActivateAutomationRuleDocs,
+  ApiDeleteAutomationRuleDocs,
+  ApiRefreshAutomationByPlantDocs,
   ApiUpdateAutomationRulesDocs,
-} from '../garden/zones/zones.swagger';
+} from './automation.swagger';
 
-@ApiTags('17 - Automation')
+@ApiTags('08 - Automation')
 @ApiBearerAuth('access-token')
 @Controller('automation')
 export class AutomationController {
   constructor(private readonly grpcRpc: GrpcRpcService) {}
 
-  @Get('zones/:id/rules')
-  @Permissions(Permission.ZoneRead)
-  @ApiGetZoneAutomationRulesDocs()
-  getZoneAutomationRules(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.grpcRpc.send(
-      MICROSERVICES_CLIENTS.BALCONY_SERVICE,
-      'get_zone_automation_rules',
-      { zone_id: id, user_id: user.sub },
-    );
-  }
-
-  @Patch('zones/:id/rules')
+  @Patch('devices/:deviceId/relays/:relayPort')
+  @Permissions(Permission.MeDeviceControl)
   @ApiUpdateAutomationRulesDocs()
   updateAutomationRules(
-    @Param('id') id: string,
+    @Param('deviceId') deviceId: string,
+    @Param('relayPort') relayPort: string,
     @Body() body: UpdateAutomationRulesBodyDto,
     @CurrentUser() user: JwtPayload,
   ) {
     const payload: UpdateAutomationRulesDto = {
-      zone_id: id,
+      device_id: deviceId,
+      relay_port: Number(relayPort),
       user_id: user.sub,
       logic: body.logic,
     };
     return this.grpcRpc.send(
-      MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE,
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
       'update_automation_rules',
       payload,
     );
   }
 
-  @Post('zones/analyze')
-  @ApiAnalyzeSeasonalConfigDocs()
-  analyzeSeasonalConfig(@Body() body: AnalyzeSeasonalConfigDto) {
+  @Post('plants/:plantId/refresh')
+  @Permissions(Permission.MeDeviceControl)
+  @ApiRefreshAutomationByPlantDocs()
+  refreshByPlant(@Param('plantId') plantId: string, @CurrentUser() user: JwtPayload) {
+    const payload: RefreshAutomationByPlantDto = {
+      plant_id: plantId,
+      user_id: user.sub,
+    };
     return this.grpcRpc.send(
-      MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE,
-      'analyze_seasonal_config',
-      {
-        zoneId: body.zoneId,
-        days: body.days,
-      },
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
+      'refresh_automation_by_plant',
+      payload,
     );
+  }
+
+  @Post('rules/:ruleId/activate')
+  @Permissions(Permission.MeDeviceControl)
+  @ApiActivateAutomationRuleDocs()
+  activateRule(@Param('ruleId') ruleId: string, @CurrentUser() user: JwtPayload) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'activate_automation_rule', {
+      rule_id: ruleId,
+      user_id: user.sub,
+    });
+  }
+
+  @Delete('rules/:ruleId')
+  @Permissions(Permission.MeDeviceControl)
+  @ApiDeleteAutomationRuleDocs()
+  deleteRule(@Param('ruleId') ruleId: string, @CurrentUser() user: JwtPayload) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'delete_automation_rule', {
+      rule_id: ruleId,
+      user_id: user.sub,
+    });
   }
 }

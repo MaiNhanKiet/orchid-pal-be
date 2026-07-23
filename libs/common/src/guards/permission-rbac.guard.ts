@@ -6,7 +6,25 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY, IS_PUBLIC_KEY } from '../decorators';
+import { Role } from '../enums/role.enum';
+import { Permission } from '../enums/permission.enum';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { RbacService } from '../rbac/rbac.service';
+
+const AUDIT_VIEWER_ROLES = new Set<string>([
+  Role.SuperAdmin,
+  Role.SystemAdmin,
+  Role.Auditor,
+]);
+
+function normalizeJwtRoles(role: JwtPayload['role'] | string | undefined): string[] {
+  if (!role) return [];
+  const list = Array.isArray(role) ? role : [role];
+  return list
+    .flatMap((value) => String(value).split(','))
+    .map((value) => value.trim().toUpperCase().replace(/^ROLE_/, ''))
+    .filter(Boolean);
+}
 
 @Injectable()
 export class PermissionRbacGuard implements CanActivate {
@@ -16,7 +34,6 @@ export class PermissionRbacGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Kiểm tra nếu là route public thì bỏ qua
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -26,24 +43,38 @@ export class PermissionRbacGuard implements CanActivate {
       return true;
     }
 
-    // Lấy các permissions yêu cầu từ metadata của route
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
 
-    // Nếu không có permissions yêu cầu, cho phép truy cập
     if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
 
-    // Lấy thông tin user từ request, sau khi đã được xác thực bởi JWT Auth Guard
-    const user = context.switchToHttp().getRequest().user;
-    if (!user || !user.role) {
+    const user = context.switchToHttp().getRequest().user as JwtPayload | undefined;
+    const roles = normalizeJwtRoles(user?.role);
+
+    if (!user?.sub || roles.length === 0) {
       throw new UnauthorizedException('Không có quyền truy cập');
     }
 
-    // Lấy permissions của user từ DB
+    if (roles.includes(Role.SuperAdmin)) {
+      return true;
+    }
+
+    const isAuditPermission = requiredPermissions.every((permission) =>
+      [Permission.SysViewLogs, Permission.SysAccessDashboard].includes(
+        permission as Permission,
+      ),
+    );
+    if (
+      isAuditPermission &&
+      roles.some((role) => AUDIT_VIEWER_ROLES.has(role))
+    ) {
+      return true;
+    }
+
     const userPermissions = await this.rbacService.getPermissionsByUserId(
       user.sub,
     );
@@ -51,7 +82,6 @@ export class PermissionRbacGuard implements CanActivate {
       throw new UnauthorizedException('Không có quyền truy cập');
     }
 
-    // Kiểm tra user có permission phù hợp không
     const userPermissionSlugs = new Set(userPermissions.map((p) => p.slug));
 
     const hasPermission = requiredPermissions.some((permission) =>

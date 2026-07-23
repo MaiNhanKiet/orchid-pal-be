@@ -87,7 +87,6 @@ orchid-pal-be/
 │           ├── redis.module.ts
 │           └── redis.service.ts
 │
-├── docker-compose.yml                 # Docker compose config
 ├── package.json
 ├── nest-cli.json
 ├── tsconfig.json
@@ -268,21 +267,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 4. Log và return formatted error
   }
 }
-```
-
----
-
-## 🐳 Docker Setup
-
-```bash
-# Khởi động infrastructure
-docker-compose up -d
-
-# Xem logs
-docker-compose logs -f
-
-# Dừng services
-docker-compose down
 ```
 
 ---

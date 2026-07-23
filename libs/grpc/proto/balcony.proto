@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package balcony;
-
-import "common.proto";
-
-service BalconyService {
-  rpc Invoke (common.InvokeRequest) returns (common.InvokeResponse);
-}

@@ -1,0 +1,138 @@
+# OrchidPal NestJS apps — one Compose for Arcane + local
+#
+# Arcane: dán file này + .env (PULL_POLICY=always hoặc bỏ — default always)
+# Local:  .env có PULL_POLICY=never + image đã build/pull
+#
+# Push images: cd orchid-pal-be && DOCKER_USERNAME=kietmn npm run docker:release
+
+name: orchidpal-apps
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-common-environment: &common-environment
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL}
+  MONGODB_URI: ${MONGODB_URI}
+  REDIS_URL: ${REDIS_URL}
+  RABBITMQ_USER: ${RABBITMQ_USER}
+  RABBITMQ_PASS: ${RABBITMQ_PASS}
+  RABBITMQ_HOST: ${RABBITMQ_HOST}
+  RABBITMQ_PORT: ${RABBITMQ_PORT}
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-orchidpal}
+  JWT_SECRET: ${JWT_SECRET:-}
+  JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET}
+  JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET}
+  JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION}
+  JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION}
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-}
+  IDENTITY_SERVICE_HOST: ${IDENTITY_SERVICE_HOST}
+  IDENTITY_SERVICE_PORT: ${IDENTITY_SERVICE_PORT}
+  PLANT_SERVICE_HOST: ${PLANT_SERVICE_HOST}
+  PLANT_SERVICE_PORT: ${PLANT_SERVICE_PORT}
+  FRONTEND_URL: ${FRONTEND_URL}
+
+services:
+  api-gateway:
+    image: ${DOCKER_USERNAME}/orchidpal-api-gateway:${IMAGE_TAG:-latest}
+    pull_policy: ${PULL_POLICY:-always}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${API_GATEWAY_PUBLIC_PORT:-3000}:${API_GATEWAY_PORT:-3000}"
+    environment:
+      <<: *common-environment
+      API_GATEWAY_PORT: ${API_GATEWAY_PORT}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    networks:
+      - orchidpal
+    depends_on:
+      - identity-service
+      - plant-service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:'+(process.env.API_GATEWAY_PORT||3000)+'/docs',r=>process.exit(r.statusCode&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging: *default-logging
+
+  identity-service:
+    image: ${DOCKER_USERNAME}/orchidpal-identity-service:${IMAGE_TAG:-latest}
+    pull_policy: ${PULL_POLICY:-always}
+    restart: unless-stopped
+    init: true
+    expose:
+      - "${IDENTITY_SERVICE_PORT:-3001}"
+    environment:
+      <<: *common-environment
+      IDENTITY_SERVICE_PORT: ${IDENTITY_SERVICE_PORT}
+      DEFAULT_USER_ROLE: ${DEFAULT_USER_ROLE}
+    networks:
+      - orchidpal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const n=require('net');const p=Number(process.env.IDENTITY_SERVICE_PORT||3001);const s=n.connect(p,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),4000)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  plant-service:
+    image: ${DOCKER_USERNAME}/orchidpal-plant-service:${IMAGE_TAG:-latest}
+    pull_policy: ${PULL_POLICY:-always}
+    restart: unless-stopped
+    init: true
+    expose:
+      - "${PLANT_SERVICE_PORT:-3002}"
+    environment:
+      <<: *common-environment
+      PLANT_SERVICE_PORT: ${PLANT_SERVICE_PORT}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL}
+      MQTT_BROKER_USERNAME: ${MQTT_BROKER_USERNAME}
+      MQTT_BROKER_PASSWORD: ${MQTT_BROKER_PASSWORD}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    networks:
+      - orchidpal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const n=require('net');const p=Number(process.env.PLANT_SERVICE_PORT||3002);const s=n.connect(p,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),4000)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging: *default-logging
+
+networks:
+  orchidpal:
+    name: orchidpal-apps-network
+    driver: bridge

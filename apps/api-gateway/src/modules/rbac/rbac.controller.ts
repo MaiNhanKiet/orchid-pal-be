@@ -3,7 +3,6 @@ import {
   IdDto,
   MICROSERVICES_CLIENTS,
   Permissions,
-  Public,
   UpdateRoleDto,
 } from '@app/common';
 import { GrpcRpcService } from '@app/grpc';
@@ -35,7 +34,6 @@ import {
 @ApiTags('03 - RBAC')
 @ApiBearerAuth('access-token')
 @Controller('rbac')
-@Public()
 export class RbacController {
   constructor(private readonly grpcRpc: GrpcRpcService) {}
 

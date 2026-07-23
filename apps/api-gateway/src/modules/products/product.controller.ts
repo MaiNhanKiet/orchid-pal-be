@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Inject,
   Param,
   Post,
   Put,
@@ -14,79 +13,86 @@ import {
   MICROSERVICES_CLIENTS,
   PaginationDto,
   Permissions,
+  Public,
   UuidDto,
 } from '@app/common';
 import { GrpcRpcService } from '@app/grpc';
 import { Permission } from '@app/common/enums';
-import { Public } from '@app/common';
 import {
   CreateProductDto,
   UpdateProductDto,
 } from '@app/common/dtos/catalog/product.dto';
-import { AddDevicesToProductDto } from '@app/common/dtos/device/device.dto';
-import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { ProvisionDevicesDto } from '@app/common/dtos/device/device.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
+  ApiCreateProductDocs,
+  ApiDeleteProductDocs,
   ApiGetAllProductsDocs,
   ApiGetProductByIdDocs,
-  ApiCreateProductDocs,
+  ApiProvisionDevicesDocs,
   ApiUpdateProductDocs,
-  ApiDeleteProductDocs,
-  ApiAddDevicesToProductDocs,
 } from './product.swagger';
 
 @ApiTags('04 - Products')
 @ApiBearerAuth('access-token')
 @Controller('products')
-// @Public()
 export class ProductsController {
   constructor(private readonly grpcRpc: GrpcRpcService) {}
 
-  @Get('')
-  // @Permissions(Permission.ProductView)
+  @Get()
+  @Public()
   @ApiGetAllProductsDocs()
-  @Public()
-  async getAllProducts(@Query() pagination: PaginationDto) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_all_products', pagination);
+  getAllProducts(@Query() pagination: PaginationDto) {
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
+      'get_all_products',
+      pagination,
+    );
   }
 
-  @Get('/:id')
-  // @Permissions(Permission.ProductView)
+  @Get(':id')
+  @Public()
   @ApiGetProductByIdDocs()
-  @Public()
-  async getProductById(@Param() id: UuidDto) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'get_product_by_id', id);
+  getProductById(@Param() id: UuidDto) {
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
+      'get_product_by_id',
+      id,
+    );
   }
 
-  @Post('')
-  // @Permissions(Permission.ProductCreate)
+  @Post()
+  @Permissions(Permission.ProductCreate)
   @ApiCreateProductDocs()
-  async createProduct(@Body() data: CreateProductDto) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'create_product', data);
+  createProduct(@Body() data: CreateProductDto) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'create_product', data);
   }
 
-  @Put('/:id')
-  // @Permissions(Permission.ProductUpdate)
+  @Put(':id')
+  @Permissions(Permission.ProductUpdate)
   @ApiUpdateProductDocs()
-  async updateProduct(@Param() id: UuidDto, @Body() data: UpdateProductDto) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'update_product', { id, data });
+  updateProduct(@Param() id: UuidDto, @Body() data: UpdateProductDto) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'update_product', {
+      id,
+      data,
+    });
   }
 
-  @Delete('/:id')
-  // @Permissions(Permission.ProductDelete)
+  @Delete(':id')
+  @Permissions(Permission.ProductDelete)
   @ApiDeleteProductDocs()
-  async deleteProduct(@Param() id: UuidDto) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'delete_product', id);
+  deleteProduct(@Param() id: UuidDto) {
+    return this.grpcRpc.send(MICROSERVICES_CLIENTS.PLANT_SERVICE, 'delete_product', id);
   }
 
-  @Post('/:id/devices')
-  // @Permissions(Permission.ProductUpdate)
-  @ApiAddDevicesToProductDocs()
-  async addDevicesToProduct(
-    @Param() { id }: UuidDto,
-    @Body() dto: AddDevicesToProductDto,
-  ) {
-    return await this.grpcRpc.send(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE, 'add_devices_to_product', { productId: id, secretKey: dto.secretKey, quantity: dto.quantity });
+  @Post('provision-devices')
+  @Permissions(Permission.DeviceProvision)
+  @ApiProvisionDevicesDocs()
+  provisionDevices(@Body() dto: ProvisionDevicesDto) {
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
+      'provision_devices',
+      dto,
+    );
   }
 }

@@ -1,11 +1,9 @@
-import { MICROSERVICES_CLIENTS } from '@app/common';
+import { MICROSERVICES_CLIENTS, parseRpcErrorPayload } from '@app/common';
 import {
-  BALCONY_SERVICE_PORT,
-  ECOMMERCE_SERVICE_PORT,
   IDENTITY_SERVICE_PORT,
-  IOT_ENGINE_SERVICE_PORT,
+  PLANT_SERVICE_PORT,
 } from '@app/common/constants/env-key.constant';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -26,12 +24,8 @@ export class GrpcRpcService implements OnModuleInit {
   constructor(
     @Inject(MICROSERVICES_CLIENTS.IDENTITY_SERVICE)
     private readonly identityClient: ClientGrpc,
-    @Inject(MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE)
-    private readonly ecommerceClient: ClientGrpc,
-    @Inject(MICROSERVICES_CLIENTS.BALCONY_SERVICE)
-    private readonly balconyClient: ClientGrpc,
-    @Inject(MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE)
-    private readonly iotClient: ClientGrpc,
+    @Inject(MICROSERVICES_CLIENTS.PLANT_SERVICE)
+    private readonly plantClient: ClientGrpc,
   ) {}
 
   onModuleInit() {
@@ -42,20 +36,8 @@ export class GrpcRpcService implements OnModuleInit {
       ),
     );
     this.services.set(
-      MICROSERVICES_CLIENTS.ECOMMERCE_SERVICE,
-      this.ecommerceClient.getService<GrpcInvokeClient>(
-        GRPC_SERVICE_NAMES.ECOMMERCE,
-      ),
-    );
-    this.services.set(
-      MICROSERVICES_CLIENTS.BALCONY_SERVICE,
-      this.balconyClient.getService<GrpcInvokeClient>(
-        GRPC_SERVICE_NAMES.BALCONY,
-      ),
-    );
-    this.services.set(
-      MICROSERVICES_CLIENTS.IOT_ENGINE_SERVICE,
-      this.iotClient.getService<GrpcInvokeClient>(GRPC_SERVICE_NAMES.IOT),
+      MICROSERVICES_CLIENTS.PLANT_SERVICE,
+      this.plantClient.getService<GrpcInvokeClient>(GRPC_SERVICE_NAMES.PLANT),
     );
   }
 
@@ -70,14 +52,96 @@ export class GrpcRpcService implements OnModuleInit {
         cmd,
         payload: JSON.stringify(payload ?? {}),
       }),
-    ).then((response) => {
-      if (!response?.payload) return null as T;
-      try {
-        return JSON.parse(response.payload) as T;
-      } catch {
-        return response.payload as T;
+    )
+      .then((response) => {
+        if (!response?.payload) return null as T;
+        try {
+          return JSON.parse(response.payload) as T;
+        } catch {
+          return response.payload as T;
+        }
+      })
+      .catch((error) => this.mapGrpcError(error));
+  }
+
+  private mapGrpcError(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    const err = error as {
+      details?: string;
+      message?: string;
+      error?: { statusCode?: number; status?: number; message?: string };
+    };
+
+    const nested = err?.error;
+    if (nested && typeof nested === 'object') {
+      const statusCode = Number(nested.statusCode ?? nested.status);
+      if (!Number.isNaN(statusCode) && statusCode >= 400) {
+        throw new HttpException(
+          nested.message ?? 'Microservice error',
+          statusCode,
+        );
       }
-    });
+    }
+
+    const candidates = [err?.details, err?.message].filter(Boolean) as string[];
+
+    for (const candidate of candidates) {
+      const fromJson = parseRpcErrorPayload(candidate);
+      if (fromJson) {
+        throw new HttpException(fromJson.message, fromJson.statusCode);
+      }
+    }
+
+    const raw = candidates[0] ?? 'Microservice error';
+    const message = String(raw).replace(/^\d+\s+[A-Z_]+:\s*/i, '').trim();
+    const status = this.inferHttpStatusFromMessage(message);
+
+    throw new HttpException(message || 'Microservice error', status);
+  }
+
+  private inferHttpStatusFromMessage(message: string): number {
+    const lower = message.toLowerCase();
+
+    if (
+      lower.includes('not found') ||
+      lower.includes('không tồn tại') ||
+      lower.includes('không tìm thấy')
+    ) {
+      return HttpStatus.NOT_FOUND;
+    }
+
+    if (
+      lower.includes('already') ||
+      lower.includes('exists') ||
+      lower.includes('đã được kích hoạt') ||
+      lower.includes('đã có chủ') ||
+      lower.includes('đã tồn tại') ||
+      lower.includes('đã gắn')
+    ) {
+      return HttpStatus.CONFLICT;
+    }
+
+    if (
+      lower.includes('cannot') ||
+      lower.includes('must') ||
+      lower.includes('invalid') ||
+      lower.includes('required') ||
+      lower.includes('không đúng') ||
+      lower.includes('bắt buộc') ||
+      lower.includes('không hợp lệ') ||
+      lower.includes('vi phạm')
+    ) {
+      return HttpStatus.BAD_REQUEST;
+    }
+
+    if (lower.includes('forbidden') || lower.includes('không sở hữu')) {
+      return HttpStatus.FORBIDDEN;
+    }
+
+    return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 }
 
@@ -93,12 +157,7 @@ export function getGrpcClientUrl(
 export const GRPC_CLIENT_URLS = {
   identity: () =>
     getGrpcClientUrl('IDENTITY_SERVICE_HOST', IDENTITY_SERVICE_PORT),
-  ecommerce: () =>
-    getGrpcClientUrl('ECOMMERCE_SERVICE_HOST', ECOMMERCE_SERVICE_PORT),
-  balcony: () =>
-    getGrpcClientUrl('BALCONY_SERVICE_HOST', BALCONY_SERVICE_PORT),
-  iot: () =>
-    getGrpcClientUrl('IOT_ENGINE_SERVICE_HOST', IOT_ENGINE_SERVICE_PORT),
+  plant: () => getGrpcClientUrl('PLANT_SERVICE_HOST', PLANT_SERVICE_PORT),
 };
 
 export { GRPC_PACKAGES, GRPC_SERVICE_NAMES };

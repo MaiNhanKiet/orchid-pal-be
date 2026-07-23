@@ -6,6 +6,40 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
+import {
+  AUTH_ERROR_CODES,
+  extractAuthErrorCode,
+  getAuthErrorRedirectUrl,
+} from '@app/common/constants/auth.constants';
+import { resolveFrontendOrigin } from '../resolve-frontend-redirect';
+
+function decodeOAuthState(rawState?: string) {
+  if (!rawState) {
+    return {
+      platform: 'web',
+      appRedirect: undefined as string | undefined,
+    };
+  }
+
+  try {
+    const decoded = JSON.parse(
+      Buffer.from(rawState, 'base64url').toString('utf-8'),
+    ) as {
+      platform?: string;
+      appRedirect?: string;
+    };
+
+    return {
+      platform: decoded.platform || 'web',
+      appRedirect: decoded.appRedirect,
+    };
+  } catch {
+    return {
+      platform: rawState,
+      appRedirect: undefined as string | undefined,
+    };
+  }
+}
 
 @Injectable()
 export class GoogleOauthGuard extends AuthGuard('google') {
@@ -40,39 +74,37 @@ export class GoogleOauthGuard extends AuthGuard('google') {
 
     const req = context.switchToHttp().getRequest<Request>();
     const res = context.switchToHttp().getResponse<Response>();
+    const { platform, appRedirect } = decodeOAuthState(
+      req.query.state as string | undefined,
+    );
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || '';
-    const rawState = req.query.state as string;
-
-    let platform = 'web';
-    let appRedirect: string;
-
-    if (rawState) {
-      try {
-        const decoded = JSON.parse(
-          Buffer.from(rawState, 'base64url').toString('utf-8'),
-        ) as {
-          platform?: string;
-          appRedirect?: string;
-        };
-        platform = decoded.platform || 'web';
-        appRedirect = decoded.appRedirect;
-      } catch {
-        platform = rawState;
-      }
+    if (platform === 'mobile' && appRedirect) {
+      const redirect = new URL(appRedirect);
+      redirect.searchParams.set('status', 'cancelled');
+      return res.redirect(redirect.toString());
     }
 
-    if (platform === 'mobile') {
-      const target = appRedirect;
-      if (target) {
-        const redirect = new URL(target);
-        redirect.searchParams.set('status', 'cancelled');
-        return res.redirect(redirect.toString());
-      }
+    const configuredFrontend =
+      this.configService.get<string>('FRONTEND_URL') || '';
+    const frontendUrl = resolveFrontendOrigin(
+      configuredFrontend,
+      appRedirect,
+    );
+    const message = extractAuthErrorCode(err);
+    const authRedirect = getAuthErrorRedirectUrl(frontendUrl, message);
+    if (authRedirect) {
+      return res.redirect(authRedirect);
     }
+
+    const status =
+      message === AUTH_ERROR_CODES.GOOGLE_AUTH_CANCELLED
+        ? 'cancelled'
+        : 'auth_failed';
 
     if (err || !user) {
-      throw new UnauthorizedException('GOOGLE_AUTH_CANCELLED');
+      return res.redirect(`${frontendUrl}/login?status=${status}`);
     }
+
+    throw new UnauthorizedException(AUTH_ERROR_CODES.GOOGLE_AUTH_CANCELLED);
   }
 }

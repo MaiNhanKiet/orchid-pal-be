@@ -17,14 +17,13 @@ lerna-debug.log*
 
 # Optional: Environment variables
 .env
-.env.docker
 .ci-home/
-.docker-config/
 .cache/
 .env.local
 .env.development
 .env.test
 .env.production
+.env*.local
 
 # Editors/OS
 .idea
@@ -51,5 +50,9 @@ lcov.info
 /scripts/*
 !/scripts/*.js
 !/scripts/*.sh
+!/scripts/check-container-env.sh
 
-/docs
+# Keep deployment docs tracked
+/docs/*
+!/docs/**/
+!/docs/**/*.md

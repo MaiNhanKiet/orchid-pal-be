@@ -1,7 +1,7 @@
 import {
   AssignRoleDto,
-  GoogleLoginDto,
   PaginationDto,
+  RemoveRoleDto,
   UuidDto,
 } from '@app/common';
 import { GrpcCmd } from '@app/grpc';
@@ -15,20 +15,45 @@ export class UsersController {
 
   @GrpcCmd('get_users')
   async getUsers(@Payload() paginationDto: PaginationDto) {
-    const users = await this.usersService.findAll({
-      ...paginationDto,
-    });
-    return users;
+    return this.usersService.findAll({ ...paginationDto });
   }
 
   @GrpcCmd('ban_user')
   async banUser(@Payload() uuidDto: UuidDto) {
-    const user = await this.usersService.banUser({ ...uuidDto });
-    return user;
+    return this.usersService.banUser({ ...uuidDto });
+  }
+
+  @GrpcCmd('unban_user')
+  async unbanUser(@Payload() uuidDto: UuidDto) {
+    return this.usersService.unbanUser({ ...uuidDto });
   }
 
   @GrpcCmd('assign_role')
   assignRole(@Payload() assignRoleDto: AssignRoleDto) {
     return this.usersService.assignRole({ ...assignRoleDto });
+  }
+
+  @GrpcCmd('remove_role')
+  removeRole(@Payload() removeRoleDto: RemoveRoleDto) {
+    return this.usersService.removeRole({ ...removeRoleDto });
+  }
+
+  @GrpcCmd('get_profile')
+  getProfile(@Payload() payload: { userId: string }) {
+    return this.usersService.getProfile({ userId: payload.userId });
+  }
+
+  @GrpcCmd('update_profile')
+  updateProfile(
+    @Payload()
+    payload: {
+      userId: string;
+      full_name?: string;
+      phone?: string;
+      avatar_url?: string;
+      preferences?: Record<string, unknown>;
+    },
+  ) {
+    return this.usersService.updateProfile(payload);
   }
 }

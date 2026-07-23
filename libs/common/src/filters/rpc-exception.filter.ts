@@ -1,27 +1,30 @@
 import {
-  Catch,
-  RpcExceptionFilter,
   ArgumentsHost,
-  Logger,
-  HttpStatus,
+  Catch,
   HttpException,
+  HttpStatus,
+  Logger,
+  RpcExceptionFilter,
 } from '@nestjs/common';
-import { Observable, throwError } from 'rxjs';
 import { RpcException } from '@nestjs/microservices';
 import { Prisma } from '@prisma/client';
+import { Observable, throwError } from 'rxjs';
+import {
+  parseRpcErrorPayload,
+  RpcErrorPayload,
+  serializeRpcErrorPayload,
+} from '../constants/device.constants';
 
 @Catch()
 export class FitRpcExceptionFilter implements RpcExceptionFilter {
   private readonly logger = new Logger(FitRpcExceptionFilter.name);
 
   catch(exception: any, host: ArgumentsHost): Observable<any> {
-    // 1. Mặc định là lỗi 500
-    let errorResponse = {
+    let errorResponse: RpcErrorPayload = {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Internal Server Error',
     };
 
-    // 2. Xử lý lỗi của PRISMA
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       switch (exception.code) {
         case 'P2025':
@@ -56,33 +59,76 @@ export class FitRpcExceptionFilter implements RpcExceptionFilter {
           };
           break;
       }
-    }
-    // 3. Xử lý HttpException → tự động chuyển sang RpcException
-    else if (exception instanceof HttpException) {
-      const response = exception.getResponse();
-      errorResponse = {
-        statusCode: exception.getStatus(),
-        message:
-          typeof response === 'string'
-            ? response
-            : (response as any).message || exception.message,
-      };
-    }
-    // 4. Xử lý RpcException
-    else if (exception instanceof RpcException) {
-      const error = exception.getError();
-      errorResponse =
-        typeof error === 'string'
-          ? { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, message: error }
-          : (error as any);
-    }
-    // 5. Lỗi lạ khác
-    else {
+    } else if (exception instanceof HttpException) {
+      errorResponse = this.fromHttpException(exception);
+    } else if (exception instanceof RpcException) {
+      errorResponse = this.fromRpcException(exception);
+    } else {
       this.logger.error(exception);
-      if (exception.message) errorResponse.message = exception.message;
+      if (exception?.message) {
+        errorResponse.message = String(exception.message);
+      }
     }
 
-    // Gửi lỗi đã được đóng gói về Gateway
-    return throwError(() => new RpcException(errorResponse));
+    return throwError(() => new RpcException(serializeRpcErrorPayload(errorResponse)));
+  }
+
+  private fromHttpException(exception: HttpException): RpcErrorPayload {
+    const response = exception.getResponse();
+    const statusCode = exception.getStatus();
+    let message = exception.message;
+    let code: string | undefined;
+
+    if (typeof response === 'string') {
+      message = response;
+    } else if (typeof response === 'object' && response !== null) {
+      const body = response as {
+        message?: string | string[] | { message?: string; code?: string };
+        code?: string;
+        statusCode?: number;
+      };
+      if (typeof body.message === 'string') {
+        message = body.message;
+      } else if (Array.isArray(body.message)) {
+        message = String(body.message[0] ?? message);
+      } else if (
+        typeof body.message === 'object' &&
+        body.message !== null &&
+        typeof body.message.message === 'string'
+      ) {
+        message = body.message.message;
+        code = body.message.code ?? code;
+      }
+      if (typeof body.code === 'string') {
+        code = body.code;
+      }
+    }
+
+    return {
+      statusCode,
+      message: message || 'Error',
+      ...(code ? { code } : {}),
+    };
+  }
+
+  private fromRpcException(exception: RpcException): RpcErrorPayload {
+    const error = exception.getError();
+
+    if (typeof error === 'string') {
+      const parsed = parseRpcErrorPayload(error);
+      if (parsed) return parsed;
+
+      return {
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: error,
+      };
+    }
+
+    const payload = error as RpcErrorPayload;
+    return {
+      statusCode: Number(payload.statusCode ?? HttpStatus.INTERNAL_SERVER_ERROR),
+      message: payload.message ?? 'Microservice error',
+      code: payload.code,
+    };
   }
 }

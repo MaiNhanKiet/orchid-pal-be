@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package iot;
-
-import "common.proto";
-
-service IotEngineService {
-  rpc Invoke (common.InvokeRequest) returns (common.InvokeResponse);
-}

@@ -166,35 +166,26 @@ export function ApiGetLatestDeviceDocs() {
   );
 }
 
-export function ApiAssignDeviceToZoneDocs() {
+export function ApiAssignDeviceToPlantDocs() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Bước 5 - Gán thiết bị vào vườn (hoàn tất quy trình)',
+      summary: 'Gắn Kit vào cây (1:1)',
       description:
-        'Bước cuối trong quy trình kích hoạt, dùng để đưa thiết bị vào một vườn cụ thể.\n\n' +
-        'Trước khi gọi API này, hệ thống giả định rằng:\n' +
-        '- Bước 1: Thiết bị đã được kích hoạt và có `owner_id`.\n' +
-        '- Bước 2: Thiết bị đã từng ONLINE ít nhất một lần.\n' +
-        '- Bước 3: Người dùng đã tạo vườn (`zone_id`).\n' +
-        '- (Tuỳ chọn) Bước 4: Người dùng đã trồng cây (`my_plants`).\n\n' +
-        'API sẽ kiểm tra:\n' +
-        '- Thiết bị có tồn tại hay không.\n' +
-        '- `owner_id` của thiết bị có trùng với user hiện tại hay không.\n' +
-        'Nếu hợp lệ, hệ thống sẽ cập nhật `devices.zone_id` theo `zone_id` được gửi lên.\n\n' +
-        '**Khi thành công:** Thiết bị được gán vào vườn và quy trình kích hoạt được xem là hoàn tất.',
+        'Bước cuối kích hoạt: gán thiết bị vào đúng 1 cây. Mỗi cây chỉ có tối đa 1 Kit.\n\n' +
+        'Sau khi gắn, hệ thống tự tạo automation rules từ `ai_suggested_thresholds` của cây.',
     }),
     ApiAuthFailures(),
     ApiResponse({
       status: 200,
-      description: 'Gán thiết bị vào vườn thành công.',
+      description: 'Gắn Kit vào cây thành công.',
       schema: {
         example: {
-          message: 'Gán thiết bị vào vườn thành công',
+          message: 'Gắn Kit vào cây thành công',
           device: {
             id: '123e4567-e89b-12d3-a456-426614174000',
-            serial_number: 'SN-1234567890',
+            serial_number: 'GROWPAL-KIT-001',
             owner_id: '123e4567-e89b-12d3-a456-426614174001',
-            zone_id: '123e4567-e89b-12d3-a456-426614174100',
+            plant_id: '123e4567-e89b-12d3-a456-426614174100',
             status: 'ONLINE',
           },
         },
@@ -202,35 +193,21 @@ export function ApiAssignDeviceToZoneDocs() {
     }),
     ApiResponse({
       status: 400,
-      description: 'Dữ liệu không hợp lệ (zone_id không phải UUID, v.v.).',
-      schema: {
-        example: {
-          message: 'Bad Request',
-          errors: ['zone_id must be a UUID'],
-        },
-      },
+      description: 'Dữ liệu không hợp lệ (plant_id không phải UUID, cây đã có Kit, v.v.).',
     }),
     ApiResponse({
       status: 403,
       description: 'Thiết bị không thuộc về user hiện tại.',
-      schema: {
-        example: {
-          message: 'Bạn không có quyền gán thiết bị này vào vườn.',
-        },
-      },
     }),
     ApiResponse({
       status: 404,
-      description: 'Thiết bị không tồn tại.',
-      schema: {
-        example: {
-          message:
-            'Thiết bị không tồn tại. Vui lòng kiểm tra lại serial number.',
-        },
-      },
+      description: 'Thiết bị hoặc cây không tồn tại.',
     }),
   );
 }
+
+/** @deprecated */
+export const ApiAssignDeviceToZoneDocs = ApiAssignDeviceToPlantDocs;
 
 export function ApiControlDeviceDocs() {
   return applyDecorators(
@@ -435,6 +412,47 @@ export function ApiGetDeviceDetailDocs() {
 }
 
 /**
+ * API 4b: Admin gán Kit cho người dùng (Assign Device To User)
+ */
+export function ApiAssignDeviceToUserDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Admin - Gán Kit cho người dùng',
+      description:
+        'Gán quyền sở hữu Kit cho người dùng mà không cần quét QR.\n\n' +
+        '- Chỉ áp dụng khi Kit chưa có chủ (`owner_id = null`).\n' +
+        '- Trạng thái chuyển sang `OFFLINE` (chờ người dùng cấu hình WiFi).\n' +
+        '- Dùng sau khi `force-unbind` để gán lại Kit cho người dùng khác.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Gán Kit cho người dùng thành công.',
+      schema: {
+        example: {
+          message: 'Đã gán Kit cho người dùng',
+          device: {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            serial_number: 'GP-ESP32-001',
+            owner_id: '123e4567-e89b-12d3-a456-426614174001',
+            status: 'OFFLINE',
+            activated_at: '2025-01-01T12:34:56.789Z',
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Kit đã có chủ hoặc dữ liệu không hợp lệ.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Kit hoặc người dùng không tồn tại.',
+    }),
+  );
+}
+
+/**
  * API 4: Buộc thu hồi / Hủy liên kết thiết bị (Force Unbind Device)
  */
 export function ApiForceUnbindDeviceDocs() {
@@ -489,6 +507,33 @@ export function ApiGetDeviceLogsDocs() {
     ApiResponse({
       status: 200,
       description: 'Lấy danh sách log thành công.',
+    }),
+  );
+}
+
+export function ApiGetDeviceActivationQrDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy ảnh QR kích hoạt kit',
+      description:
+        'Trả về URL ảnh QR trên Cloudinary. Nếu kit chưa có ảnh, hệ thống sẽ generate, upload và lưu vào DB.',
+    }),
+    ApiAuthFailures(),
+    ApiResponse({
+      status: 200,
+      description: 'Lấy QR kích hoạt thành công.',
+      schema: {
+        example: {
+          device_id: '123e4567-e89b-12d3-a456-426614174000',
+          serial_number: 'GP-ESP32-001',
+          activation_payload: 'plantpal://activate?id=device-uuid&key=ABC123',
+          qr_image_url: 'https://res.cloudinary.com/demo/image/upload/v1/kit-qr/device-uuid.png',
+        },
+      },
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Thiết bị không tồn tại.',
     }),
   );
 }

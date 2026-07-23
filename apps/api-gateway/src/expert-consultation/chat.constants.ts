@@ -1,0 +1,9 @@
+export const CHAT_MAX_MESSAGE_LENGTH = 4000;
+export const CHAT_MAX_IMAGE_URLS = 5;
+export const CHAT_MAX_IMAGE_URL_LENGTH = 2048;
+export const CHAT_RATE_LIMIT_PER_SECOND = 5;
+export const CHAT_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+export const CHAT_ACTIVE_STATUSES = ['OPEN', 'IN_PROGRESS'] as const;
+export const CHAT_PENDING_STATUS = 'PENDING';
+export const CHAT_CLOSED_STATUS = 'CLOSED';
+export const ARCHIVE_RETENTION_DAYS = 7;

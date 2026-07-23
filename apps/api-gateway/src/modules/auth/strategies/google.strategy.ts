@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-google-oauth20';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MICROSERVICES_CLIENTS } from '@app/common/constants/microservice.constant';
 import { GrpcRpcService } from '@app/grpc';
@@ -23,14 +23,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
   async validate(
     req: Request,
-    accessToken: string,
-    refreshToken: string,
+    _accessToken: string,
+    _refreshToken: string,
     profile: any,
   ): Promise<any> {
     const { name, emails, photos } = profile;
     const deviceAgent = req.headers['user-agent'];
     const ipAddress =
       (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+
     const socialUser = {
       email: emails[0].value,
       firstName: name.givenName,
@@ -41,7 +42,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       ipAddress,
     };
 
-    const result = await this.grpcRpc.send(MICROSERVICES_CLIENTS.IDENTITY_SERVICE, 'google_login', socialUser);
-    return result;
+    return this.grpcRpc.send(
+      MICROSERVICES_CLIENTS.IDENTITY_SERVICE,
+      'google_login',
+      socialUser,
+    );
   }
 }
